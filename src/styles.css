@@ -1,0 +1,220 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-light: var(--gold-light);
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.11 0.012 85);
+  --foreground: oklch(0.96 0.012 90);
+  --card: oklch(0.16 0.016 85);
+  --card-foreground: oklch(0.96 0.012 90);
+  --popover: oklch(0.16 0.016 85);
+  --popover-foreground: oklch(0.96 0.012 90);
+  --primary: oklch(0.79 0.14 87);
+  --primary-foreground: oklch(0.14 0.01 85);
+  --secondary: oklch(0.22 0.02 85);
+  --secondary-foreground: oklch(0.94 0.02 90);
+  --muted: oklch(0.22 0.015 85);
+  --muted-foreground: oklch(0.72 0.02 88);
+  --accent: oklch(0.26 0.035 85);
+  --accent-foreground: oklch(0.92 0.05 90);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.97 0.01 90);
+  --border: oklch(0.38 0.04 86 / 45%);
+  --input: oklch(0.32 0.025 86 / 60%);
+  --ring: oklch(0.79 0.14 87);
+  --gold: oklch(0.79 0.14 87);
+  --gold-deep: oklch(0.58 0.11 78);
+  --gold-light: oklch(0.92 0.08 95);
+  --gradient-gold: linear-gradient(
+    135deg,
+    var(--gold-deep),
+    var(--gold-light) 45%,
+    var(--gold) 70%,
+    var(--gold-deep)
+  );
+  --shadow-gold: 0 0 0 1px oklch(0.79 0.14 87 / 28%), 0 20px 60px -20px oklch(0.79 0.14 87 / 40%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(100% 100% at 50% 0%, oklch(0.22 0.04 85 / 25%) 0%, transparent 60%),
+      radial-gradient(80% 80% at 100% 100%, oklch(0.18 0.035 80 / 20%) 0%, transparent 50%),
+      radial-gradient(70% 70% at 0% 50%, oklch(0.16 0.025 82 / 15%) 0%, transparent 60%);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    position: relative;
+    min-height: 100vh;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+      radial-gradient(65rem 45rem at 50% -10%, oklch(0.79 0.14 87 / 16%), transparent 70%),
+      radial-gradient(45rem 35rem at 95% 20%, oklch(0.68 0.12 80 / 12%), transparent 60%),
+      radial-gradient(55rem 40rem at 5% 85%, oklch(0.58 0.11 78 / 14%), transparent 65%),
+      radial-gradient(35rem 25rem at 50% 50%, oklch(0.79 0.14 87 / 6%), transparent 75%);
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+}
+
+@utility text-gold-gradient {
+  background-image: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility surface-panel {
+  background: linear-gradient(160deg, oklch(0.22 0.014 85 / 90%), oklch(0.16 0.01 85 / 92%));
+  border: 1px solid oklch(0.79 0.14 87 / 18%);
+  border-radius: var(--radius-2xl);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility btn-gold {
+  background-image: var(--gradient-gold);
+  color: var(--primary-foreground);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-gold);
+  transition:
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  transform: translateZ(0);
+  &:hover {
+    transform: translateY(-1px) translateZ(0);
+    filter: brightness(1.08);
+  }
+  &:active {
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@utility gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, oklch(0.79 0.14 87 / 55%), transparent);
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg) translateZ(0);
+  }
+}
+@keyframes spin-reverse {
+  to {
+    transform: rotate(-360deg) translateZ(0);
+  }
+}
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.97) translateZ(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03) translateZ(0);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(0);
+  }
+}
+@keyframes sheen {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@utility animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+@utility animate-spin-reverse {
+  animation: spin-reverse 12s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+@utility animate-pulse-glow {
+  animation: pulse-glow 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+@utility animate-rise {
+  animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}

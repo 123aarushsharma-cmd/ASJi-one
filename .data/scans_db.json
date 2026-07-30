@@ -1,0 +1,2618 @@
+[
+  {
+    "id": "scan_44c704e873baa47c",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-30T02:19:19.063Z",
+    "target": "https://github.com/",
+    "score": 71,
+    "report": {
+      "target": "https://github.com/",
+      "originCountry": "United States (San Francisco, CA; Microsoft Corp subsidiary, .com TLD)",
+      "score": 71,
+      "summary": "GitHub demonstrates strong technical transport security, featuring HTTP Strict Transport Security (HSTS) with preload, a functional Content Security Policy (CSP), and a valid security.txt endpoint. However, significant privacy and cookie flag deficiencies exist, notably dropping the main session cookie _gh_sess without Secure or HttpOnly flags prior to user interaction. Furthermore, the unauthenticated landing page lacks a Consent Management Platform (CMP) and inline privacy notices adjacent to personal data collection fields, breaching ePrivacy Directive Art 5(3) and India DPDP Act 2023 Section 6.",
+      "evidence": [
+        "Session cookie '_gh_sess' set prior to consent with 'Secure=false' and 'HttpOnly=false', exposing session tokens to script access and plaintext transmission.",
+        "Tracking/functional cookie '_octo' set before consent without 'HttpOnly' flag.",
+        "No Consent Management Platform (CMP) or cookie banner detected on unauthenticated first request.",
+        "No explicit Privacy Policy link parsed directly in landing page DOM, despite endpoint returning HTTP 200 at /privacy.",
+        "Email and custom text input fields present on landing page without explicit notice of lawful basis or direct link to privacy statement.",
+        "Missing HTTP isolation security headers: Permissions-Policy, Cross-Origin-Opener-Policy (COOP), Cross-Origin-Resource-Policy (CORP), and Cross-Origin-Embedder-Policy (COEP).",
+        "Active security.txt located at canonical URL with HackerOne bug bounty integration (expires August 2026)."
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR & ePrivacy Directive",
+          "score": 68,
+          "note": "Violation of ePrivacy Directive Art 5(3) for non-essential cookies dropped prior to consent and GDPR Art 32 due to insecure cookie flags on '_gh_sess'."
+        },
+        {
+          "name": "US CCPA / CPRA",
+          "score": 75,
+          "note": "Missing explicit Notice at Collection immediately adjacent to landing page email input fields, though privacy policy exists at /privacy."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 65,
+          "note": "Breach of Section 6 notice requirements at data collection points and lack of published Data Protection Officer / Grievance Officer details on the landing page."
+        },
+        {
+          "name": "Brazil LGPD",
+          "score": 72,
+          "note": "Art 7 and Art 18 non-compliance due to pre-consent cookie placement and missing visible privacy disclosures during data intake."
+        },
+        {
+          "name": "UK GDPR",
+          "score": 68,
+          "note": "Non-compliance with UK PECR regarding pre-consent cookie dropping and missing explicit data subject rights notice on inputs."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Insecure Session Cookie Configuration (_gh_sess missing Secure and HttpOnly)",
+          "severity": "critical",
+          "detail": "The '_gh_sess' cookie is set on initial request with Secure=false and HttpOnly=false. Under GDPR Art 32 (Security of Processing), failing to protect session identifiers allows client-side XSS scripts or unencrypted channels to capture session attributes."
+        },
+        {
+          "title": "Non-Compliant Cookie Placement Prior to Consent",
+          "severity": "high",
+          "detail": "Cookies '_gh_sess' and '_octo' are stored on terminal equipment before rendering any consent choice, breaching ePrivacy Directive 2002/58/EC Art 5(3) and GDPR Art 6/7."
+        },
+        {
+          "title": "Unnoticed Personal Data Intake Forms",
+          "severity": "medium",
+          "detail": "Landing page contains email and scope text inputs without an adjacent Notice at Collection or link to privacy policy, violating CCPA § 1798.100 and India DPDP Act 2023 Section 6(1)."
+        },
+        {
+          "title": "Absence of Consent Management Platform (CMP)",
+          "severity": "high",
+          "detail": "No CMP script or banner was detected on initial page load, preventing global users from exercising valid prior consent or opt-out rights."
+        },
+        {
+          "title": "Missing Advanced Browser Isolation Headers",
+          "severity": "medium",
+          "detail": "Omission of Permissions-Policy, Cross-Origin-Opener-Policy (COOP), and Cross-Origin-Resource-Policy (CORP) leaves client browsers vulnerable to cross-origin data leaks and unauthorized API feature usage."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to €20,000,000 / 4% global annual turnover under GDPR; up to ₹250 Crore under India DPDP Act 2023",
+        "currency": "EUR / INR",
+        "rationale": "As a global service provider owned by Microsoft Corporation, GitHub processes vast volumes of EU and Indian user data. Failure to adhere to pre-consent cookie requirements (ePrivacy/GDPR) and mandatory DPDP Section 6 notices exposes the enterprise to upper-tier regulatory enforcement fines."
+      },
+      "remediation": [
+        {
+          "step": "Enforce 'Secure=true' and 'HttpOnly=true' flags on '_gh_sess' and '_octo' cookies immediately across all initial requests.",
+          "impact": "Mitigates cross-site scripting (XSS) session token theft and network manipulation risks.",
+          "effort": "Low"
+        },
+        {
+          "step": "Deploy a regionalized Consent Management Platform (CMP) to block non-essential cookies prior to affirmative consent.",
+          "impact": "Ensures full compliance with ePrivacy Directive Art 5(3) and GDPR Art 7.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Add explicit Notice at Collection links and privacy disclaimers directly adjacent to all email/text input forms.",
+          "impact": "Satisfies CCPA § 1798.100 and India DPDP Act Section 6 notice requirements.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement missing security headers: Permissions-Policy, Cross-Origin-Opener-Policy (COOP), COEP, and CORP.",
+          "impact": "Hardens cross-origin security architecture and browser sandbox isolation.",
+          "effort": "Low"
+        },
+        {
+          "step": "Publish explicit Data Protection Officer (DPO) and Grievance Officer contact details within privacy notices.",
+          "impact": "Fulfills India DPDP Act Section 13 and GDPR Art 37 statutory contact requirements.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-30T02:19:19.061Z",
+        "durationMs": 37915,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "5/12 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "3 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "0 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "12 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "4 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://github.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_d2cd47a54ee84dd0",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-30T02:11:43.049Z",
+    "target": "https://www.hostinger.com/",
+    "score": 46,
+    "report": {
+      "target": "https://www.hostinger.com/",
+      "originCountry": "Lithuania (EU) — Hostinger is headquartered in Kaunas, Lithuania (UAB Hostinger), operating under EU GDPR jurisdiction while serving a global customer base.",
+      "score": 46,
+      "summary": "Hostinger fails to enforce prior consent before setting tracking and experiment cookies, automatically initializing consent-related parameters like 'auto_filled_consent' prior to user action. The site drops cookies missing essential security attributes (Secure and HttpOnly flags omitted on 'hwebsites-exp-assignments' and '__cf_bm'), exposing session data to XSS and network interception. Additionally, the infrastructure lacks critical transport and content security headers (HSTS, CSP, X-Frame-Options) and executes unconsented third-party data transfers to US-based entities including Google and Amplitude.",
+      "evidence": [
+        "7 cookies dropped immediately on initial request prior to user consent interaction, including 'auto_filled_consent' and 'possible_opt_out_from_auto_consent'",
+        "Cookies 'hwebsites-exp-assignments' and '__cf_bm' set with Secure=false and HttpOnly=false over an active web session",
+        "Missing HTTP Strict-Transport-Security (HSTS) header on primary domain response",
+        "Missing Content-Security-Policy (CSP) and X-Frame-Options security headers",
+        "Third-party tracking scripts loaded on initial page request: Google Analytics/Tag Manager, Amplitude (cdn.amplitude.com), and Cloudflare Web Analytics",
+        "External fonts loaded from US-hosted server (fonts.googleapis.com) without consent barrier",
+        "Missing explicit CCPA/CPRA 'Do Not Sell or Share My Personal Information' direct link on landing page"
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR",
+          "score": 42,
+          "note": "Violates Art. 6 & 7 by dropping non-essential cookies pre-consent and auto-setting consent states; violates Art. 32 by omitting HSTS and CSP headers; violates Art. 44-49 via unvalidated US data transfers via Google and Amplitude."
+        },
+        {
+          "name": "EU ePrivacy Directive (2002/58/EC)",
+          "score": 38,
+          "note": "Violates Article 5(3) by placing tracking and experiment cookies ('hwebsites-exp-assignments') on user terminal equipment before obtaining freely given, explicit opt-in consent."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 50,
+          "note": "Fails Section 5 and Section 6 notice and consent mandates by tracking Indian data principals automatically without clear itemized consent notices upon initial landing."
+        },
+        {
+          "name": "UK GDPR / PECR",
+          "score": 44,
+          "note": "Breaches Regulation 6 of PECR due to non-essential cookie deployment before consent and failure to provide equal weight choices for opt-in/opt-out."
+        },
+        {
+          "name": "CCPA / CPRA (California)",
+          "score": 52,
+          "note": "Fails Cal. Civ. Code § 1798.135 requirements by lacking a explicit 'Do Not Sell or Share My Personal Information' link on the homepage prior to firing Amplitude and Google identifiers."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Automated Pre-Consent Tracking & Synthetic Consent Injection",
+          "severity": "critical",
+          "detail": "The site drops 'auto_filled_consent' and 'possible_opt_out_from_auto_consent' cookies on the first HTTP GET request before the user interacts with any CMP. Under EU GDPR Art. 7 and ePrivacy Art. 5(3), pre-selecting or auto-filling consent states is invalid and constitutes unlawful processing."
+        },
+        {
+          "title": "Insecure Cookie Configuration (Missing Secure & HttpOnly Flags)",
+          "severity": "high",
+          "detail": "Cookies 'hwebsites-exp-assignments' and '__cf_bm' are issued without the 'Secure' flag (allowing plaintext leakage over HTTP fallback) and without 'HttpOnly' flags, allowing client-side scripts to access cookie payloads via Document.cookie, raising severe XSS theft risks."
+        },
+        {
+          "title": "Absence of HSTS and Core Content Security Headers",
+          "severity": "high",
+          "detail": "The server omits Strict-Transport-Security (HSTS), Content-Security-Policy (CSP), X-Frame-Options, and Referrer-Policy headers. This exposes visitors to man-in-the-middle protocol downgrade attacks, clickjacking, and cross-site scripting risks violating GDPR Art. 32 security obligations."
+        },
+        {
+          "title": "Unconsented Cross-Border Data Transfer to US Third Parties",
+          "severity": "high",
+          "detail": "Requests are automatically dispatched to Google Tag Manager, Google Fonts (fonts.googleapis.com), and Amplitude (cdn.amplitude.com) prior to consent, transferring IP addresses and browser fingerprints to US infrastructure in breach of GDPR Chapter V."
+        },
+        {
+          "title": "Omitted SameSite Cookie Attributes",
+          "severity": "medium",
+          "detail": "All 7 initial cookies lack explicit SameSite directives ('SameSite=Unset'), defaulting to browser-dependent behavior and increasing exposure to Cross-Site Request Forgery (CSRF) vectors."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to €20,000,000 or 4% of global annual turnover (EU GDPR) / Up to ₹250 Crore (India DPDP)",
+        "currency": "EUR / INR",
+        "rationale": "Hostinger is an EU entity subject to direct enforcement by the Lithuanian State Data Protection Inspectorate (VDAI). Dropping non-essential tracking cookies pre-consent and processing analytics data without lawful basis exposes Hostinger to maximum statutory penalties under GDPR Art. 83(5) (up to 4% of global turnover) and DPDP Act Section 26 penalties for security and consent failures."
+      },
+      "remediation": [
+        {
+          "step": "Block all non-essential cookies and third-party scripts (Google Tag Manager, Amplitude, Google Fonts) prior to explicit user opt-in via a compliant CMP.",
+          "impact": "Eliminates core ePrivacy and GDPR Art. 6/7 non-compliance regarding pre-consent tracking.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Enable Strict-Transport-Security (HSTS) with includeSubDomains and preload directives on Cloudflare Edge.",
+          "impact": "Prevents SSL stripping and downgrade attacks, securing transport security under GDPR Art. 32.",
+          "effort": "Low"
+        },
+        {
+          "step": "Set Secure, HttpOnly, and SameSite=Lax (or Strict) attributes on all cookies, specifically fixing 'hwebsites-exp-assignments' and '__cf_bm'.",
+          "impact": "Mitigates XSS cookie hijacking and CSRF vulnerabilities.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement a robust Content Security Policy (CSP) header restricting script execution and font loads to trusted origins.",
+          "impact": "Protects against code injection, unauthorized data exfiltration, and cross-site scripting.",
+          "effort": "High"
+        },
+        {
+          "step": "Locally host Google Fonts on Hostinger infrastructure instead of pulling directly from fonts.googleapis.com.",
+          "impact": "Prevents unauthorized IP address transfer to US servers without prior user consent.",
+          "effort": "Low"
+        },
+        {
+          "step": "Add explicit footer links for 'Do Not Sell or Share My Personal Information' (CCPA) and DPDP Grievance Officer details.",
+          "impact": "Ensures full compliance with US state privacy regulations and Indian DPDP Act Section 13 requirements.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-30T02:11:43.048Z",
+        "durationMs": 28612,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://hostinger.com/ → https://www.hostinger.com/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/12 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "7 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "4 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "11 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.hostinger.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_f83268e9be38cda8",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-30T02:07:33.943Z",
+    "target": "https://example.com/",
+    "score": 68,
+    "report": {
+      "target": "https://example.com/",
+      "originCountry": "United States",
+      "score": 68,
+      "summary": "The target example.com serves as an IANA-reserved domain with an exemplary zero-tracking architecture, setting 0 cookies and executing 0 third-party tracking scripts. However, the site breaches fundamental transparency mandates under GDPR Article 13 and India DPDP Act 2023 Section 5 due to the complete absence of a Privacy Policy or legal notice. Additionally, the web server fails to emit baseline HTTP security headers including HSTS, CSP, and X-Frame-Options, leaving the infrastructure open to protocol downgrade and framing risks.",
+      "evidence": [
+        "HTTPS served with HTTP 200 OK via Cloudflare CDN infrastructure.",
+        "Cookies set on first request before consent: 0.",
+        "Third-party tracker/SDK signals: none detected; only 1 cross-reference to iana.org.",
+        "Personal-data input fields on landing page: none.",
+        "Privacy/legal links found: NONE FOUND.",
+        "Security headers missing: strict-transport-security, content-security-policy, x-frame-options, x-content-type-options, referrer-policy, permissions-policy.",
+        "Discovered Policy Endpoints: none; security.txt and robots.txt absent."
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR",
+          "score": 60,
+          "note": "Breaches Article 13 transparency principles due to missing Privacy Policy disclosing Cloudflare IP address log processing."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 55,
+          "note": "Breaches Section 5 (Notice requirement) and Section 13 (absence of designated Grievance Officer contact details)."
+        },
+        {
+          "name": "UK GDPR",
+          "score": 60,
+          "note": "Fails statutory fair processing notice requirements under Article 13 for public web traffic."
+        },
+        {
+          "name": "CCPA / CPRA",
+          "score": 70,
+          "note": "Non-compliant with explicit privacy link mandate, though no personal information is collected or sold."
+        },
+        {
+          "name": "ePrivacy Directive",
+          "score": 100,
+          "note": "Fully compliant with ePrivacy cookie consent rules; zero non-essential cookies or tracker SDKs deployed."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Missing Mandatory Privacy Policy and Legal Notices",
+          "severity": "high",
+          "detail": "No privacy policy endpoint was detected. Under GDPR Art 13 and DPDP Act 2023 s.5, controllers must inform visitors of passive log data collection (e.g., Cloudflare IP processing) and access rights."
+        },
+        {
+          "title": "Absence of HTTP Strict-Transport-Security (HSTS)",
+          "severity": "medium",
+          "detail": "The response lacks an HSTS header. Browsers are not instructed to enforce HTTPS strictly, enabling potential SSL stripping or man-in-the-middle attacks on initial requests."
+        },
+        {
+          "title": "Missing Content-Security-Policy (CSP) & Frame Protections",
+          "severity": "medium",
+          "detail": "Lacks CSP and X-Frame-Options headers. The page can be embedded in arbitrary third-party iframes, introducing potential clickjacking exposure."
+        },
+        {
+          "title": "Absence of DPDP Act Grievance Officer Identification",
+          "severity": "medium",
+          "detail": "Section 13 of India's DPDP Act requires data fiduciaries to publish contact info for a Grievance Officer. No contact mechanism or grievance path exists."
+        },
+        {
+          "title": "Missing Vulnerability Disclosure Standard (security.txt)",
+          "severity": "low",
+          "detail": "No standard RFC 9116 security.txt file exists under /.well-known/security.txt, hindering security research reporting."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Low Direct Fine Risk (Nominal / Administrative Notice)",
+        "currency": "EUR",
+        "rationale": "Though GDPR max penalties reach EUR 20M/4% turnover and DPDP Act penalties reach INR 250 Crore, actual enforcement probability is negligible due to zero active commercial monetization, zero cookie tracking, and zero personal data form intake."
+      },
+      "remediation": [
+        {
+          "step": "Publish a accessible Privacy Notice detailing server connection log handling and data subject rights.",
+          "impact": "Satisfies GDPR Art 13, UK GDPR, and DPDP Act s.5 statutory requirements.",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure Strict-Transport-Security header (e.g., max-age=31536000; includeSubDomains; preload).",
+          "impact": "Enforces TLS encryption across all client visits.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement Content-Security-Policy and X-Frame-Options: DENY.",
+          "impact": "Prevents unauthorized framing and mitigates web UI tampering.",
+          "effort": "Low"
+        },
+        {
+          "step": "Set X-Content-Type-Options: nosniff and Referrer-Policy: strict-origin-when-cross-origin.",
+          "impact": "Prevents MIME-type sniffing and controls referrer exposure to external hosts like iana.org.",
+          "effort": "Low"
+        },
+        {
+          "step": "Publish Grievance Officer contact details and a vulnerability reporting file at /.well-known/security.txt.",
+          "impact": "Ensures DPDP Section 13 compliance and standardized security contact channels.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-30T02:07:33.942Z",
+        "durationMs": 19795,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "0/12 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "0 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "1 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "absent / absent"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://example.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_196d4016f545abd1",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-30T01:56:24.511Z",
+    "target": "https://www.asji.online/",
+    "score": 58,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (Inferred from company name 'ASJi Legal & Web Solutions', Indian legal/tech services profile, global generic TLD .online, and Vercel edge infrastructure)",
+      "score": 58,
+      "summary": "ASJi Legal & Web Solutions exhibits severe structural web security header deficiencies and unauthorized cross-border IP exposure via Google Fonts without user consent. The application serves an open wildcard CORS header ('Access-Control-Allow-Origin: *') and lacks fundamental browser protection headers including CSP, X-Frame-Options, and X-Content-Type-Options. Additionally, server misconfigurations exist where /robots.txt returns an HTML SPA document, and no static footer privacy links or Consent Management Platform (CMP) are rendered in the primary HTML payload.",
+      "evidence": [
+        "CORS header configured with unsafe wildcard access: Access-Control-Allow-Origin: *",
+        "Missing critical Content-Security-Policy (CSP) header and meta tag",
+        "Missing X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy security headers",
+        "Third-party remote connections to fonts.googleapis.com and fonts.gstatic.com executed pre-consent",
+        "No Consent Management Platform (CMP) or consent banner detected in initial HTML payload",
+        "Initial HTML DOM lacks static legal links in markup (rendered dynamically via client-side React bundle)",
+        "Endpoint /robots.txt serves HTTP 200 with <!doctype html> index SPA template instead of plain text directives"
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR (Regulation 2016/679)",
+          "score": 56,
+          "note": "Violation of Art. 6(1) and Art. 44 due to unconsented IP address transfer to US servers via Google Fonts pre-consent (Munich LG precedent), and Art. 32 failure to implement baseline technical security measures (CSP, frame options)."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 60,
+          "note": "Section 8(5) breach due to failure to adopt reasonable security safeguards against web application vulnerabilities, and Section 6 consent notice requirements not satisfied in static initial page render."
+        },
+        {
+          "name": "UK GDPR / Data Protection Act 2018",
+          "score": 58,
+          "note": "Breaches Article 6 lawfulness of processing and Article 32 security standards by missing essential headers and initiating third-party US host connections before consent."
+        },
+        {
+          "name": "ePrivacy Directive (2002/58/EC as amended)",
+          "score": 52,
+          "note": "Violation of Art. 5(3) by requesting third-party asset resources from Google servers that process terminal equipment metadata without prior opt-in consent."
+        },
+        {
+          "name": "California CCPA / CPRA",
+          "score": 64,
+          "note": "Failure to provide explicit Do Not Sell/Share or Privacy Policy notice on initial server-rendered HTML payload prior to third-party data transmission."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Unrestricted Wildcard Cross-Origin Resource Sharing (CORS)",
+          "severity": "high",
+          "detail": "The server returns 'Access-Control-Allow-Origin: *'. This allows arbitrary malicious domains to read cross-origin responses and interact with client-side application endpoints, breaching GDPR Art. 32 security requirements."
+        },
+        {
+          "title": "Unconsented Cross-Border Data Transfer via Google Fonts",
+          "severity": "high",
+          "detail": "HTML preconnects to fonts.googleapis.com and fonts.gstatic.com prior to user interaction, exposing client IP addresses to US servers in violation of GDPR Art. 6(1) and Art. 44."
+        },
+        {
+          "title": "Missing Content Security Policy (CSP) & Frame Protection",
+          "severity": "high",
+          "detail": "Absence of CSP, X-Frame-Options, and X-Content-Type-Options leaves the site vulnerable to Clickjacking, XSS injection, and MIME-type sniffing attacks, violating Section 8(5) of India DPDP Act 2023 and GDPR Art. 32."
+        },
+        {
+          "title": "Misconfigured /robots.txt Edge Route",
+          "severity": "medium",
+          "detail": "Requesting /robots.txt returns a 200 OK HTML Single Page Application document rather than a text/plain file, leading to search crawler indexation anomalies and infrastructure misconfiguration risks."
+        },
+        {
+          "title": "Missing Client-Side Consent Mechanism & Static Footer Disclosure",
+          "severity": "medium",
+          "detail": "No Consent Management Platform (CMP) banner is present in the initial DOM, and legal policy links depend entirely on client-side JavaScript execution, breaching ePrivacy Art. 5(3) and DPDP Sec. 6 notice rules."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to €20,000,000 or ₹250 Crore (Statutory Ceiling); Realistic Risk: €10,000 - €25,000",
+        "currency": "EUR / INR",
+        "rationale": "While maximum statutory penalties reach €20M under GDPR Art. 83(5) or ₹250 Crore under Schedule 1 of the India DPDP Act 2023 for security failures, realistic regulatory enforcement for a specialized web vendor would focus on binding corrective orders and administrative fines for unconsented Google Fonts transfers and CORS misconfigurations."
+      },
+      "remediation": [
+        {
+          "step": "Self-host Google Fonts locally by downloading font binaries to the /assets directory and removing external calls to fonts.googleapis.com.",
+          "impact": "Eliminates unauthorized US IP transfers and resolves CJEU / GDPR Art. 44 compliance violations.",
+          "effort": "Low"
+        },
+        {
+          "step": "Restrict or remove the wildcard 'Access-Control-Allow-Origin: *' header in Vercel configuration files (vercel.json).",
+          "impact": "Prevents unauthorized cross-origin data extraction and secures web application APIs.",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure missing security headers on Vercel including Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, and Referrer-Policy.",
+          "impact": "Mitigates XSS, Clickjacking, and MIME sniffing threats under GDPR Art. 32 and DPDP Act Section 8.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Fix Vercel route rewrites so /robots.txt serves a valid static text/plain file instead of the React SPA index.html catch-all route.",
+          "impact": "Ensures proper search engine indexing and eliminates routing misconfigurations.",
+          "effort": "Low"
+        },
+        {
+          "step": "Deploy an explicit Consent Management Platform (CMP) banner and render static fallback links to /privacy and /terms in the base HTML footer.",
+          "impact": "Fulfills DPDP Act Section 6 consent notice standards and ePrivacy Directive compliance.",
+          "effort": "Medium"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-30T01:56:24.510Z",
+        "durationMs": 23981,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/12 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_f3fd2807bee10be1",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-30T01:43:33.823Z",
+    "target": "https://www.asji.online/",
+    "score": 48,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (Inferred from brand 'ASJi Legal & Web Solutions', legal/tech service focus targeting Indian and cross-border clients, hosted on global Vercel CDN under .online TLD)",
+      "score": 48,
+      "summary": "ASJi Legal & Web Solutions exhibits severe client-side and server-level security header omissions alongside compliance gaps in third-party data transfers. The Vercel web server exposes a wildcard CORS header ('Access-Control-Allow-Origin: *') and lacks fundamental security headers such as Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options. Pre-hydration HTML preconnections to Google Fonts (fonts.googleapis.com) transfer visitor IP data to US servers prior to user consent. Additionally, route misconfigurations cause system files like robots.txt to render HTML SPA entrypoints.",
+      "evidence": [
+        "Server header confirms deployment on Vercel infrastructure returning 'Access-Control-Allow-Origin: *'.",
+        "Strict-Transport-Security is present with max-age=63072000, but Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy are missing.",
+        "HTML head contains preconnect links to 'https://fonts.googleapis.com' and 'https://fonts.gstatic.com' prior to user interaction or consent.",
+        "No Consent Management Platform (CMP) or cookie banner initialized in initial DOM or bundle load.",
+        "SPA DOM is rendered into an empty '<div id=\"root\"></div>' reliant on client-side JS bundle '/assets/index-Bt8ouA43.js'.",
+        "Discovered valid policy endpoints at 'https://www.asji.online/privacy' and 'https://www.asji.online/terms' (both returning HTTP 200 OK).",
+        "Robots directive route 'robots.txt' misconfigured to serve SPA HTML index page instead of plain text."
+      ],
+      "frameworks": [
+        {
+          "name": "GDPR (EU 2016/679)",
+          "score": 52,
+          "note": "Violates Art. 6(1)(a) and Art. 44 by initiating network connections to US Google Fonts servers before obtaining valid user consent, combined with absent consent banner."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 55,
+          "note": "Risk under Section 6 & Section 13 due to lack of immediate upfront consent notice and unverified Grievance Officer details in raw HTML payload."
+        },
+        {
+          "name": "UK GDPR / ePrivacy Regulations",
+          "score": 50,
+          "note": "Breaches PECR Regulation 6 by fetching third-party resources (fonts.gstatic.com) prior to capturing consent choices."
+        },
+        {
+          "name": "California Consumer Privacy Act (CCPA/CPRA)",
+          "score": 58,
+          "note": "Non-compliant with explicit initial DOM disclosure requirements under CalOPPA / CPRA § 1798.135 due to total reliance on client-side React rendering."
+        },
+        {
+          "name": "OWASP Security Headers Benchmark",
+          "score": 38,
+          "note": "Fails basic defense-in-depth standards due to missing CSP, clickjacking frame prevention, MIME-sniffing protection, and permissive CORS."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Wildcard Cross-Origin Resource Sharing (CORS)",
+          "severity": "high",
+          "detail": "The 'Access-Control-Allow-Origin: *' header permits any third-party domain to read resources from this site, risking potential API cross-origin data exposure."
+        },
+        {
+          "title": "Unconsented Third-Party US Data Transfers",
+          "severity": "medium",
+          "detail": "Preconnect tags to fonts.googleapis.com transmit client IP address and user-agent data to US infrastructure before consent is requested, breaching GDPR Art. 44."
+        },
+        {
+          "title": "Missing Content Security Policy (CSP)",
+          "severity": "high",
+          "detail": "The absence of 'content-security-policy' leaves the Single Page Application vulnerable to Cross-Site Scripting (XSS) and malicious script injection."
+        },
+        {
+          "title": "Missing Clickjacking Protections",
+          "severity": "medium",
+          "detail": "Absence of 'X-Frame-Options' and CSP 'frame-ancestors' directive allows the application to be embedded inside hostile iFrames."
+        },
+        {
+          "title": "Missing MIME-Sniffing Defense",
+          "severity": "medium",
+          "detail": "Lacks 'X-Content-Type-Options: nosniff' header, leaving browsers vulnerable to interpreting non-executable MIME types as executable code."
+        },
+        {
+          "title": "Server Route Fallback Misconfiguration",
+          "severity": "low",
+          "detail": "Requesting 'robots.txt' returns the main index.html document, which breaks automated compliance crawlers and reflects improper SPA rewrites."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to €20,000,000 (GDPR) / ₹250 Crore (India DPDP Act 2023)",
+        "currency": "EUR / INR",
+        "rationale": "Statutory ceiling for cross-border data transfer violations and failure to maintain reasonable security safeguards. Actual enforcement fine for an SME/agency would likely range between €2,500 and €15,000 depending on supervisory investigation."
+      },
+      "remediation": [
+        {
+          "step": "Restrict CORS wildcard in vercel.json by defining explicit, allowed origin domains.",
+          "impact": "Eliminates cross-origin access exposure risks.",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host font files locally or defer loading Google Fonts until explicit consent is given via CMP.",
+          "impact": "Achieves strict compliance with GDPR Art. 6 and Art. 44 regarding US transfers.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Inject security headers via Vercel configuration: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, and Referrer-Policy: strict-origin-when-cross-origin.",
+          "impact": "Protects users against XSS, clickjacking, and MIME-sniffing attacks.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Integrate an explicit Consent Management Platform (CMP) supporting GDPR and DPDP consent notices.",
+          "impact": "Ensures lawful basis for tracking and third-party script execution.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Configure static file routing rules in vercel.json so 'robots.txt' serves plain text instead of index.html fallback.",
+          "impact": "Restores correct search engine indexing and crawler directives.",
+          "effort": "Low"
+        },
+        {
+          "step": "Include static HTML fallback links to '/privacy' and '/terms' inside index.html for non-JS web crawlers.",
+          "impact": "Ensures instant auditability and disclosure compliance regardless of JS execution.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-30T01:43:33.820Z",
+        "durationMs": 25368,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/12 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_0c8212f44f33051e",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-29T00:51:50.401Z",
+    "target": "https://www.asji.online/",
+    "score": 34,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (inferred from domain branding 'ASJi Legal & Web Solutions', global Vercel hosting, and primary target market demographics)",
+      "score": 34,
+      "summary": "ASJi Legal & Web Solutions fails basic data privacy transparency requirements due to the complete absence of a Privacy Policy, Terms of Service, and Grievance Officer contact details. The site directly transmits user IP addresses to US-hosted Google Fonts (fonts.googleapis.com) upon loading without consent or notice. Furthermore, critical security headers including Content-Security-Policy (CSP) and X-Frame-Options are missing, and static routing errors cause infrastructure files like robots.txt to render full HTML web pages.",
+      "evidence": [
+        "No privacy policy, legal notice, or terms link was identified on the landing page or HTML source.",
+        "Third-party network calls to fonts.googleapis.com and fonts.gstatic.com execute immediately on initial page load without prior consent.",
+        "Zero consent management platform (CMP) or privacy banner detected to inform visitors of data processing.",
+        "Missing critical security headers: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy.",
+        "SPA fallback routing misconfiguration: requesting /robots.txt returns an HTTP 200 with the full HTML single-page application document rather than plain text.",
+        "No Grievance Officer or Data Protection Officer contact mechanisms published as mandated under Indian privacy regulations.",
+        "Hosted on Vercel edge infrastructure with HSTS enabled (strict-transport-security: max-age=63072000)."
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023",
+          "score": 25,
+          "note": "Breaches Section 5 & 6 (Notice & Consent requirements) and Section 13 (Failure to publish details of a Grievance Officer for Data Principals)."
+        },
+        {
+          "name": "EU GDPR",
+          "score": 35,
+          "note": "Breaches Article 13 (Information to be provided where personal data are collected), Article 44 (Unrestricted cross-border transfer of IP addresses to Google US via Google Fonts), and Article 32 (Inadequate technical security controls)."
+        },
+        {
+          "name": "UK GDPR",
+          "score": 35,
+          "note": "Violates transparency requirements under Article 13 and international transfer rules regarding third-party asset loading."
+        },
+        {
+          "name": "California CCPA / CPRA",
+          "score": 40,
+          "note": "Violates Cal. Civ. Code § 1798.100 due to missing a clear and conspicuous Privacy Policy link at or before the point of collection."
+        },
+        {
+          "name": "ePrivacy Directive (Cookie Law)",
+          "score": 65,
+          "note": "No tracking cookies set prior to consent, but third-party asset connections trigger user IP disclosure to Google without consent notice."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Complete Absence of Privacy Policy and Mandatory Legal Notices",
+          "severity": "critical",
+          "detail": "The website provides zero privacy disclosures. Under GDPR Art. 13 and DPDP Act Sec. 5, data controllers must provide clear notice regarding purpose of processing, data retention, and rights before collecting personal data (including IP addresses)."
+        },
+        {
+          "title": "Missing Grievance Redressal Mechanism under DPDP Act 2023",
+          "severity": "high",
+          "detail": "Section 13 of the Digital Personal Data Protection Act 2023 requires Data Fiduciaries to publish contact details of a Grievance Officer. Users have no designated mechanism to submit rights requests or privacy complaints."
+        },
+        {
+          "title": "Unlawful Third-Party IP Transmission via Google Fonts",
+          "severity": "medium",
+          "detail": "Loading font assets directly from fonts.googleapis.com leaks user IP addresses and browser fingerprints to Google LLC in the United States without user consent or legal basis, violating GDPR Chapter V and Munich Regional Court precedent."
+        },
+        {
+          "title": "Absence of Core Security Headers (CSP, X-Frame-Options, Referrer-Policy)",
+          "severity": "high",
+          "detail": "Lack of Content-Security-Policy (CSP) and X-Frame-Options leaves the web application exposed to Clickjacking, Cross-Site Scripting (XSS), and data injection attacks, breaching GDPR Art. 32 security obligations."
+        },
+        {
+          "title": "SPA Fallback Misconfiguration on Administrative Files (robots.txt)",
+          "severity": "low",
+          "detail": "The server returns the SPA index.html file for /robots.txt. This technical misconfiguration confuses search engine crawlers and security scanners, preventing proper crawling rules enforcement."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore / €20,000,000 statutory maximum",
+        "currency": "INR / EUR",
+        "rationale": "Under the India DPDP Act 2023, failure to observe duties regarding notice and grievance redressal carries fines up to ₹250 Crore per violation type. Under EU GDPR, Art. 83 specifies fines up to €20M or 4% global turnover. For a small legal & web agency, actual enforcement exposure is estimated at ₹2,000,000 - ₹10,000,000 (India) or €10,000 - €50,000 (EU) depending on regulatory proceedings."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy, Terms of Service, and Cookie Disclosure accessible from every page footer.",
+          "impact": "Resolves fundamental transparency breaches under GDPR Art. 13, DPDP Act Sec. 5, and CCPA.",
+          "effort": "Low"
+        },
+        {
+          "step": "Appoint a Grievance Officer and publish contact details (Email, Address, Name) on the website.",
+          "impact": "Achieves compliance with DPDP Act Section 13 and Indian IT Rules 2021.",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host Google Fonts locally on Vercel instead of fetching from fonts.googleapis.com.",
+          "impact": "Eliminates unauthorized third-country data transfers to Google US and avoids Munich court-style legal liability.",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure HTTP security headers (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) in vercel.json.",
+          "impact": "Mitigates Clickjacking, MIME-sniffing, and XSS vectors, satisfying GDPR Art. 32 security standards.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Fix Vercel routing rules so /robots.txt serves a valid plain-text file rather than falling back to index.html.",
+          "impact": "Ensures proper indexing and removes technical infrastructure errors.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-29T00:51:50.399Z",
+        "durationMs": 17316,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_91b3bae7a11ec5b0",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-29T00:46:10.747Z",
+    "target": "https://maggie.com/",
+    "score": 42,
+    "report": {
+      "target": "https://maggie.com/",
+      "originCountry": "United States (Inferred via .com TLD, Cloudflare infrastructure, English language content, and standard US AI content-signal robot parameters)",
+      "score": 42,
+      "summary": "The target domain maggie.com resolves to an active HTTP 200 status rendering a '404 Page Not Found' placeholder, but completely lacks mandatory privacy notices, terms, or data subject grievance contacts. Third-party assets from fonts.bunny.net and static.cloudflareinsights.com are loaded on initial visit, exposing visitor IP addresses without prior transparent disclosure or consent mechanisms. While fundamental transport security (HSTS) and basic framing protections are configured, the total absence of a privacy policy and Content Security Policy violates major data protection frameworks globally.",
+      "evidence": [
+        "HTTP status 200 returned with page title '404 — Page Not Found' and zero privacy or legal policy links present in the rendered document.",
+        "Third-party connection initiated to fonts.bunny.net for font delivery, transferring user IP address across international borders without prior notice.",
+        "Cloudflare Web Analytics SDK (static.cloudflareinsights.com) executed automatically upon page load without user consent or CMP signaling.",
+        "Complete absence of a Privacy Policy, Terms of Service, or Data Protection Officer / Grievance Officer disclosure.",
+        "Missing Content-Security-Policy (CSP), Permissions-Policy, Cross-Origin-Opener-Policy (COOP), and Cross-Origin-Resource-Policy (CORP) security headers.",
+        "Strict-Transport-Security (HSTS) header present with max-age=31536000, includeSubDomains, and preload enabled.",
+        "Custom robots.txt content-signals defined for automated scrapers, but no security.txt RFC 9116 vulnerability contact file provided."
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR / UK GDPR",
+          "score": 38,
+          "note": "Breaches Article 13/14 due to completely absent Privacy Notice and failure to disclose third-party data transfers to Bunny Fonts and Cloudflare Insights. Article 5(1)(a) lawfulness and transparency principles violated."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 35,
+          "note": "Breaches Section 5 (Notice requirement) and Section 13 (Failure to publish contact details of a Data Protection / Grievance Officer for data principal inquiries)."
+        },
+        {
+          "name": "California Consumer Privacy Act (CCPA/CPRA)",
+          "score": 45,
+          "note": "Non-compliant with Cal. Civ. Code § 1798.130 due to missing 'Notice at Collection' and missing required privacy disclosures regarding personal information collection and analytics."
+        },
+        {
+          "name": "ePrivacy Directive (2002/58/EC)",
+          "score": 50,
+          "note": "Executes Cloudflare Web Analytics tracking script static.cloudflareinsights.com without prior clear and comprehensive information or cookie/storage consent banner."
+        },
+        {
+          "name": "OWASP / NIST Security Standards",
+          "score": 58,
+          "note": "HSTS, X-Frame-Options, and X-Content-Type-Options implemented, but lacks Content-Security-Policy (CSP) and Permissions-Policy to restrict dynamic script execution."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Complete Absence of Privacy Notice and Legal Disclosures",
+          "severity": "critical",
+          "detail": "The site provides zero transparency regarding data collection, processing purposes, or data subject rights. This constitutes a direct violation of GDPR Art. 13, CCPA § 1798.130, and India DPDP Act § 5."
+        },
+        {
+          "title": "Uninformed Data Transfer to Third-Party Hosts (Bunny Fonts)",
+          "severity": "high",
+          "detail": "Loading font resources from fonts.bunny.net transmits visitor IP addresses and HTTP header data to an external provider without user notification or documented legitimate interest baseline."
+        },
+        {
+          "title": "Unsanctioned First-Party / Third-Party Analytics Telemetry",
+          "severity": "medium",
+          "detail": "Cloudflare Insights script (static.cloudflareinsights.com) executes on page load without prior user acknowledgment or opt-out mechanism required by ePrivacy and ePrivacy-derived laws."
+        },
+        {
+          "title": "Missing Grievance Redressal Mechanism under DPDP Act 2023",
+          "severity": "medium",
+          "detail": "Under Section 13 of India's DPDP Act, data fiduciaries must publish details of a Grievance Officer to handle data subject rights requests, which is completely missing."
+        },
+        {
+          "title": "Missing Content Security Policy (CSP)",
+          "severity": "medium",
+          "detail": "Without a CSP header, the browser lacks instructions on allowed sources for scripts and frames, leaving the domain vulnerable to Cross-Site Scripting (XSS) and malicious script injection."
+        },
+        {
+          "title": "Missing Security Contact Identifier (security.txt)",
+          "severity": "low",
+          "detail": "No RFC 9116 security.txt file located at /.well-known/security.txt, impeding ethical researchers from reporting potential vulnerabilities."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to €20,000,000 / 4% global turnover (GDPR) or up to ₹250 Crore (DPDP)",
+        "currency": "EUR / INR",
+        "rationale": "Maximum statutory liability for failure to comply with basic transparency obligations under GDPR Article 83(5)(b) and Indian DPDP Act 2023 Schedule provisions for failure to provide notice and grievance redressal."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy accessible from all site footers detailing data collection, processing purposes, legal bases, and third-party vendors.",
+          "impact": "Resolves critical compliance failures under GDPR Art. 13, CCPA § 1798.130, and DPDP Act § 5.",
+          "effort": "Low"
+        },
+        {
+          "step": "Appoint and explicitly list a Grievance Officer and contact email address in the Privacy Policy.",
+          "impact": "Ensures compliance with India DPDP Act Section 13 and GDPR Data Subject Access Request requirements.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement a Content Security Policy (CSP) header specifying allowed script and font sources (e.g., static.cloudflareinsights.com, fonts.bunny.net).",
+          "impact": "Mitigates XSS attack vectors and satisfies OWASP technical security standards.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Integrate a lightweight Consent Management Platform (CMP) or disable pre-consent execution of Cloudflare Web Analytics.",
+          "impact": "Aligns site with ePrivacy Directive and EU consent guidelines regarding passive telemetry.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Deploy standard Permissions-Policy, Cross-Origin-Opener-Policy (COOP), and Cross-Origin-Resource-Policy (CORP) HTTP headers.",
+          "impact": "Strengthens browser isolation defenses and operational security posture.",
+          "effort": "Low"
+        },
+        {
+          "step": "Publish an RFC 9116 vulnerability reporting policy at https://maggie.com/.well-known/security.txt.",
+          "impact": "Establishes structured vulnerability disclosure process for security researchers.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-29T00:46:10.746Z",
+        "durationMs": 12611,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "4/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / absent"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://maggie.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_4c58800d5b6f5862",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-29T00:40:57.958Z",
+    "target": "https://flipkart.com/",
+    "score": 38,
+    "report": {
+      "target": "https://flipkart.com/",
+      "originCountry": "India (Bengaluru headquarters, primary e-commerce market in India)",
+      "score": 38,
+      "summary": "The live scan of flipkart.com returned an HTTP 403 WAF/reCAPTCHA challenge page that completely lacks basic web security headers, including HSTS, CSP, and X-Frame-Options. The challenge page embeds third-party Google reCAPTCHA scripts without displaying a privacy policy, consent notice, or Data Protection Officer/Grievance Officer contact details. This creates direct non-compliance under Section 5 and Section 13 of India's DPDP Act 2023 as well as Articles 13 and 32 of EU GDPR.",
+      "evidence": [
+        "HTTP Status Code 403 served with title 'Flipkart reCAPTCHA' on initial request without redirect.",
+        "Complete absence of HTTP security headers: strict-transport-security, content-security-policy, x-frame-options, x-content-type-options, and referrer-policy are missing.",
+        "Third-party host dependency on www.google.com for Google reCAPTCHA telemetry and verification prior to consent.",
+        "Zero privacy or legal links present on the challenge page, failing to disclose data processing terms or Grievance Officer details.",
+        "Consent Management Platform (CMP) signals and privacy notice completely absent on the challenge page.",
+        "Absent security.txt file at standard RFC 9116 locations and missing robots.txt file."
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023",
+          "score": 35,
+          "note": "Section 5 & Section 13 breach: No privacy notice or Grievance Officer contact provided on the reCAPTCHA challenge page where IP and behavioral data are processed."
+        },
+        {
+          "name": "EU GDPR",
+          "score": 40,
+          "note": "Article 13 & Article 32 breach: Telemetry collection via Google reCAPTCHA without prior notice, combined with total absence of standard HTTP security headers."
+        },
+        {
+          "name": "UK GDPR",
+          "score": 40,
+          "note": "Article 13 & Article 32 failure: Absence of mandatory privacy disclosures and baseline transport security headers for UK visitors."
+        },
+        {
+          "name": "ePrivacy Directive / Cookie Law",
+          "score": 42,
+          "note": "Device fingerprinting and script execution via Google reCAPTCHA without a pre-consent notice or legitimate interest declaration."
+        },
+        {
+          "name": "CCPA / CPRA",
+          "score": 35,
+          "note": "Cal. Civ. Code § 1798.100 failure: No privacy policy link or Do Not Sell/Share statement visible on the initial challenge page."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Missing Security Headers & Transport Hardening",
+          "severity": "high",
+          "detail": "The HTTP response lacks HSTS, CSP, X-Frame-Options, and Referrer-Policy, exposing users to clickjacking, man-in-the-middle downgrades, and unconstrained script execution in violation of GDPR Art. 32 and DPDP Sec. 8(5)."
+        },
+        {
+          "title": "Third-Party Telemetry Without Mandatory Notice",
+          "severity": "high",
+          "detail": "Executing Google reCAPTCHA scripts (www.google.com) on the 403 challenge page processes visitor telemetry and IP addresses without presenting a Privacy Notice required under DPDP Sec. 5 and GDPR Art. 13."
+        },
+        {
+          "title": "Absence of Statutory Grievance Mechanism",
+          "severity": "critical",
+          "detail": "The challenge page provides no mechanism or contact details for a Data Protection Officer or Grievance Officer as mandated by Section 13 of India's DPDP Act 2023."
+        },
+        {
+          "title": "Unregulated Device Fingerprinting & Consent Deficit",
+          "severity": "medium",
+          "detail": "Google reCAPTCHA performs behavioral profiling and device fingerprinting prior to user consent, breaching ePrivacy Directive principles and DPDP consent standards."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore (INR) under DPDP Act 2023 / Up to €20M or 4% global turnover under GDPR",
+        "currency": "INR / EUR",
+        "rationale": "Under Schedule 1 of India's DPDP Act 2023, failure to take reasonable security safeguards or fulfill data fiduciary duties carries penalties up to ₹250 crore per instance. As a major e-commerce operator under Walmart Inc., global revenue exposure under GDPR Art. 83(5) can reach 4% of global turnover if EU resident data is processed non-compliantly."
+      },
+      "remediation": [
+        {
+          "step": "Inject mandatory Privacy Policy and Grievance Officer contact links directly into WAF / reCAPTCHA challenge HTML templates.",
+          "impact": "Resolves DPDP Section 13 and GDPR Article 13 compliance gaps on blocked or challenge requests.",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure missing HTTP Security Headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) at the CDN/Edge layer.",
+          "impact": "Mitigates clickjacking, cross-site scripting, and secure transport downgrade vulnerabilities.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Evaluate and implement a privacy-centric, zero-cookie CAPTCHA or bot detection alternative.",
+          "impact": "Ensures compliance with ePrivacy rules and limits unconsented cross-border telemetry transfers to third parties.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Deploy security.txt at /.well-known/security.txt with security contact details.",
+          "impact": "Establishes a standardized vulnerability disclosure channel adhering to RFC 9116.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement edge-rendered consent and privacy disclosures on all WAF challenge pages prior to script execution.",
+          "impact": "Fulfills statutory notice obligations under Section 5 of India's DPDP Act 2023.",
+          "effort": "Medium"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-29T00:40:57.957Z",
+        "durationMs": 18608,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "medium",
+        "confidenceReason": "The target answered HTTP 403, so parts of the assessment rely on partial evidence.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "403 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "0/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "absent / absent"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://flipkart.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_5e0834a8fda6fbcc",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-29T00:36:54.530Z",
+    "target": "https://flipkart.com/",
+    "score": 34,
+    "report": {
+      "target": "https://flipkart.com/",
+      "originCountry": "India (verified via corporate headquarters in Bengaluru, Karnataka, primary market, and ownership by Flipkart Private Limited / Walmart)",
+      "score": 34,
+      "summary": "The scan of flipkart.com returned an HTTP 403 Forbidden reCAPTCHA challenge page, failing to expose mandatory privacy notices, terms, or Data Protection Officer contact details required under India's DPDP Act 2023 Section 13. The response page completely lacks fundamental HTTP security headers, including HSTS, CSP, X-Frame-Options, and X-Content-Type-Options. Additionally, third-party Google reCAPTCHA scripts load prior to user consent or notice, causing immediate cross-border data flows to US-hosted endpoints (www.google.com).",
+      "evidence": [
+        "HTTP 403 status code returned on landing page with title 'Flipkart reCAPTCHA'",
+        "Complete absence of essential HTTP security headers: Strict-Transport-Security, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy",
+        "Loading of third-party script from Google reCAPTCHA (www.google.com) prior to any consent mechanism or privacy notice disclosure",
+        "Zero privacy policy, terms of service, or consent management platform (CMP) links presented on the challenge page",
+        "Absence of mandatory Grievance Officer / Data Protection Officer identification on the initial entry response",
+        "Absence of standard security.txt vulnerability disclosure policy at /.well-known/security.txt",
+        "Missing HTML lang attribute and missing basic metadata on the returned challenge page"
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023 & SPDI Rules 2011",
+          "score": 30,
+          "note": "Breaches Section 6 (Notice requirements) and Section 13 (Grievance redressal information) as the HTTP 403 challenge page provides no access to notice or Grievance Officer details before executing third-party telemetry."
+        },
+        {
+          "name": "EU GDPR",
+          "score": 35,
+          "note": "Violates Article 13 (Transparency) and Article 6 (Lawful basis) by deploying Google reCAPTCHA (www.google.com) for telemetry/fingerprinting without prior consent or informational notice."
+        },
+        {
+          "name": "UK GDPR & PECR",
+          "score": 35,
+          "note": "Non-compliant with PECR Regulation 6 due to third-party script execution (Google reCAPTCHA) prior to user consent, and UK GDPR Art 13 due to hidden privacy disclosures."
+        },
+        {
+          "name": "California CCPA/CPRA",
+          "score": 40,
+          "note": "Fails Cal. Civ. Code § 1798.100 transparency requirements by omitting 'Do Not Sell/Share My Personal Information' links and privacy policy disclosures on initial HTTP 403 entry."
+        },
+        {
+          "name": "ISO/IEC 27001 / OWASP Security Best Practices",
+          "score": 28,
+          "note": "Fails basic defense-in-depth security header standards (missing CSP, HSTS, X-Frame-Options, X-Content-Type-Options)."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Missing Fundamental HTTP Security Headers on Challenge Page",
+          "severity": "high",
+          "detail": "The HTTP 403 reCAPTCHA page lacks Strict-Transport-Security (HSTS), Content-Security-Policy (CSP), X-Frame-Options, and X-Content-Type-Options. This exposes users to clickjacking, MIME-sniffing, and potential man-in-the-middle downgrade attacks."
+        },
+        {
+          "title": "Uninformed Cross-Border Data Transfer via Google reCAPTCHA",
+          "severity": "high",
+          "detail": "Google reCAPTCHA scripts load automatically from www.google.com on the 403 challenge page, transmitting IP addresses and hardware fingerprints to US servers before presenting a legal notice or consent choice, breaching GDPR Art. 13/44 and DPDP Act Section 6."
+        },
+        {
+          "title": "Blocking Access to Privacy Policy and DPDP Grievance Officer Details",
+          "severity": "medium",
+          "detail": "When automated security triggers an HTTP 403 block, the site strips all legal navigation links. Under Section 13 of India's DPDP Act 2023, Data Fiduciaries must provide accessible contact details for a Grievance Officer at all entry points."
+        },
+        {
+          "title": "Absence of Vulnerability Disclosure Mechanism (security.txt)",
+          "severity": "low",
+          "detail": "No /.well-known/security.txt file is present to allow security researchers to report vulnerabilities directly to Flipkart's cybersecurity team in a standardized format."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore (India DPDP Act) / €20 Million or 4% global turnover (EU GDPR)",
+        "currency": "INR / EUR",
+        "rationale": "Under Section 33 and Schedule 1 of India's DPDP Act 2023, failure to take reasonable security safeguards or failure to fulfill obligations regarding notice and grievance redressal carries penalties up to ₹250 crore per instance. Under EU GDPR, cross-border transfers and consent violations carry statutory maxima of €20M or 4% of annual global turnover."
+      },
+      "remediation": [
+        {
+          "step": "Deploy HSTS, CSP, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy headers across all HTTP responses, including 403/429 bot-block pages.",
+          "impact": "High",
+          "effort": "Low"
+        },
+        {
+          "step": "Include standard footer navigation on custom HTTP 403/reCAPTCHA challenge pages containing links to the Privacy Policy, Terms of Use, and Grievance Officer details.",
+          "impact": "High",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement a statutory notice banner or zero-cookie fallback on reCAPTCHA challenge pages before setting third-party trackers or sending telemetry to Google.",
+          "impact": "High",
+          "effort": "Medium"
+        },
+        {
+          "step": "Publish a RFC 9116 compliant security.txt file at https://flipkart.com/.well-known/security.txt with security team contacts and encryption keys.",
+          "impact": "Medium",
+          "effort": "Low"
+        },
+        {
+          "step": "Ensure proper HTML lang attributes (e.g., lang='en-IN') and meta tags are declared on fallback and challenge pages for accessibility and compliance.",
+          "impact": "Low",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-29T00:36:54.530Z",
+        "durationMs": 13507,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "medium",
+        "confidenceReason": "The target answered HTTP 403, so parts of the assessment rely on partial evidence.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "403 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "0/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "absent / absent"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://flipkart.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_0c074410fe1c3fd8",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T23:54:59.318Z",
+    "target": "https://www.amazon.com/",
+    "score": 42,
+    "report": {
+      "target": "https://www.amazon.com/",
+      "originCountry": "United States (Inferred from TLD .com, Amazon.com Inc. headquarters in Seattle, WA, USA, and CloudFront CDN infrastructure)",
+      "score": 42,
+      "summary": "The automated scan of Amazon.com returned an HTTP 202 challenge response served via AWS WAF (ap-southeast-1.token.awswaf.com) and CloudFront, stripping standard legal footers and rendering zero consent or privacy disclosures. Additionally, the edge response lacks key HTTP security headers including HSTS, CSP, X-Frame-Options, and X-Content-Type-Options. While security.txt is properly configured with a active vulnerability disclosure program on HackerOne, the absence of transparency links and security headers on perimeter WAF responses creates non-compliance under GDPR, CCPA/CPRA, and DPDP 2023.",
+      "evidence": [
+        "HTTP status code 202 returned with AWS WAF challenge reference '1c5c1ecf7303.0b384439.ap-southeast-1.token.awswaf.com'",
+        "Missing essential HTTP security headers: strict-transport-security, content-security-policy, x-frame-options, x-content-type-options, referrer-policy, permissions-policy",
+        "No privacy notice or legal policy links detected in returned edge payload",
+        "No Consent Management Platform (CMP) or cookie banner signals present in initial HTML payload",
+        "AWS WAF challenge endpoint routes visitor token traffic to AWS Singapore region (ap-southeast-1)",
+        "security.txt present and directing to https://hackerone.com/amazonvrp/reports/new and security policy",
+        "Robots.txt restricts sensitive endpoint crawling including /gp/cart, /gp/sign-in, and /exec/obidos/account-access-login",
+        "No DNT (Do Not Track) / Global Privacy Control policy published"
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR",
+          "score": 40,
+          "note": "Breach of Article 13/14 (Transparent Information) due to missing privacy policy on edge response, and Article 32 (Security of Processing) due to absent HSTS and CSP headers on initial edge response."
+        },
+        {
+          "name": "California CPRA / CCPA",
+          "score": 45,
+          "note": "Non-compliance with Cal. Civ. Code § 1798.100 due to absence of 'Do Not Sell/Share My Personal Information' links or explicit privacy disclosures on edge challenge payloads."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 38,
+          "note": "Section 5 notice requirements and Section 13 Grievance Officer details are completely missing from the scanned entry payload."
+        },
+        {
+          "name": "UK GDPR & DPA 2018",
+          "score": 42,
+          "note": "Fails transparent processing standards under UK GDPR Art 12/13 and PECR rules due to undisclosed WAF telemetry and missing security headers."
+        },
+        {
+          "name": "NIST CSF / OWASP Secure Headers",
+          "score": 35,
+          "note": "Total omission of defense-in-depth headers (Strict-Transport-Security, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options) on CloudFront response."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Missing HTTP Strict Transport Security (HSTS) Header",
+          "severity": "high",
+          "detail": "The response from CloudFront does not include Strict-Transport-Security, exposing initial HTTP connections to potential SSL/TLS stripping attacks (violates GDPR Art 32 & NIST SP 800-53)."
+        },
+        {
+          "title": "Absent Content Security Policy (CSP) & Frame Controls",
+          "severity": "high",
+          "detail": "Lack of Content-Security-Policy and X-Frame-Options headers allows potential clickjacking and unauthorized script injection on client browsers during edge verification."
+        },
+        {
+          "title": "Omission of Privacy Policy & Legal Disclosures on Edge Payload",
+          "severity": "critical",
+          "detail": "HTTP 202 challenge payload contains no privacy notice or terms link, violating GDPR Art 13, CCPA § 1798.100, and India DPDP Act s.5 for all automated/challenged incoming traffic."
+        },
+        {
+          "title": "Undisclosed Cross-Border WAF Telemetry Transfer",
+          "severity": "medium",
+          "detail": "AWS WAF challenge references 'ap-southeast-1.token.awswaf.com' (Singapore), transmitting client browser token metadata across borders without explicit notice or legal basis statement."
+        },
+        {
+          "title": "Missing Global Privacy Control (GPC) / Opt-Out Signaling",
+          "severity": "medium",
+          "detail": "No Do Not Track or GPC opt-out response mechanisms found on edge endpoints, conflicting with CCPA/CPRA regulations."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "15,000,000 to 100,000,000",
+        "currency": "EUR",
+        "rationale": "Under GDPR Art. 83(5), maximum fines reach EUR 20M or 4% of global annual turnover (which for Amazon exceeds $20 Billion USD). Given Amazon's global revenue and prior CNPD GDPR fine of €746M, repeated transparency or security omissions on primary entry domains carry high regulatory penalty risks."
+      },
+      "remediation": [
+        {
+          "step": "Configure CloudFront Response Headers Policy to inject Strict-Transport-Security (HSTS) with includeSubDomains and max-age=31536000.",
+          "impact": "Eliminates protocol downgrade attacks across all edge responses.",
+          "effort": "Low"
+        },
+        {
+          "step": "Deploy a robust Content-Security-Policy (CSP) and X-Frame-Options: DENY header on CloudFront distribution.",
+          "impact": "Prevents clickjacking, MIME sniffing, and unauthorised script execution.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Ensure AWS WAF challenge payloads render fallback HTML containing standard privacy notice and legal links.",
+          "impact": "Satisfies mandatory pre-collection notice obligations under GDPR Art 13, CCPA, and India DPDP Act s.5.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Implement a Consent Management Platform (CMP) banner that operates prior to execution of non-essential security scripts.",
+          "impact": "Ensures full compliance with ePrivacy Directive and GDPR cookie consent mandates.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Publish explicit GPC (Global Privacy Control) support and DNT statement in standard HTTP response headers.",
+          "impact": "Meets CPRA / CCPA explicit opt-out compliance requirements for California residents.",
+          "effort": "Low"
+        },
+        {
+          "step": "Specify Grievance Officer contact details in accessible footer/fallback responses for compliance with India DPDP Act 2023 s.13.",
+          "impact": "Satisfies Indian statutory data protection grievance redressal mandates.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T23:54:59.317Z",
+        "durationMs": 16440,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "202 · Redirected https://amazon.com/ → https://www.amazon.com/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "0/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "0 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "1 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.amazon.com/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_63b51191f6026a8f",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T10:36:13.919Z",
+    "target": "https://www.asji.online/",
+    "score": 38,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (Inferred from brand origin 'ASJi Legal & Web Solutions' and global generic top-level domain '.online')",
+      "score": 38,
+      "summary": "The audit revealed significant compliance deficits, primarily the total absence of a accessible Privacy Policy or legal notices across the landing page. While HTTPS and HSTS are enabled, the site exposes user IP addresses to third-party US infrastructure via Google Fonts (fonts.googleapis.com) prior to consent. Furthermore, critical security headers including Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options are absent, and the robots.txt endpoint is misconfigured to render the single-page application's HTML payload.",
+      "evidence": [
+        "Privacy and legal links missing entirely from the landing page DOM",
+        "Third-party connection established to US-based fonts.googleapis.com and fonts.gstatic.com without pre-consent mechanisms",
+        "Missing fundamental security headers: content-security-policy, x-frame-options, x-content-type-options, referrer-policy, permissions-policy",
+        "HTTP response header strict-transport-security present with max-age=63072000",
+        "robots.txt returns HTTP 200 with SPA HTML document body instead of text/plain directives",
+        "No Consent Management Platform (CMP) detected in the HTML source",
+        "Deployment identified on Vercel edge infrastructure"
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023",
+          "score": 25,
+          "note": "Non-compliant with Section 6(1) due to missing mandatory consent notice and Section 13 due to absent Grievance Redressal Mechanism contact details."
+        },
+        {
+          "name": "EU GDPR",
+          "score": 35,
+          "note": "Breaches Article 13/14 transparency obligations (no privacy policy) and Article 44 cross-border transfer rules via pre-consent Google Fonts requests."
+        },
+        {
+          "name": "UK GDPR & PECR",
+          "score": 35,
+          "note": "Violates PECR Regulation 6 regarding third-party asset calls before user information/consent, and UK GDPR Article 13 transparent information requirement."
+        },
+        {
+          "name": "California CCPA / CPRA",
+          "score": 40,
+          "note": "Non-compliant with Cal. Civ. Code § 1798.100 due to failure to provide Notice at Collection at or before the point of data collection."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Complete Absence of Privacy Policy and Legal Notices",
+          "severity": "critical",
+          "detail": "No Privacy Policy, Terms of Service, or Data Protection notice was discovered in the site HTML. Citing GDPR Art. 13, DPDP Act 2023 Sec. 6, and CCPA § 1798.100, processing or collecting user data without notice is a direct regulatory violation."
+        },
+        {
+          "title": "Unsanitized Third-Party Data Transfer to Google Fonts",
+          "severity": "high",
+          "detail": "The site connects to fonts.googleapis.com and fonts.gstatic.com upon initial render, leaking client IP address and user-agent data to Google US servers without user consent or legal basis under GDPR Art. 44."
+        },
+        {
+          "title": "Missing Fundamental Security Headers (CSP, Clickjacking, MIME)",
+          "severity": "high",
+          "detail": "The site lacks Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options. This breaches technical security requirements under GDPR Art. 32 and DPDP Sec. 8(5), leaving the application susceptible to XSS and Clickjacking attacks."
+        },
+        {
+          "title": "Missing DPDP Grievance Redressal Officer Contact",
+          "severity": "high",
+          "detail": "Under Section 13 of the Digital Personal Data Protection Act 2023, data fiduciaries must publish the contact details of a Grievance Officer, which is completely missing from this site."
+        },
+        {
+          "title": "Misconfigured robots.txt Serving SPA HTML",
+          "severity": "low",
+          "detail": "Requests to /robots.txt yield an HTTP 200 serving the React SPA HTML template rather than plain text indexing rules, indicating a Vercel route rewrite flaw."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹50 Crore / €10,000,000",
+        "currency": "INR / EUR",
+        "rationale": "Under the India DPDP Act 2023, failure to notify data subjects (Sec 6) or provide grievance mechanisms carries penalties up to ₹200 Crore. Under GDPR Art. 83(5), transparency and transfer breaches carry fines up to €20M or 4% global turnover. Given the entity scale (SMB/Web services), maximum fines would be scaled down proportionally by regulators."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy and Notice at Collection linked permanently in the footer.",
+          "impact": "Resolves core transparency violations under GDPR Art. 13, DPDP Sec. 6, and CCPA.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Appoint and publish Grievance Officer contact information (email/address) prominently.",
+          "impact": "Achieves compliance with India DPDP Act 2023 Section 13.",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host Google Fonts assets locally within the Vercel bundle rather than linking externally.",
+          "impact": "Eliminates unauthorized cross-border IP exposure to US servers.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement security headers on Vercel via vercel.json (CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy).",
+          "impact": "Fulfills technical security safeguards under GDPR Art. 32 and DPDP Sec. 8(5).",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure static asset routing in Vercel to serve a valid text/plain robots.txt file.",
+          "impact": "Fixes web routing error and secures search engine indexing control.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T10:36:13.919Z",
+        "durationMs": 14918,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_be623de06aa5c807",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T10:25:09.180Z",
+    "target": "https://www.asji.online/",
+    "score": 38,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (Inferred from entity naming 'ASJi Legal & Web Solutions', target audience markers, and international .online TLD hosted on Vercel)",
+      "score": 38,
+      "summary": "ASJi Legal & Web Solutions fails basic statutory data transparency and web security standards by providing no accessible Privacy Policy, Terms of Service, or Data Protection Officer contact on its primary domain. Unconsented third-party network connections to Google Fonts (fonts.googleapis.com, fonts.gstatic.com) leak visitor IP addresses across international borders upon initial load. Furthermore, the web application lacks essential defensive HTTP response headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options) and suffers from a server route misconfiguration where request to /robots.txt serves the SPA HTML index.",
+      "evidence": [
+        "Privacy and legal links total count is 0 across the landing page DOM",
+        "Third-party connection triggers to fonts.googleapis.com and fonts.gstatic.com prior to user interaction or consent",
+        "Missing Content-Security-Policy (CSP) and CSP-Report-Only HTTP response headers",
+        "Missing X-Frame-Options and X-Content-Type-Options security headers",
+        "Missing Referrer-Policy and Permissions-Policy response headers",
+        "Server returns HTTP 200 with React SPA HTML content for /robots.txt instead of plain text directive file",
+        "Absence of Consent Management Platform (CMP) or cookie banner despite external telemetry/font requests",
+        "HTTP strict-transport-security present with max-age=63072000"
+      ],
+      "frameworks": [
+        {
+          "name": "EU GDPR",
+          "score": 32,
+          "note": "Non-compliant with Art. 13 (Information to be provided at collection), Art. 6(1) (Lawful basis for processing visitor IP addresses via Google Fonts), and Art. 32 (Technical and organizational security measures)."
+        },
+        {
+          "name": "India DPDP Act 2023",
+          "score": 28,
+          "note": "Breaches Section 5 (Notice requirement prior to personal data collection), Section 8(5) (Failure to implement reasonable security safeguards), and Section 13 (Absence of mandatory Grievance Officer details)."
+        },
+        {
+          "name": "UK GDPR & DPA 2018",
+          "score": 32,
+          "note": "Fails statutory notice requirements (Art. 13) and UK ICO guidelines regarding unconsented third-party resource loading and missing client-side security controls."
+        },
+        {
+          "name": "California Consumer Privacy Act (CCPA/CPRA)",
+          "score": 40,
+          "note": "Violates Cal. Civ. Code § 1798.100 due to complete absence of 'Notice at Collection' and mandatory privacy disclosures."
+        },
+        {
+          "name": "ePrivacy Directive (2002/58/EC)",
+          "score": 45,
+          "note": "Violates Article 5(3) by initiating remote third-party requests and browser fingerprints (Google Fonts) prior to acquiring freely given consent."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Complete Absence of Mandatory Privacy Policy and Legal Notices",
+          "severity": "critical",
+          "detail": "The site contains zero legal links or privacy disclosures in the DOM. Under GDPR Art. 13 and DPDP Act 2023 Section 5, failing to provide data subjects with notice of data controller identity, purpose of processing, and user rights is a direct statutory violation."
+        },
+        {
+          "title": "Unlawful IP Data Transfer via Google Fonts CDN",
+          "severity": "high",
+          "detail": "The site executes preconnects and loads assets from fonts.googleapis.com and fonts.gstatic.com without prior user consent. Visitor IP addresses and user-agent strings are transmitted to US-based servers without a established transfer mechanism or lawful basis (referencing LG München 3 O 17493/20 precedence)."
+        },
+        {
+          "title": "Missing Fundamental Defensive Security Headers",
+          "severity": "high",
+          "detail": "Missing Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy headers. This exposes visitors to Clickjacking, Cross-Site Scripting (XSS), MIME-sniffing exploits, and referral data exposure under GDPR Art. 32 and DPDP Act Section 8(5)."
+        },
+        {
+          "title": "Missing Grievance Redressal Mechanism",
+          "severity": "high",
+          "detail": "The platform fails to publish details for a Data Protection Officer or Grievance Redressal contact, violating Section 13 of India's DPDP Act 2023 and GDPR Art. 37."
+        },
+        {
+          "title": "Server Routing Defect on System Endpoints (/robots.txt)",
+          "severity": "medium",
+          "detail": "Fetching /robots.txt yields the client-side SPA index HTML rather than a valid plain-text robots file. This indicates misconfigured wildcard rewrites in Vercel configuration, breaking web web crawler controls and operational integrity."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore (DPDP) / Up to €20,000,000 (GDPR)",
+        "currency": "INR / EUR",
+        "rationale": "Under India's DPDP Act 2023, failure to observe reasonable security safeguards carries penalties up to ₹250 Cr (Section 33, Schedule 1). Under EU GDPR, failure to provide transparent privacy notices (Art. 13) carries maximum statutory fines up to €20M or 4% of global annual turnover. Given the entity's apparent SMB size, real-world regulatory enforcement fines would range between ₹500,000 to ₹2,500,000 for non-compliance."
+      },
+      "remediation": [
+        {
+          "step": "Draft and publish a comprehensive, legally compliant Privacy Policy linkable from the footer across all routes.",
+          "impact": "Resolves fundamental non-compliance under GDPR Art. 13, CCPA § 1798.100, and DPDP Act Section 5.",
+          "effort": "Low"
+        },
+        {
+          "step": "Publish explicit Data Protection / Grievance Officer contact information (email and physical address) in the site footer and Privacy Policy.",
+          "impact": "Fulfills mandatory requirements under Section 13 of the India DPDP Act 2023.",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host Google Fonts locally on Vercel static storage or server fonts directly from local webserver assets.",
+          "impact": "Eliminates unauthorized third-party US transfers of visitor IP addresses and complies with EU ePrivacy/GDPR jurisprudence.",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure missing security headers on Vercel deployment (vercel.json): Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, and Permissions-Policy.",
+          "impact": "Mitigates Clickjacking, MIME-sniffing, and XSS vector risk under GDPR Art. 32 and DPDP Act Section 8(5).",
+          "effort": "Medium"
+        },
+        {
+          "step": "Fix Vercel route configurations so that requests to /robots.txt and /sitemap.xml serve static plain-text/XML assets instead of routing to index.html.",
+          "impact": "Ensures proper search engine indexing and prevents invalid MIME-type interpretation.",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement a Consent Management Platform (CMP) to govern any future tracking scripts, analytics, or third-party cookies prior to execution.",
+          "impact": "Ensures full compliance with ePrivacy Directive and GDPR consent requirements.",
+          "effort": "Medium"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T10:25:09.179Z",
+        "durationMs": 18371,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_a5c1b8da1d150c49",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T10:12:29.002Z",
+    "target": "https://www.iovert.in/",
+    "score": 38,
+    "report": {
+      "target": "https://www.iovert.in/",
+      "originCountry": "India",
+      "score": 38,
+      "summary": "iovert.in collects personal data via form fields (text, email, tel) on its landing page without publishing any Privacy Policy or legal notices, creating immediate non-compliance under the India DPDP Act 2023 and GDPR. While the site correctly enforces HTTPS with HSTS and refrains from placing pre-consent tracking cookies, it completely lacks essential HTTP security headers like Content-Security-Policy and X-Frame-Options. Furthermore, no Grievance Officer details or consent notices are provided to users submitting personal contact information.",
+      "evidence": [
+        "Personal-data input fields detected on landing page: text, email, tel",
+        "Privacy/legal links found: NONE FOUND",
+        "Security headers MISSING: content-security-policy, x-frame-options, x-content-type-options, referrer-policy, permissions-policy",
+        "Consent/CMP signals in HTML: NONE DETECTED",
+        "security.txt file: absent",
+        "Server infrastructure detected: Vercel",
+        "Strict-Transport-Security header present: max-age=63072000",
+        "Cookies set on first request before consent: 0"
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023",
+          "score": 30,
+          "note": "Severe violation of Section 5 (Notice requirement) and Section 13 (Grievance Redressal mechanism) due to PII collection forms (text, email, tel) without a Privacy Policy or Data Fiduciary contact details."
+        },
+        {
+          "name": "EU GDPR",
+          "score": 35,
+          "note": "Breaches Article 13 (Information to be provided where personal data are collected) and Article 32 (Security of processing) due to unnotified web forms and missing security headers."
+        },
+        {
+          "name": "UK GDPR / PECR",
+          "score": 35,
+          "note": "Fails basic transparency requirements under UK GDPR Article 13 for collecting consumer contact details without a privacy notice."
+        },
+        {
+          "name": "California CCPA/CPRA",
+          "score": 30,
+          "note": "Violates CalOPPA and CCPA Notice at Collection obligations (Civ. Code § 1798.100) due to complete absence of an explicit Privacy Policy link."
+        },
+        {
+          "name": "Australian Privacy Act (APPs)",
+          "score": 35,
+          "note": "Fails Australian Privacy Principle 1 (Open and transparent management) and APP 5 (Notification of the collection of personal information)."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Unnotified Personal Data Collection",
+          "severity": "high",
+          "detail": "Form fields for name (text), email (email), and phone number (tel) collect personal data directly on the homepage without displaying any privacy notice or lawful basis disclosure required under DPDP Section 5 and GDPR Article 13."
+        },
+        {
+          "title": "Complete Absence of Privacy Policy",
+          "severity": "critical",
+          "detail": "The domain lacks any Privacy Policy, Terms of Service, or Legal Notice link across its entire HTML structure, leaving data subjects with zero transparency regarding data retention, processing, or third-party sharing."
+        },
+        {
+          "title": "Missing Grievance Officer Disclosures",
+          "severity": "high",
+          "detail": "Fails India DPDP Act 2023 Section 13 and IT Rules 2011 requirements by failing to publish the name and contact details of a designated Grievance Officer for handling privacy requests."
+        },
+        {
+          "title": "Missing Clickjacking and Framing Protections",
+          "severity": "medium",
+          "detail": "Absence of X-Frame-Options and Content-Security-Policy frame-ancestors headers leaves the contact form vulnerable to clickjacking attacks."
+        },
+        {
+          "title": "MIME-Sniffing and CSP Vulnerability",
+          "severity": "medium",
+          "detail": "Missing X-Content-Type-Options and Content-Security-Policy headers exposes users to cross-site scripting (XSS) and drive-by content spoofing risks."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore statutory limit (DPDP) / €20 Million (GDPR)",
+        "currency": "INR / EUR",
+        "rationale": "Under Schedule 1 of the India DPDP Act 2023, failure to observe reasonable security safeguards or issue proper notice carries penalties up to ₹250 Crore. For a niche app development company, actual regulatory enforcement by the Data Protection Board of India would likely result in corrective orders and moderate financial penalties ranging between ₹2 Lakh and ₹15 Lakh upon a user grievance."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy and link it conspicuously in the website footer.",
+          "impact": "Resolves core transparency mandates across DPDP Act 2023 Section 5, GDPR Art. 13, and CCPA.",
+          "effort": "low"
+        },
+        {
+          "step": "Add explicit consent notices and Privacy Policy checkboxes to all contact and inquiry forms (text, email, tel fields).",
+          "impact": "Establishes legal basis and verifiable consent for processing lead submission data.",
+          "effort": "low"
+        },
+        {
+          "step": "Appoint and publish contact information for a Grievance Officer / Data Protection Officer in the Privacy Policy.",
+          "impact": "Ensures compliance with DPDP Section 13 and Indian IT Rules 2011.",
+          "effort": "low"
+        },
+        {
+          "step": "Configure missing security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) on Vercel.",
+          "impact": "Protects forms against clickjacking, XSS, and MIME-sniffing exploits under DPDP Section 8(5) and GDPR Art. 32.",
+          "effort": "medium"
+        },
+        {
+          "step": "Publish a standard RFC 9116 security contact file at `/.well-known/security.txt`.",
+          "impact": "Establishes a formal channel for responsible disclosure of security vulnerabilities.",
+          "effort": "low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T10:12:29.002Z",
+        "durationMs": 17079,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · No redirect"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "0 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "4 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "3 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / absent"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.iovert.in/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_7e5afac9e218ff86",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T10:09:41.681Z",
+    "target": "https://www.asji.online/",
+    "score": 42,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India (Inferred from 'ASJi' brand association, .online TLD, and English global targeting)",
+      "score": 42,
+      "summary": "ASJi Legal & Web Solutions fails basic data protection requirements by entirely omitting a Privacy Policy, Terms of Service, and required Grievance Officer details under the India DPDP Act 2023 (Section 13) and GDPR (Article 13). Direct asset requests to Google Fonts transmit client IP addresses to US servers without prior user consent or a disclosed legal basis. Furthermore, while HTTPS and HSTS are enabled via Vercel, key security hardening headers such as Content-Security-Policy and X-Frame-Options are missing, and robots.txt returns an invalid HTML SPA fallback.",
+      "evidence": [
+        "Privacy/legal links found: NONE FOUND",
+        "Consent/CMP signals in HTML: NONE DETECTED",
+        "Third-party hosts referenced: fonts.googleapis.com, fonts.gstatic.com",
+        "Security headers MISSING: content-security-policy, x-frame-options, x-content-type-options, referrer-policy, permissions-policy",
+        "Server/infra headers: Vercel",
+        "robots.txt returns index.html SPA content (misconfigured HTTP route)",
+        "security.txt is present on host"
+      ],
+      "frameworks": [
+        {
+          "name": "India DPDP Act 2023",
+          "score": 35,
+          "note": "Breaches Section 5 (Notice requirement) and Section 13 (Grievance Redressal mechanism) due to complete absence of privacy notice and contact details for a Data Protection Officer/Grievance Officer."
+        },
+        {
+          "name": "EU / UK GDPR",
+          "score": 40,
+          "note": "Violates Article 13 (Information to be provided where personal data are collected) and Article 44 (General principle for transfers) via automated IP exposure to US-hosted Google Fonts."
+        },
+        {
+          "name": "CCPA / CPRA",
+          "score": 45,
+          "note": "Fails Cal. Civ. Code § 1798.100 due to lack of Notice at Collection and missing privacy disclosures detailing personal information processing practices."
+        },
+        {
+          "name": "ePrivacy Directive / Cookie Law",
+          "score": 65,
+          "note": "No first-party tracking cookies detected pre-consent, but unconsented callouts to external font servers transmit terminal device identifiers (IP addresses)."
+        },
+        {
+          "name": "OWASP Security Headers Baseline",
+          "score": 30,
+          "note": "Lacks CSP, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy headers, increasing susceptibility to clickjacking and MIME-sniffing exploits."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Missing Privacy Policy & Notice at Collection",
+          "severity": "critical",
+          "detail": "No privacy policy link was found anywhere on the landing page. This breaches GDPR Article 13, India DPDP Act Section 5, and CCPA § 1798.100, leaving visitors uninformed about data processing, rights, or retention."
+        },
+        {
+          "title": "Missing DPDP Grievance Officer Disclosure",
+          "severity": "high",
+          "detail": "Under Section 13 of the India DPDP Act 2023, data fiduciaries must publish the contact details of a Grievance Officer. No contact details or grievance redressal mechanism exist on the site."
+        },
+        {
+          "title": "Unconsented Third-Party Data Transfer to Google Fonts",
+          "severity": "medium",
+          "detail": "HTML preconnects directly load assets from fonts.googleapis.com and fonts.gstatic.com, exposing user IP addresses to third-party US infrastructure prior to consent or disclosure."
+        },
+        {
+          "title": "Absence of Clickjacking & Content Injection Protections",
+          "severity": "medium",
+          "detail": "Missing X-Frame-Options and Content-Security-Policy (CSP) headers allows the site to be framed by malicious third parties, enabling UI redressing and clickjacking attacks."
+        },
+        {
+          "title": "Misconfigured Route for robots.txt",
+          "severity": "low",
+          "detail": "Requesting /robots.txt serves the raw React HTML application fallback instead of a valid text file, indicating misconfigured routing rules on Vercel."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore (DPDP) / €20 Million or 4% Global Turnover (GDPR)",
+        "currency": "INR / EUR",
+        "rationale": "Maximum statutory penalties under the India DPDP Act 2023 for failure to observe data fiduciary obligations (Section 5/13) reach up to ₹250 crore. Under GDPR, failure to provide mandatory Article 13 disclosures carries fines up to €20M or 4% of annual global turnover. Actual enforcement for a small entity would scale down proportionally but remains severe."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy and place a visible link in the site footer.",
+          "impact": "Resolves core compliance breaches under GDPR Art 13, DPDP Sec 5, and CCPA.",
+          "effort": "Low"
+        },
+        {
+          "step": "Appoint and publish details for a Grievance Officer / Data Protection Officer.",
+          "impact": "Fulfills Section 13 mandate of the India DPDP Act 2023.",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host web fonts locally instead of referencing Google Fonts CDN servers.",
+          "impact": "Eliminates unauthorized cross-border IP transfer risks to third-party CDNs.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Implement Content-Security-Policy (CSP) and X-Frame-Options headers in vercel.json.",
+          "impact": "Mitigates clickjacking, frame injection, and cross-site scripting risks.",
+          "effort": "Medium"
+        },
+        {
+          "step": "Add X-Content-Type-Options: nosniff and Referrer-Policy: strict-origin-when-cross-origin headers.",
+          "impact": "Prevents MIME-type sniffing and limits cross-origin referrer leakages.",
+          "effort": "Low"
+        },
+        {
+          "step": "Fix Vercel routing rules to serve a standard text-based robots.txt file.",
+          "impact": "Ensures clean search engine crawling and prevents routing logic glitches.",
+          "effort": "Low"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T10:09:41.681Z",
+        "durationMs": 14977,
+        "model": "gemini-3.6-flash (Standard)",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  },
+  {
+    "id": "scan_5b3e447439e2c916",
+    "visitorId": "default-visitor",
+    "savedAt": "2026-07-28T10:05:42.818Z",
+    "target": "https://www.asji.online/",
+    "score": 42,
+    "report": {
+      "target": "https://www.asji.online/",
+      "originCountry": "India",
+      "score": 42,
+      "summary": "The target https://www.asji.online/ fails fundamental regulatory privacy and security requirements due to a complete absence of a mandatory Privacy Policy and Grievance Contact details under India's DPDP Act 2023 and GDPR. Unconsented pre-connects to US-hosted Google Fonts leak visitor IP addresses across international borders without legal disclosures. Furthermore, the Vercel-hosted SPA lacks essential defense-in-depth security headers including Content Security Policy, X-Frame-Options, and X-Content-Type-Options.",
+      "evidence": [
+        "Privacy and legal policy links are completely absent across the landing page DOM",
+        "Preconnect requests are sent to US-based third-party hosts fonts.googleapis.com and fonts.gstatic.com prior to user interaction or consent",
+        "Server headers identify Vercel infrastructure with HSTS present but missing Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy",
+        "No Consent Management Platform (CMP) or privacy banner is integrated",
+        "Grievance Officer contact details required by India DPDP Act 2023 Section 13 are absent",
+        "The server returns HTML fallback (HTTP 200) for robots.txt instead of a proper plain-text file"
+      ],
+      "frameworks": [
+        {
+          "name": "India Digital Personal Data Protection (DPDP) Act 2023",
+          "score": 30,
+          "note": "Critical failure under Section 6 (Notice) and Section 13 (Grievance Redressal Mechanism) due to zero legal notices or contact information for data principals."
+        },
+        {
+          "name": "EU / UK GDPR",
+          "score": 45,
+          "note": "Breaches Article 13 (Information to be provided) and Chapter V (Transfers of personal data to third countries) via unconsented Google Fonts IP disclosures."
+        },
+        {
+          "name": "ePrivacy Directive (Cookie Law)",
+          "score": 65,
+          "note": "No tracking cookies were dropped on initial load, but third-party requests are dispatched before consent."
+        },
+        {
+          "name": "CCPA / CPRA",
+          "score": 40,
+          "note": "Fails Cal. Civ. Code § 1798.130 due to missing explicit privacy policy links and notice at collection."
+        },
+        {
+          "name": "OWASP Web Security Baseline",
+          "score": 50,
+          "note": "Missing core security headers including CSP, X-Frame-Options, and X-Content-Type-Options on Vercel deployment."
+        }
+      ],
+      "criticalLeaks": [
+        {
+          "title": "Complete Absence of Privacy Notice & Legal Terms",
+          "severity": "critical",
+          "detail": "No privacy policy or legal disclosures were found on the domain. This breaches GDPR Article 13 and DPDP Act 2023 Section 6, leaving users unaware of data processing practices."
+        },
+        {
+          "title": "Missing Statutory Grievance Officer Designation",
+          "severity": "high",
+          "detail": "Under Section 13 of the India DPDP Act 2023, data fiduciaries must publish the contact details of a Grievance Officer. No such details are published on the site."
+        },
+        {
+          "title": "Unlawful US Cross-Border Data Transfer via Google Fonts",
+          "severity": "medium",
+          "detail": "The site initiates preconnect connections to fonts.googleapis.com and fonts.gstatic.com, exposing user IP addresses to US servers without prior consent or transfer mechanism disclosures under GDPR Chapter V."
+        },
+        {
+          "title": "Missing Content Security Policy (CSP)",
+          "severity": "high",
+          "detail": "The HTTP response headers omit Content-Security-Policy and Content-Security-Policy-Report-Only, exposing the SPA frontend to cross-site scripting (XSS) and unauthorized asset injection."
+        },
+        {
+          "title": "Missing Clickjacking & Anti-MIME Sniffing Protection",
+          "severity": "medium",
+          "detail": "Missing X-Frame-Options and X-Content-Type-Options headers allow potential UI redressing/clickjacking attacks and MIME-type sniffing exploits."
+        },
+        {
+          "title": "Misconfigured Route Fallback for System Files",
+          "severity": "low",
+          "detail": "Requesting /robots.txt serves the index HTML fallback document instead of standard robots.txt instructions, reflecting improper routing configuration on Vercel."
+        }
+      ],
+      "fineRisk": {
+        "estimate": "Up to ₹250 Crore (DPDP) / €20 Million or 4% Global Turnover (GDPR)",
+        "currency": "INR / EUR",
+        "rationale": "Failure to fulfill statutory notice provisions under DPDP Act 2023 Section 6 and Section 13 carries penalty caps up to ₹250 Crore for systemic non-compliance. GDPR Article 83 penalties apply for transparency and cross-border transfer failures."
+      },
+      "remediation": [
+        {
+          "step": "Publish a comprehensive Privacy Policy detailing data collection, lawful bases, user rights, and international data transfers.",
+          "impact": "High",
+          "effort": "Medium"
+        },
+        {
+          "step": "Publish Grievance Officer contact details (Name, Email, Designation, Address) on the homepage as mandated by India DPDP Act 2023 Section 13.",
+          "impact": "High",
+          "effort": "Low"
+        },
+        {
+          "step": "Self-host Google Fonts locally on Vercel asset directory to prevent external IP transmission to third-party US servers.",
+          "impact": "Medium",
+          "effort": "Low"
+        },
+        {
+          "step": "Configure HTTP security headers in vercel.json including Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, and Referrer-Policy.",
+          "impact": "High",
+          "effort": "Low"
+        },
+        {
+          "step": "Fix Vercel routing rules to serve a proper plain-text static robots.txt and sitemap.xml instead of falling back to index.html.",
+          "impact": "Low",
+          "effort": "Low"
+        },
+        {
+          "step": "Implement a Consent Management Platform (CMP) or consent banner prior to triggering any third-party tracking or telemetry scripts.",
+          "impact": "Medium",
+          "effort": "Medium"
+        }
+      ],
+      "inputKind": "url",
+      "provenance": {
+        "scannedAt": "2026-07-28T10:05:42.818Z",
+        "durationMs": 16134,
+        "model": "gemini-3.6-flash",
+        "method": "live-http-scan",
+        "confidence": "high",
+        "confidenceReason": "Findings are derived from a successful live fetch of the target and its response headers, cookies and HTML.",
+        "checks": [
+          {
+            "label": "HTTP status",
+            "value": "200 · Redirected https://asji.online/ → https://www.asji.online/"
+          },
+          {
+            "label": "Transport",
+            "value": "HTTPS enforced"
+          },
+          {
+            "label": "Security headers",
+            "value": "1/10 present"
+          },
+          {
+            "label": "Pre-consent cookies",
+            "value": "0 observed"
+          },
+          {
+            "label": "Tracker SDKs",
+            "value": "1 matched"
+          },
+          {
+            "label": "Third-party hosts",
+            "value": "2 referenced"
+          },
+          {
+            "label": "Consent/CMP signals",
+            "value": "none detected"
+          },
+          {
+            "label": "Personal-data fields",
+            "value": "0 on landing page"
+          },
+          {
+            "label": "Privacy/legal links",
+            "value": "0 found"
+          },
+          {
+            "label": "robots.txt / security.txt",
+            "value": "present / present"
+          }
+        ],
+        "sources": [
+          "Live HTTP fetch of https://www.asji.online/ and its /.well-known endpoints",
+          "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
+          "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
+          "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
+          "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
+          "OWASP Secure Headers Project & Mozilla Observatory header baselines"
+        ],
+        "limitations": [
+          "Only the landing page and well-known endpoints are fetched — authenticated areas and post-consent scripts are not executed.",
+          "JavaScript is not run, so cookies written client-side after page load are not observed.",
+          "Fine estimates are statutory-maxima modelling, not legal advice or a regulator's assessment."
+        ]
+      }
+    }
+  }
+]
