@@ -35,6 +35,7 @@
   --color-gold-light: var(--gold-light);
   --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
 }
 
 :root {

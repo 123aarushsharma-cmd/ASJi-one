@@ -32,7 +32,7 @@ export function GroundedSearchCard({ grounding }: GroundedSearchCardProps) {
         </div>
 
         <div className="text-right">
-          <span className="text-[11px] font-mono text-primary bg-primary/10 px-2 py-1 rounded border border-primary/30">
+          <span className="text-[11px] font-sans font-semibold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/30">
             {grounding.sources.length} Verified Citations
           </span>
         </div>
@@ -49,7 +49,7 @@ export function GroundedSearchCard({ grounding }: GroundedSearchCardProps) {
             {grounding.searchQueries.map((query, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 rounded-md bg-secondary/80 px-2.5 py-1 text-xs font-mono text-foreground border border-border/50"
+                className="inline-flex items-center gap-1 rounded-md bg-secondary/80 px-2.5 py-1 text-xs font-sans font-medium text-foreground border border-border/50"
               >
                 "{query}"
               </span>
@@ -78,7 +78,7 @@ export function GroundedSearchCard({ grounding }: GroundedSearchCardProps) {
                   <p className="truncate font-medium text-foreground group-hover:text-primary">
                     {src.title || "Legal Reference"}
                   </p>
-                  <p className="truncate text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <p className="truncate text-[11px] text-muted-foreground font-sans font-medium mt-0.5">
                     {src.uri}
                   </p>
                 </div>

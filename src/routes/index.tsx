@@ -7,9 +7,13 @@ import logo from "@/assets/asji-logo.jpg.asset.json";
 import { IntroSplash } from "@/components/IntroSplash";
 import { ScanLoader } from "@/components/ScanLoader";
 import { ScoreWheel } from "@/components/ScoreWheel";
+import { LinkedInShareButton } from "@/components/LinkedInShareButton";
 import { GroundedSearchCard } from "@/components/GroundedSearchCard";
+import { FineExposureCard } from "@/components/FineExposureCard";
+import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
 import { RemediationBillingModal } from "@/components/RemediationBillingModal";
 import { RemediationViewer } from "@/components/RemediationViewer";
+import { Footer } from "@/components/Footer";
 import { detectInput, validateAuditInput } from "@/lib/audit-input";
 import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.functions";
 import { AUTHORISATION_NOTICE, LEGAL, LEGAL_PAGES, NOT_LEGAL_ADVICE } from "@/lib/legal";
@@ -239,7 +243,7 @@ function Index() {
                     setInput(`https://${domain}`);
                     setError(null);
                   }}
-                  className="rounded-full border border-border/80 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-mono text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground"
+                  className="rounded-full border border-border/80 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-sans font-medium text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground"
                 >
                   {domain}
                 </button>
@@ -253,7 +257,7 @@ function Index() {
                     ? "Live Domain Scan Active"
                     : "Custom Stack Text Detected"}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-mono">
+                <span className="text-[11px] text-muted-foreground font-sans font-medium">
                   {detected.kind === "url"
                     ? `Inspecting ${detected.host}...`
                     : liveCheck && !liveCheck.ok
@@ -355,12 +359,21 @@ function Index() {
             <div className="surface-panel flex flex-col items-center gap-8 p-8 lg:flex-row lg:items-center lg:gap-14">
               <ScoreWheel score={report.score} />
               <div className="flex-1 text-center lg:text-left">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
-                  Compliance score for
-                </p>
-                <h2 className="mt-2 font-display text-3xl text-gold-gradient break-all">
-                  {report.target || scanned}
-                </h2>
+                <div className="flex flex-wrap items-center justify-center lg:justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
+                      Compliance score for
+                    </p>
+                    <h2 className="mt-2 font-display text-3xl text-gold-gradient break-all">
+                      {report.target || scanned}
+                    </h2>
+                  </div>
+                  <LinkedInShareButton
+                    domain={report.target || scanned}
+                    score={report.score}
+                    report={report}
+                  />
+                </div>
                 <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
                   Origin: {report.originCountry}
                 </p>
@@ -382,15 +395,17 @@ function Index() {
                     </span>
                   </div>
                 )}
-                <button
-                  onClick={() => {
-                    setPhase("idle");
-                    setReport(null);
-                  }}
-                  className="mt-6 rounded-xl border border-primary/40 px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/10"
-                >
-                  Analyze another
-                </button>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                  <button
+                    onClick={() => {
+                      setPhase("idle");
+                      setReport(null);
+                    }}
+                    className="rounded-xl border border-primary/40 px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/10"
+                  >
+                    Analyze another
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -417,15 +432,14 @@ function Index() {
               </div>
             )}
 
-            <div className="surface-panel p-6">
-              <h3 className="font-display text-xl text-gold-gradient">Estimated fine risk</h3>
-              <p className="mt-3 font-display text-3xl text-foreground">
-                {report.fineRisk?.estimate} {report.fineRisk?.currency}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {report.fineRisk?.rationale}
-              </p>
-            </div>
+            {/* Fine Exposure Card (DPDP Act 2023 & Global Jurisdictions) */}
+            <FineExposureCard report={report} />
+
+            {/* Global & Regional Language Notice Scanner Card */}
+            <LocalizationScannerCard
+              report={report}
+              onOpenRemediationModal={() => setUnlockOpen(true)}
+            />
 
             {report.frameworks?.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -574,21 +588,7 @@ function Index() {
         </section>
       </main>
 
-      <footer className="border-t border-border/60 py-10 text-center text-xs text-muted-foreground">
-        <nav className="mx-auto flex max-w-3xl flex-wrap justify-center gap-x-6 gap-y-2">
-          {LEGAL_PAGES.map((p) => (
-            <Link key={p.to} to={p.to} className="transition-colors hover:text-primary">
-              {p.label}
-            </Link>
-          ))}
-        </nav>
-        <p className="mx-auto mt-5 max-w-2xl px-5 text-[11px] leading-relaxed text-muted-foreground/80">
-          ASJi One reports provide automated technical compliance assessments of publicly observable
-          web signals. They serve as diagnostic security intelligence and complement internal
-          privacy reviews. Privacy requests: {LEGAL.privacyEmail} · Security: {LEGAL.securityEmail}
-        </p>
-        <p className="mt-4">© {new Date().getFullYear()} ASJi One · Trust Intelligence</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

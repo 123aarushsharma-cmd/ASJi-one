@@ -159,11 +159,11 @@ export function SavedAuditsDrawer({
                       </p>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1 font-mono">
+                      <span className="flex items-center gap-1 font-sans font-medium">
                         <Clock className="h-3 w-3" />
                         {new Date(record.savedAt).toLocaleTimeString()}
                       </span>
-                      <span className="font-mono text-xs font-bold text-foreground">
+                      <span className="font-sans text-xs font-bold text-foreground">
                         Score: {record.score}/100
                       </span>
                     </div>
@@ -179,7 +179,7 @@ export function SavedAuditsDrawer({
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-3 mt-2">
-          <span className="text-[11px] text-muted-foreground font-mono">
+          <span className="text-[11px] text-muted-foreground font-sans font-medium">
             {audits.length} record(s) in backend storage
           </span>
           <Button

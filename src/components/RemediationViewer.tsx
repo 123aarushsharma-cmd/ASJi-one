@@ -9,8 +9,10 @@ import {
   ArrowUpRight,
   Sparkles,
   BookOpen,
+  Award,
 } from "lucide-react";
 import type { AuditReport } from "@/lib/audit.functions";
+import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
 
 interface RemediationViewerProps {
   report: AuditReport;
@@ -19,7 +21,9 @@ interface RemediationViewerProps {
 
 export function RemediationViewer({ report }: RemediationViewerProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"technical" | "statutory" | "dpa">("technical");
+  const [activeTab, setActiveTab] = useState<"letterhead" | "technical" | "statutory" | "dpa">(
+    "letterhead",
+  );
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -103,7 +107,17 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="mt-6 flex border-b border-border/60">
+      <div className="mt-6 flex flex-wrap border-b border-border/60">
+        <button
+          onClick={() => setActiveTab("letterhead")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors ${
+            activeTab === "letterhead"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Award className="h-4 w-4" /> Official Letterhead Report
+        </button>
         <button
           onClick={() => setActiveTab("technical")}
           className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors ${
@@ -136,6 +150,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
         </button>
       </div>
 
+      {/* Tab 0: Official Letterhead Report */}
+      {activeTab === "letterhead" && (
+        <div className="mt-6">
+          <ASJiLetterheadReport report={report} />
+        </div>
+      )}
+
       {/* Tab 1: Technical Header & Cookie Patches */}
       {activeTab === "technical" && (
         <div className="mt-6 space-y-6">
@@ -143,7 +164,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
             {remediationSteps.map((step, idx) => (
               <div key={idx} className="rounded-xl border border-border/60 bg-secondary/20 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
+                  <span className="text-[10px] font-sans font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                     Step 0{idx + 1}
                   </span>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
@@ -166,12 +187,12 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
           <div className="rounded-xl border border-primary/20 bg-background/60 p-5">
             <h4 className="text-xs font-semibold text-gold-gradient uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>Ready-to-Deploy Server Response Headers</span>
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className="text-[10px] font-sans font-medium text-muted-foreground">
                 Nginx / Cloudflare / Express
               </span>
             </h4>
 
-            <div className="space-y-3 font-mono text-xs">
+            <div className="space-y-3 font-sans text-xs">
               <div className="relative rounded-lg bg-black/80 border border-border p-3 text-emerald-400">
                 <button
                   onClick={() => handleCopy(cspHeader, 1)}
@@ -309,7 +330,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                 Copy Clause
               </button>
             </div>
-            <p className="mt-3 font-mono text-xs text-muted-foreground bg-black/60 p-3 rounded-lg border border-border leading-relaxed">
+            <p className="mt-3 font-sans text-xs text-muted-foreground bg-black/60 p-3 rounded-lg border border-border leading-relaxed">
               &quot;Processor shall process personal data solely on documented instructions from
               Controller/Data Fiduciary, implementing technical and organizational measures under
               GDPR Art 32 and DPDP Act Sec 8, ensuring zero pre-consent third-party data

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { LEGAL, LEGAL_PAGES } from "@/lib/legal";
+import { LEGAL } from "@/lib/legal";
+import { Footer } from "@/components/Footer";
 
 export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -62,15 +63,9 @@ export function LegalPage({
         </p>
 
         <div className="mt-8 space-y-4">{children}</div>
-
-        <nav className="mt-10 flex flex-wrap gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-          {LEGAL_PAGES.map((p) => (
-            <Link key={p.to} to={p.to} className="transition-colors hover:text-primary">
-              {p.label}
-            </Link>
-          ))}
-        </nav>
       </main>
+
+      <Footer />
     </div>
   );
 }

@@ -4,10 +4,20 @@
  */
 export const LEGAL = {
   operator: "ASJi One",
-  legalEntity: "ASJi One (the “Operator”)",
-  contactEmail: "legal@asji.one",
-  privacyEmail: "privacy@asji.one",
-  securityEmail: "security@asji.one",
+  legalEntity: "ASJi Web and Legal Solution",
+  contactEmail: "asji.online@gmail.com",
+  privacyEmail: "asji.online@gmail.com",
+  securityEmail: "asji.online@gmail.com",
+  phoneNumbers: ["+91 8290841179", "+91 9461584298"],
+  phoneRaw: ["8290841179", "9461584298"],
+  instagram: {
+    handle: "@asjiweblegal",
+    url: "https://www.instagram.com/asjiweblegal",
+  },
+  linkedin: {
+    name: "ASJi Web and Legal Solution",
+    url: "https://www.linkedin.com/in/asji-web-and-legal-solution-7ab092414",
+  },
   grievanceOfficer: "Grievance Officer, ASJi One",
   governingLaw: "India",
   lastUpdated: "28 July 2026",

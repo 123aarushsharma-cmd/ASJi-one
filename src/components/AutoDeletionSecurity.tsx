@@ -140,7 +140,7 @@ export function AutoDeletionSecurity({
           <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
             {/* Countdown Badge */}
             {retentionMode !== "manual" && retentionMode !== "session" && (
-              <div className="flex items-center gap-2 bg-secondary/80 border border-border/80 px-3 py-1.5 rounded-xl text-xs font-mono">
+              <div className="flex items-center gap-2 bg-secondary/80 border border-border/80 px-3 py-1.5 rounded-xl text-xs font-sans font-semibold">
                 <Timer className="h-3.5 w-3.5 text-primary animate-spin-slow" />
                 <span className="text-muted-foreground">Purge in:</span>
                 <span className="font-bold text-gold-gradient">{formatTime(timeLeft)}</span>
@@ -173,7 +173,7 @@ export function AutoDeletionSecurity({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <span className="text-[10px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-sans font-medium">
             {Math.round(progressPercent)}% retention remaining
           </span>
         </div>

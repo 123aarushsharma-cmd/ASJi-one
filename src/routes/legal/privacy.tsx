@@ -28,9 +28,11 @@ export const Route = createFileRoute("/legal/privacy")({
     >
       <LegalSection title="1. Who is responsible">
         <p>
-          {LEGAL.legalEntity} is the controller for personal data processed through this site.
-          Privacy contact: <strong>{LEGAL.privacyEmail}</strong>. India DPDP grievance contact:{" "}
-          <strong>{LEGAL.grievanceOfficer}</strong>, {LEGAL.privacyEmail}.
+          {LEGAL.legalEntity} (operating {LEGAL.operator}) is the controller for personal data
+          processed through this site. Privacy &amp; Data Protection Contact:{" "}
+          <strong>{LEGAL.contactEmail}</strong>. Direct Phone:{" "}
+          <strong>{LEGAL.phoneNumbers.join(" / ")}</strong>. India DPDP Grievance Officer:{" "}
+          <strong>{LEGAL.grievanceOfficer}</strong>, {LEGAL.contactEmail}.
         </p>
       </LegalSection>
 
