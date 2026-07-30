@@ -16,6 +16,9 @@ export type StoredAuditRecord = {
 const DB_DIR = path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DB_DIR, "scans_db.json");
 
+// In-memory cache map for instant lookup and stability across serverless function instances
+const memoryAuditCache = new Map<string, AuditReport>();
+
 export function normalizeTargetKey(target: string): string {
   if (!target) return "";
   let key = target.toLowerCase().trim();
@@ -25,6 +28,7 @@ export function normalizeTargetKey(target: string): string {
   key = key.split("?")[0];
   key = key.split("#")[0];
   key = key.split(":")[0]; // strip port
+  key = key.split(" ")[0]; // strip trailing descriptions
   return key.trim();
 }
 
@@ -57,12 +61,15 @@ function writeDbFile(records: StoredAuditRecord[]): void {
 
 export async function saveAuditToDb(
   report: AuditReport,
+  rawTarget?: string,
   visitorId = "default-visitor",
 ): Promise<{ id: string; savedAt: string }> {
   const records = ensureDbFile();
   const id = "scan_" + crypto.randomBytes(8).toString("hex");
   const savedAt = new Date().toISOString();
-  const targetKey = normalizeTargetKey(report.target);
+  const primaryKey = normalizeTargetKey(rawTarget || report.target);
+  const secondaryKey = normalizeTargetKey(report.target);
+  const targetKey = primaryKey || secondaryKey;
 
   const newRecord: StoredAuditRecord = {
     id,
@@ -74,13 +81,17 @@ export async function saveAuditToDb(
     report,
   };
 
+  if (primaryKey) memoryAuditCache.set(primaryKey, report);
+  if (secondaryKey) memoryAuditCache.set(secondaryKey, report);
+
   // Replace any older record with identical targetKey to keep audit results 100% consistent
   const filtered = records.filter((r) => {
-    const existingKey = r.targetKey || normalizeTargetKey(r.target);
-    return existingKey !== targetKey;
+    const existingKey =
+      r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
+    return existingKey !== primaryKey && existingKey !== secondaryKey;
   });
 
-  const updated = [newRecord, ...filtered].slice(0, 100);
+  const updated = [newRecord, ...filtered].slice(0, 200);
   writeDbFile(updated);
 
   return { id, savedAt };
@@ -88,21 +99,29 @@ export async function saveAuditToDb(
 
 export async function findRecentAuditByTarget(
   rawTarget: string,
-  maxAgeHours = 168, // Default 7 days persistence
+  maxAgeHours = 0, // 0 means lifetime permanent caching
 ): Promise<AuditReport | null> {
-  const records = ensureDbFile();
   const searchKey = normalizeTargetKey(rawTarget);
   if (!searchKey) return null;
 
-  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).getTime();
+  // 1. Check fast in-memory cache first
+  if (memoryAuditCache.has(searchKey)) {
+    return memoryAuditCache.get(searchKey)!;
+  }
+
+  // 2. Check persistent disk file
+  const records = ensureDbFile();
 
   for (const r of records) {
-    const recordTime = new Date(r.savedAt).getTime();
-    if (recordTime < cutoff) continue;
-
     const recordKey =
       r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
     if (recordKey === searchKey) {
+      if (maxAgeHours > 0) {
+        const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).getTime();
+        const recordTime = new Date(r.savedAt).getTime();
+        if (recordTime < cutoff) continue;
+      }
+      memoryAuditCache.set(searchKey, r.report);
       return r.report;
     }
   }
@@ -148,6 +167,7 @@ export async function purgeAllAuditsFromDb(): Promise<{ count: number }> {
     // ignore secure wipe errors
   }
 
+  memoryAuditCache.clear();
   writeDbFile([]);
   return { count };
 }

@@ -107,7 +107,7 @@ export async function runAuditPipeline(
   // Target Caching for score stability & consistency (keeps audit results 100% stable for same domain)
   if (!bypassCache) {
     try {
-      const cached = await findRecentAuditByTarget(rawInput, 168);
+      const cached = await findRecentAuditByTarget(rawInput, 0);
       if (cached) {
         return {
           ...cached,
@@ -226,7 +226,7 @@ export async function runAuditPipeline(
             systemInstruction: SYSTEM_INSTRUCTION,
             tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
-            temperature: 0.1,
+            temperature: 0.0,
           },
         });
         reportContent = response.text ?? "";
@@ -271,7 +271,7 @@ export async function runAuditPipeline(
             config: {
               systemInstruction: SYSTEM_INSTRUCTION,
               responseMimeType: "application/json",
-              temperature: 0.1,
+              temperature: 0.0,
             },
           });
           reportContent = fallbackRes.text ?? "";
@@ -287,7 +287,7 @@ export async function runAuditPipeline(
                 config: {
                   systemInstruction: SYSTEM_INSTRUCTION,
                   responseMimeType: "application/json",
-                  temperature: 0.1,
+                  temperature: 0.0,
                 },
               });
               reportContent = liteRes.text ?? "";
@@ -311,6 +311,7 @@ export async function runAuditPipeline(
           config: {
             systemInstruction: SYSTEM_INSTRUCTION,
             responseMimeType: "application/json",
+            temperature: 0.0,
           },
         });
         reportContent = response.text ?? "";
@@ -357,7 +358,7 @@ export async function runAuditPipeline(
     ...report,
     inputKind: detected.kind,
     evidence: Array.isArray(report.evidence) ? report.evidence : [],
-    target: report.target || targetLabel,
+    target: targetLabel || report.target || rawInput,
     score: Math.max(0, Math.min(100, Math.round(report.score))),
     grounding: groundingInfo,
     provenance: {
@@ -375,7 +376,7 @@ export async function runAuditPipeline(
 
   // Save automatically to backend database until user purges
   try {
-    const saved = await saveAuditToDb(finalReport);
+    const saved = await saveAuditToDb(finalReport, rawInput);
     finalReport.dbRecordId = saved.id;
     finalReport.dbSavedAt = saved.savedAt;
   } catch (dbErr) {
