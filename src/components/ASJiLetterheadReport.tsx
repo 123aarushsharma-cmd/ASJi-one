@@ -149,6 +149,7 @@ export function ASJiLetterheadReport({
       {/* Main Letterhead Canvas Paper */}
       <div
         ref={reportPaperRef}
+        data-pdf-paper="true"
         className="relative bg-gradient-to-b from-[#121110] via-[#0d0c0b] to-[#080808] p-6 sm:p-10 text-foreground print:p-8 print:bg-white print:text-black"
       >
         {/* Top Diagonal Gold Corner Accent */}

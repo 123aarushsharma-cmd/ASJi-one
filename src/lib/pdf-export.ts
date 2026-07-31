@@ -16,13 +16,14 @@ export async function downloadReportAsPdf(
     const filename = `ASJi_Compliance_Audit_${cleanDomain}_${Date.now().toString().slice(-6)}.pdf`;
 
     const opt = {
-      margin: [8, 8, 8, 8],
+      margin: [4, 4, 4, 4],
       filename: filename,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: {
         scale: 2,
         useCORS: true,
         logging: false,
+        windowWidth: 1024,
         backgroundColor: "#0d0c0b",
         onclone: (clonedDoc: Document) => {
           // Sanitizes any Tailwind CSS v4 oklch() color functions which html2canvas cannot parse
@@ -41,6 +42,18 @@ export async function downloadReportAsPdf(
               el.style.cssText = el.style.cssText.replace(/oklch\([^)]+\)/gi, "rgb(212, 175, 55)");
             }
           });
+
+          // Enforce compact desktop layout on the paper container even when triggered from a mobile screen
+          const clonedPaper = clonedDoc.querySelector('[data-pdf-paper="true"]') as HTMLElement;
+          if (clonedPaper) {
+            clonedPaper.style.width = "800px";
+            clonedPaper.style.minWidth = "800px";
+            clonedPaper.style.maxWidth = "800px";
+            clonedPaper.style.boxSizing = "border-box";
+            clonedPaper.style.margin = "0 auto";
+            clonedPaper.style.padding = "20px";
+            clonedPaper.style.marginBottom = "0px";
+          }
         },
       },
       jsPDF: {
@@ -51,12 +64,13 @@ export async function downloadReportAsPdf(
       pagebreak: { mode: ["avoid-all", "css", "legacy"] },
     };
 
-    // Execute html2pdf save
     await html2pdf().set(opt).from(element).save();
     return true;
   } catch (err) {
-    console.error("Failed to generate PDF with html2pdf:", err);
-    // Fallback: Open popup print/save window
+    console.warn(
+      "Direct html2pdf export caught error, falling back to standalone print window:",
+      err,
+    );
     return false;
   }
 }
@@ -92,7 +106,7 @@ export function openStandalonePrintWindow(element: HTMLElement, domain: string =
     <html lang="en" class="dark">
       <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=1024, initial-scale=1.0" />
         <title>ASJi Legal Audit Certificate - ${cleanDomain}</title>
         ${styleElements}
         <style>
@@ -101,9 +115,9 @@ export function openStandalonePrintWindow(element: HTMLElement, domain: string =
           *, *::before, *::after {
             box-sizing: border-box;
           }
-          body {
-            margin: 0;
-            padding: 24px;
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: #0d0c0b !important;
             color: #ffffff !important;
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -115,26 +129,37 @@ export function openStandalonePrintWindow(element: HTMLElement, domain: string =
           }
           @page {
             size: A4 portrait;
-            margin: 8mm;
+            margin: 4mm;
           }
           @media print {
-            body {
+            html, body {
+              margin: 0 !important;
               padding: 0 !important;
-              background-color: #ffffff !important;
-              color: #000000 !important;
+              background-color: #0d0c0b !important;
+              color: #ffffff !important;
+            }
+            body > div {
+              margin: 0 auto !important;
+              padding: 0 !important;
+            }
+            [data-pdf-paper="true"] {
+              margin-bottom: 0 !important;
+              padding-bottom: 12px !important;
+              break-after: avoid !important;
+              page-break-after: avoid !important;
             }
           }
         </style>
       </head>
       <body class="bg-[#0d0c0b] text-foreground">
-        <div style="max-width: 860px; margin: 0 auto;">
+        <div style="width: 800px; max-width: 800px; margin: 0 auto; padding: 12px;">
           ${htmlContent}
         </div>
         <script>
           window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 500);
+            }, 400);
           };
         </script>
       </body>
