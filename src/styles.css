@@ -219,3 +219,51 @@
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* Print & PDF Export Rules */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 4mm;
+  }
+
+  html,
+  body {
+    background: #0d0c0b !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide background overlays during print */
+  body::before {
+    display: none !important;
+  }
+
+  /* Hide all non-essential UI controls when printing */
+  .print\:hidden,
+  button:not([data-pdf-include="true"]),
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  /* Target PDF Report Container to maintain single-page layout */
+  [data-pdf-paper="true"] {
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    padding: 16px !important;
+    background: #0d0c0b !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    box-sizing: border-box !important;
+  }
+}

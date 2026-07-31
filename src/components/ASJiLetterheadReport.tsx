@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Globe,
   Scale,
@@ -86,7 +87,11 @@ export function ASJiLetterheadReport({
     setIsDownloading(true);
     try {
       const success = await downloadReportAsPdf(reportPaperRef.current, targetDomain);
-      if (!success) {
+      if (success) {
+        toast.success("PDF saved to your Downloads folder!", {
+          description: `Downloaded audit report certificate for ${targetDomain}`,
+        });
+      } else {
         openStandalonePrintWindow(reportPaperRef.current, targetDomain);
       }
     } catch (err) {
