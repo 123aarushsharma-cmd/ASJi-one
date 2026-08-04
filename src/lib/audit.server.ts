@@ -82,7 +82,7 @@ function textBetween(html: string, re: RegExp): string {
   return m ? m[1].trim().replace(/\s+/g, " ").slice(0, 300) : "";
 }
 
-async function safeFetch(url: string, timeoutMs = 12000): Promise<Response | null> {
+async function safeFetch(url: string, timeoutMs = 6000): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -201,11 +201,11 @@ export async function gatherSiteEvidence(rawUrl: string): Promise<SiteEvidence> 
   const origin = new URL(finalUrl).origin;
   const discoveredPolicyUrls: string[] = [];
   const [robotsRes, securityRes, dntRes, privacyProbe, termsProbe] = await Promise.all([
-    safeFetch(`${origin}/robots.txt`, 7000),
-    safeFetch(`${origin}/.well-known/security.txt`, 7000),
-    safeFetch(`${origin}/.well-known/dnt-policy.txt`, 7000),
-    safeFetch(`${origin}/privacy`, 5000),
-    safeFetch(`${origin}/terms`, 5000),
+    safeFetch(`${origin}/robots.txt`, 3000),
+    safeFetch(`${origin}/.well-known/security.txt`, 3000),
+    safeFetch(`${origin}/.well-known/dnt-policy.txt`, 3000),
+    safeFetch(`${origin}/privacy`, 3000),
+    safeFetch(`${origin}/terms`, 3000),
   ]);
 
   if (privacyProbe && privacyProbe.ok) discoveredPolicyUrls.push(`${origin}/privacy (HTTP 200 OK)`);

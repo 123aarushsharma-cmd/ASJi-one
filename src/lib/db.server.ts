@@ -42,7 +42,18 @@ function ensureDbFile(): StoredAuditRecord[] {
       return [];
     }
     const content = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(content) as StoredAuditRecord[];
+    const records = JSON.parse(content) as StoredAuditRecord[];
+    // Pre-seed in-memory cache for ultra-fast, deterministic multi-device lookups
+    for (const r of records) {
+      const key =
+        r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
+      if (key && r.report) {
+        if (!memoryAuditCache.has(key)) {
+          memoryAuditCache.set(key, r.report);
+        }
+      }
+    }
+    return records;
   } catch {
     return [];
   }
@@ -127,6 +138,12 @@ export async function findRecentAuditByTarget(
   }
 
   return null;
+}
+
+export async function getAuditFromDb(id: string): Promise<AuditReport | null> {
+  const records = ensureDbFile();
+  const found = records.find((r) => r.id === id);
+  return found ? found.report : null;
 }
 
 export async function listAuditsFromDb(

@@ -133,7 +133,30 @@ function Index() {
       setReport(result);
       setPhase("result");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+      let msg = "Analysis failed. Please try again.";
+      if (err instanceof Error) {
+        msg = err.message;
+      } else if (typeof err === "string") {
+        msg = err;
+      }
+
+      if (msg.trim().startsWith("{")) {
+        try {
+          const parsed = JSON.parse(msg);
+          if (parsed.error?.message) {
+            msg = parsed.error.message;
+          }
+        } catch {
+          /* keep original */
+        }
+      }
+
+      if (msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("high demand")) {
+        msg =
+          "The AI model engine is currently experiencing temporary peak traffic. Click 'Analyze Domain Compliance' to retry.";
+      }
+
+      setError(msg);
       setPhase("idle");
     }
   };
@@ -311,9 +334,19 @@ function Index() {
             </p>
 
             {error && (
-              <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-left text-xs text-destructive">
-                {error}
-              </p>
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-left text-xs text-destructive flex flex-col gap-2">
+                <p className="font-semibold text-xs flex items-center gap-1.5 text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>Audit Inspection Notice</span>
+                </p>
+                <p className="leading-relaxed">{error}</p>
+                <button
+                  type="submit"
+                  className="mt-1 self-start rounded-lg bg-destructive/20 px-3 py-1.5 text-[11px] font-semibold text-destructive hover:bg-destructive/30 transition-all cursor-pointer"
+                >
+                  Retry Scan
+                </button>
+              </div>
             )}
           </form>
 
