@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Globe, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertCircle, Globe, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import logo from "@/assets/asji-logo.jpg.asset.json";
 import { IntroSplash } from "@/components/IntroSplash";
