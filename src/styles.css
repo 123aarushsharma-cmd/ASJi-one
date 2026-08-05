@@ -33,9 +33,9 @@
   --color-gold: var(--gold);
   --color-gold-deep: var(--gold-deep);
   --color-gold-light: var(--gold-light);
-  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Outfit", system-ui, -apple-system, sans-serif;
+  --font-sans: "Outfit", "DM Sans", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "Outfit", "Plus Jakarta Sans", "DM Sans", system-ui, -apple-system, sans-serif;
 }
 
 :root {

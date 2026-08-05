@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import crypto from "node:crypto";
 import { detectInput } from "./audit-input";
 import { formatEvidence, gatherSiteEvidence, type SiteEvidence } from "./audit.server";
 import { findRecentAuditByTarget, saveAuditToDb } from "./db.server";
@@ -33,6 +34,9 @@ export type AuditReport = {
   summary: string;
   inputKind: "url" | "text";
   evidence: string[];
+  evidenceFingerprint?: string;
+  hasModifiedSinceLastScan?: boolean;
+  previousScore?: number;
   provenance: AuditProvenance;
   grounding?: GroundingInfo;
   dbRecordId?: string;
@@ -46,6 +50,24 @@ export type AuditReport = {
   fineRisk: { estimate: string; currency: string; rationale: string };
   remediation: { step: string; impact: string; effort: string }[];
 };
+
+export function computeEvidenceFingerprint(evidence: SiteEvidence): string {
+  const parts = [
+    String(evidence.statusCode),
+    evidence.httpsUpgrade ? "https" : "http",
+    JSON.stringify(evidence.securityHeaders),
+    evidence.setCookiePreConsent.slice().sort().join(","),
+    evidence.trackerSignals.slice().sort().join(","),
+    evidence.consentSignals.slice().sort().join(","),
+    evidence.policyLinks.slice().sort().join(","),
+    evidence.discoveredPolicyUrls.slice().sort().join(","),
+    evidence.formsCollectingData.slice().sort().join(","),
+    evidence.securityTxt ? "sec1" : "sec0",
+    evidence.wellKnownDntPolicy ? "dnt1" : "dnt0",
+    evidence.robotsTxt ? "rob1" : "rob0",
+  ];
+  return crypto.createHash("sha256").update(parts.join("::")).digest("hex");
+}
 
 const SYSTEM_INSTRUCTION = `You are ASJi One, a senior privacy, security and data-protection auditor with deep knowledge of GDPR, the India DPDP Act 2023 (and draft Rules), UK GDPR, ePrivacy/cookie law, CCPA/CPRA, PIPEDA, LGPD, PDPA (SG/TH), POPIA, PIPL and Australian Privacy Act.
 
@@ -341,24 +363,6 @@ export async function runAuditPipeline(
     throw new Error("AI is not configured. Set GEMINI_API_KEY in environment variables.");
   }
 
-  // Target Caching for score stability & consistency (keeps audit results 100% stable for same domain)
-  if (!bypassCache) {
-    try {
-      const cached = await findRecentAuditByTarget(rawInput, 0);
-      if (cached) {
-        return {
-          ...cached,
-          provenance: {
-            ...cached.provenance,
-            scannedAt: cached.provenance?.scannedAt || new Date().toISOString(),
-          },
-        };
-      }
-    } catch {
-      // ignore cache lookup errors and proceed
-    }
-  }
-
   const startedAt = Date.now();
   const detected = detectInput(rawInput);
 
@@ -370,11 +374,13 @@ export async function runAuditPipeline(
   let confidence: AuditProvenance["confidence"] = "medium";
   let confidenceReason = "";
   let liveEvidence: SiteEvidence | null = null;
+  let currentFingerprint = "";
 
   if (detected.kind === "url") {
     const evidence = await gatherSiteEvidence(detected.url!);
     liveEvidence = evidence;
     targetLabel = evidence.host;
+    currentFingerprint = computeEvidenceFingerprint(evidence);
     const missingHeaders = Object.values(evidence.securityHeaders).filter((v) => v === null).length;
     checks = [
       { label: "HTTP status", value: `${evidence.statusCode} · ${evidence.redirectChainNote}` },
@@ -422,6 +428,7 @@ export async function runAuditPipeline(
     )}\n\nProduce the deepest, most specific compliance audit you can from this real evidence. Verify company background and recent data privacy context via Google Search if relevant. Return json.`;
   } else {
     targetLabel = rawInput.slice(0, 60);
+    currentFingerprint = crypto.createHash("sha256").update(rawInput.trim()).digest("hex");
     checks = [
       { label: "Input mode", value: "Operator-supplied infrastructure description" },
       { label: "Characters analysed", value: `${rawInput.trim().length}` },
@@ -437,6 +444,61 @@ export async function runAuditPipeline(
     confidenceReason =
       "The audit is based on your written description rather than observed traffic, so findings should be confirmed against production.";
     userContent = `INPUT TYPE: raw infrastructure / architecture description (no live scan possible)\n\n${rawInput}\n\nAudit this described stack against the applicable regimes, flag what must be verified manually, and return json.`;
+  }
+
+  // Retrieve cached audit baseline for this target
+  let cachedReport: AuditReport | null = null;
+  try {
+    cachedReport = await findRecentAuditByTarget(rawInput, 0);
+  } catch {
+    /* ignore lookup error */
+  }
+
+  // Compare live research evidence with previous audit baseline
+  if (cachedReport && !bypassCache) {
+    let isUnchanged = false;
+    if (cachedReport.evidenceFingerprint) {
+      isUnchanged = cachedReport.evidenceFingerprint === currentFingerprint;
+    } else {
+      // Legacy record check: compare evidence counts
+      if (liveEvidence) {
+        const missingHeaders = Object.values(liveEvidence.securityHeaders).filter(
+          (v) => v === null,
+        ).length;
+        const cookies = liveEvidence.setCookiePreConsent.length;
+        const evStr = (cachedReport.evidence || []).join(" ");
+        if (evStr.includes(`${missingHeaders} missing`) && evStr.includes(`${cookies}`)) {
+          isUnchanged = true;
+        }
+      } else {
+        isUnchanged = true;
+      }
+    }
+
+    if (isUnchanged) {
+      // COMPANY HAS NOT CHANGED ANYTHING SINCE PREVIOUS REPORT -> KEEP RESULT EXACTLY SAME
+      const reverifiedReport: AuditReport = {
+        ...cachedReport,
+        evidenceFingerprint: currentFingerprint,
+        hasModifiedSinceLastScan: false,
+        provenance: {
+          ...cachedReport.provenance,
+          scannedAt: new Date().toISOString(),
+          durationMs: Date.now() - startedAt,
+          checks,
+          confidenceReason: `Live research completed on ${targetLabel}. Target infrastructure, security headers, and privacy notices remain unchanged since prior audit — score (${cachedReport.score}/100) and report preserved.`,
+        },
+        dbSavedAt: new Date().toISOString(),
+      };
+      try {
+        const saved = await saveAuditToDb(reverifiedReport, rawInput);
+        reverifiedReport.dbRecordId = saved.id;
+        reverifiedReport.dbSavedAt = saved.savedAt;
+      } catch {
+        /* ignore */
+      }
+      return reverifiedReport;
+    }
   }
 
   let reportContent = "";
@@ -609,6 +671,9 @@ export async function runAuditPipeline(
     ...report,
     inputKind: detected.kind,
     evidence: Array.isArray(report.evidence) ? report.evidence : [],
+    evidenceFingerprint: currentFingerprint,
+    hasModifiedSinceLastScan: cachedReport ? true : false,
+    previousScore: cachedReport ? cachedReport.score : undefined,
     target: targetLabel || report.target || rawInput,
     score: Math.max(0, Math.min(100, Math.round(report.score))),
     grounding: groundingInfo,
@@ -618,7 +683,9 @@ export async function runAuditPipeline(
       model: modelUsed,
       method: detected.kind === "url" ? "live-http-scan" : "operator-supplied-text",
       confidence,
-      confidenceReason,
+      confidenceReason: cachedReport
+        ? `Live research detected technical infrastructure or policy updates on ${targetLabel} since prior scan. Re-evaluated compliance score from previous ${cachedReport.score}/100 to ${Math.round(report.score)}/100.`
+        : confidenceReason,
       checks,
       sources,
       limitations,

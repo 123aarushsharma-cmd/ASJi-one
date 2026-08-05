@@ -34,5 +34,6 @@ export const LEGAL_PAGES = [
   { to: "/legal/privacy", label: "Privacy Policy" },
   { to: "/legal/cookies", label: "Cookie Notice" },
   { to: "/legal/acceptable-use", label: "Acceptable Use" },
+  { to: "/legal/security", label: "Security & security.txt" },
   { to: "/legal/disclaimer", label: "Legal Disclaimer" },
 ] as const;

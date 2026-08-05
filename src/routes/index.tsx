@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Globe, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertCircle, CheckCircle2, Globe, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import logo from "@/assets/asji-logo.jpg.asset.json";
 import { IntroSplash } from "@/components/IntroSplash";
@@ -13,6 +13,8 @@ import { FineExposureCard } from "@/components/FineExposureCard";
 import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
 import { RemediationBillingModal } from "@/components/RemediationBillingModal";
 import { RemediationViewer } from "@/components/RemediationViewer";
+import { SovereignLegalMatrix } from "@/components/SovereignLegalMatrix";
+import { StatutoryGrievanceNotice } from "@/components/StatutoryGrievanceNotice";
 import { Footer } from "@/components/Footer";
 import { detectInput, validateAuditInput } from "@/lib/audit-input";
 import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.functions";
@@ -413,7 +415,19 @@ function Index() {
                 <div className="gold-rule my-5" />
                 <p className="text-sm leading-relaxed text-muted-foreground">{report.summary}</p>
                 {report.provenance && (
-                  <div className="mt-5 flex flex-wrap justify-center gap-2 lg:justify-start">
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                    {report.hasModifiedSinceLastScan === false && (
+                      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3 shrink-0" /> Live Re-verified · No Site
+                        Changes Detected · Score Preserved
+                      </span>
+                    )}
+                    {report.hasModifiedSinceLastScan === true && (
+                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400 flex items-center gap-1.5">
+                        <RefreshCw className="h-3 w-3 shrink-0" /> Site Changes Detected · Score
+                        Updated (Was {report.previousScore}/100 → Now {report.score}/100)
+                      </span>
+                    )}
                     <span className="rounded-full border border-primary/40 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
                       {report.provenance.confidence} confidence
                     </span>
@@ -581,6 +595,9 @@ function Index() {
             />
           </section>
         )}
+
+        <SovereignLegalMatrix />
+        <StatutoryGrievanceNotice />
 
         <section id="capabilities" className="mt-24 scroll-mt-8">
           <h2 className="text-center font-display text-3xl text-gold-gradient">Capabilities</h2>

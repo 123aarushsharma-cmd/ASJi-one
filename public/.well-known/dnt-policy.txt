@@ -1,0 +1,2 @@
+Do Not Track (DNT) Policy Statement
+ASJi One respects user privacy and honors Do Not Track signals. We do not use third-party tracking pixels or behavioral cross-site analytics cookies.
