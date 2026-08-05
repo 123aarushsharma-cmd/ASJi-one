@@ -77,14 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
       { title: "ASJi One — GDPR & DPDP Compliance Scanner" },
       {
         name: "description",
         content:
           "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
       },
-      { name: "author", content: "Lovable" },
+      {
+        name: "robots",
+        content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      },
+      { name: "author", content: "ASJi Law & Legal Engineering" },
+      { property: "og:site_name", content: "ASJi One" },
       { property: "og:title", content: "ASJi One — GDPR & DPDP Compliance Scanner" },
       {
         property: "og:description",
@@ -93,7 +98,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@ASJiOne" },
       { name: "twitter:title", content: "ASJi One — GDPR & DPDP Compliance Scanner" },
       {
         name: "twitter:description",
@@ -104,6 +109,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         property: "og:image",
         content:
           "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9442eb3f-6fad-409d-a461-d85cbe2d3c59",
+      },
+      {
+        property: "og:image:alt",
+        content: "ASJi One Compliance & Security Audit Platform",
       },
       {
         name: "twitter:image",
