@@ -164,9 +164,9 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen flex flex-col justify-between">
       <IntroSplash />
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-5 sm:py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -203,7 +203,7 @@ function Index() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-5 pb-24">
+      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-24 flex-1">
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
