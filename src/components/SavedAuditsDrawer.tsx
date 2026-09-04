@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Database, Trash2, Clock, CheckCircle2, RefreshCw, FileText, Lock } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getSavedAudits, purgeDatabase, getAuditById } from "@/lib/audit.functions";
-import type { AuditReport } from "@/lib/audit-pipeline.server";
+import type { AuditReport } from "@/lib/audit-types";
 import { toast } from "sonner";
 import {
   Dialog,

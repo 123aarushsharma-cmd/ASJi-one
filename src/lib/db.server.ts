@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import type { AuditReport } from "./audit-pipeline.server";
+import type { AuditReport } from "./audit-types";
 
 export type StoredAuditRecord = {
   id: string;
@@ -42,18 +42,37 @@ function ensureDbFile(): StoredAuditRecord[] {
       return [];
     }
     const content = fs.readFileSync(DB_FILE, "utf-8");
-    const records = JSON.parse(content) as StoredAuditRecord[];
-    // Pre-seed in-memory cache for ultra-fast, deterministic multi-device lookups
-    for (const r of records) {
-      const key =
-        r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
-      if (key && r.report) {
-        if (!memoryAuditCache.has(key)) {
-          memoryAuditCache.set(key, r.report);
-        }
+    const rawRecords = JSON.parse(content) as StoredAuditRecord[];
+
+    // Strictly deduplicate existing records by normalized targetKey to prevent repeated results
+    const seen = new Set<string>();
+    const deduplicatedRecords: StoredAuditRecord[] = [];
+    let hadDuplicates = false;
+
+    for (const r of rawRecords) {
+      const key = normalizeTargetKey(r.targetKey || r.target || r.report?.target);
+      if (!key) continue;
+      if (seen.has(key)) {
+        hadDuplicates = true;
+        continue;
+      }
+      seen.add(key);
+      const normalizedRecord: StoredAuditRecord = {
+        ...r,
+        targetKey: key,
+        target: r.target || key,
+      };
+      deduplicatedRecords.push(normalizedRecord);
+      if (r.report) {
+        memoryAuditCache.set(key, r.report);
       }
     }
-    return records;
+
+    if (hadDuplicates || deduplicatedRecords.length !== rawRecords.length) {
+      writeDbFile(deduplicatedRecords);
+    }
+
+    return deduplicatedRecords;
   } catch {
     return [];
   }
@@ -76,34 +95,52 @@ export async function saveAuditToDb(
   visitorId = "default-visitor",
 ): Promise<{ id: string; savedAt: string }> {
   const records = ensureDbFile();
-  const id = "scan_" + crypto.randomBytes(8).toString("hex");
   const savedAt = new Date().toISOString();
   const primaryKey = normalizeTargetKey(rawTarget || report.target);
   const secondaryKey = normalizeTargetKey(report.target);
   const targetKey = primaryKey || secondaryKey;
 
-  const newRecord: StoredAuditRecord = {
-    id,
-    visitorId,
-    savedAt,
-    target: report.target,
-    targetKey,
-    score: report.score,
-    report,
-  };
+  // Single-record authoritative check: replace any existing record with identical targetKey
+  const existingIdx = records.findIndex((r) => {
+    const rKey = r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
+    return rKey === targetKey || rKey === primaryKey || rKey === secondaryKey;
+  });
 
+  let id: string;
+  let updatedRecords: StoredAuditRecord[];
+
+  if (existingIdx !== -1) {
+    id = records[existingIdx].id;
+    const existing = records[existingIdx];
+    const updatedRecord: StoredAuditRecord = {
+      ...existing,
+      savedAt,
+      target: report.target || existing.target,
+      targetKey,
+      score: report.score,
+      report,
+    };
+    const withoutExisting = records.filter((_, idx) => idx !== existingIdx);
+    updatedRecords = [updatedRecord, ...withoutExisting];
+  } else {
+    id = "scan_" + crypto.randomBytes(8).toString("hex");
+    const newRecord: StoredAuditRecord = {
+      id,
+      visitorId,
+      savedAt,
+      target: report.target || targetKey,
+      targetKey,
+      score: report.score,
+      report,
+    };
+    updatedRecords = [newRecord, ...records];
+  }
+
+  if (targetKey) memoryAuditCache.set(targetKey, report);
   if (primaryKey) memoryAuditCache.set(primaryKey, report);
   if (secondaryKey) memoryAuditCache.set(secondaryKey, report);
 
-  // Replace any older record with identical targetKey to keep audit results 100% consistent
-  const filtered = records.filter((r) => {
-    const existingKey =
-      r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
-    return existingKey !== primaryKey && existingKey !== secondaryKey;
-  });
-
-  const updated = [newRecord, ...filtered].slice(0, 200);
-  writeDbFile(updated);
+  writeDbFile(updatedRecords.slice(0, 200));
 
   return { id, savedAt };
 }
@@ -150,14 +187,23 @@ export async function listAuditsFromDb(
   visitorId = "default-visitor",
 ): Promise<{ id: string; target: string; score: number; savedAt: string }[]> {
   const records = ensureDbFile();
-  return records
-    .filter((r) => r.visitorId === visitorId || visitorId === "all")
-    .map((r) => ({
+  const seen = new Set<string>();
+  const list: { id: string; target: string; score: number; savedAt: string }[] = [];
+
+  for (const r of records) {
+    if (r.visitorId !== visitorId && visitorId !== "all") continue;
+    const key = r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    list.push({
       id: r.id,
-      target: r.target,
+      target: r.targetKey || r.target,
       score: r.score,
       savedAt: r.savedAt,
-    }));
+    });
+  }
+
+  return list;
 }
 
 export async function purgeAuditFromDb(id: string): Promise<boolean> {

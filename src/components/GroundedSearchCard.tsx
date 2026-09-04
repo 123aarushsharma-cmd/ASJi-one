@@ -1,5 +1,5 @@
 import { Globe, Search, ExternalLink, ShieldCheck, CheckCircle2 } from "lucide-react";
-import type { GroundingInfo } from "@/lib/audit-pipeline.server";
+import type { GroundingInfo } from "@/lib/audit-types";
 
 interface GroundedSearchCardProps {
   grounding?: GroundingInfo;

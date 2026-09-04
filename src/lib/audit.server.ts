@@ -82,7 +82,7 @@ function textBetween(html: string, re: RegExp): string {
   return m ? m[1].trim().replace(/\s+/g, " ").slice(0, 300) : "";
 }
 
-async function safeFetch(url: string, timeoutMs = 6000): Promise<Response | null> {
+async function safeFetch(url: string, timeoutMs = 3500): Promise<Response | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {

@@ -1,8 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { validateAuditInput } from "./audit-input";
-import type { AuditReport, GroundingInfo, GroundingSource } from "./audit-pipeline.server";
+import type {
+  AuditReport,
+  GroundingInfo,
+  GroundingSource,
+  JurisdictionVerdictItem,
+  CrossBorderAnalysis,
+  RadarTerminalData,
+} from "./audit-types";
 
-export type { AuditReport, GroundingInfo, GroundingSource };
+export type {
+  AuditReport,
+  GroundingInfo,
+  GroundingSource,
+  JurisdictionVerdictItem,
+  CrossBorderAnalysis,
+  RadarTerminalData,
+};
 
 export const auditCompliance = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
@@ -39,3 +53,18 @@ export const purgeDatabase = createServerFn({ method: "POST" }).handler(async ()
   const { purgeAllAuditsFromDb } = await import("./db.server");
   return purgeAllAuditsFromDb();
 });
+
+export const askAiOracle = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const question = (data as { question?: unknown })?.question;
+    const history = (data as { history?: unknown })?.history;
+    if (typeof question !== "string" || !question.trim()) {
+      throw new Error("Question string is required.");
+    }
+    const safeHistory = Array.isArray(history) ? history : [];
+    return { question: question.trim(), history: safeHistory };
+  })
+  .handler(async ({ data }) => {
+    const { askComplianceOracle } = await import("./compliance-oracle.server");
+    return askComplianceOracle(data.question, data.history);
+  });

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone, Instagram, Linkedin, ExternalLink } from "lucide-react";
+import { Mail, Phone, Instagram, Linkedin, ExternalLink, Globe, Sparkles } from "lucide-react";
 import { LEGAL, LEGAL_PAGES } from "@/lib/legal";
 
 export function Footer() {
@@ -55,12 +55,26 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Direct Social Connect Block */}
+          {/* Direct Social & Web Connect Block */}
           <div className="flex flex-col justify-center sm:col-span-2 lg:col-span-1">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Direct Connect Socials
+              Official Portal &amp; Socials
             </p>
             <div className="flex flex-wrap items-center gap-2.5">
+              {/* Main asji.online Direct Portal Link in Gold Light */}
+              <a
+                href={LEGAL.website.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 rounded-xl border border-primary/60 bg-gradient-to-r from-amber-500/20 via-primary/30 to-amber-500/10 px-3.5 py-2 text-xs font-bold text-primary shadow-[0_0_15px_rgba(212,175,55,0.25)] transition-all hover:border-primary hover:bg-primary/40 hover:shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:scale-[1.02]"
+              >
+                <div className="flex h-5 w-5 items-center justify-center rounded-md border border-primary/50 bg-black/80 text-primary">
+                  <Globe className="h-3.5 w-3.5 text-primary animate-pulse" />
+                </div>
+                <span className="text-gold-gradient font-black tracking-wide">asji.online</span>
+                <ExternalLink className="h-3 w-3 text-primary opacity-80 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+
               {/* Instagram Button */}
               <a
                 href={LEGAL.instagram.url}
@@ -85,11 +99,29 @@ export function Footer() {
                 <div className="flex h-5 w-5 items-center justify-center rounded-md border border-primary/40 bg-black/60 p-0.5 text-amber-400">
                   <Linkedin className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                 </div>
-                <span>LinkedIn Profile</span>
+                <span>LinkedIn</span>
                 <ExternalLink className="h-3 w-3 opacity-60" />
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Featured Direct Gold Light Link Badge */}
+        <div className="mb-6 flex justify-center">
+          <a
+            href={LEGAL.website.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full border border-primary/50 bg-gradient-to-r from-amber-950/40 via-primary/20 to-amber-950/40 px-5 py-2 text-xs font-bold text-foreground shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all hover:border-primary hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] hover:scale-105"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Visit ASJi Official Legal Portal:</span>
+            <span className="text-gold-gradient font-black underline decoration-primary/60 underline-offset-4 group-hover:decoration-primary">
+              www.asji.online
+            </span>
+            <ExternalLink className="h-3.5 w-3.5 text-primary transition-transform group-hover:translate-x-0.5" />
+          </a>
         </div>
 
         {/* Legal Pages Navigation */}

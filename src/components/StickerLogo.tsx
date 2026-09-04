@@ -12,7 +12,7 @@ interface StickerLogoProps {
 // Global cache for transparent PNG data URL
 let cachedTransparentLogoUrl: string | null = null;
 
-export function useTransparentLogo(rawUrl: string): string {
+function useTransparentLogo(rawUrl: string): string {
   const [transparentUrl, setTransparentUrl] = useState<string>(cachedTransparentLogoUrl || rawUrl);
 
   useEffect(() => {

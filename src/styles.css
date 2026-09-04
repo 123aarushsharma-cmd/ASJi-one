@@ -315,6 +315,13 @@
     display: none !important;
   }
 
+  /* Force display print-specific header and footer banners in PDF output */
+  .print-header-banner,
+  .print-footer-banner {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
   /* Target PDF Report Container to maintain single-page layout */
   [data-pdf-paper="true"] {
     width: 100% !important;

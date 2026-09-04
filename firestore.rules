@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global data protection laws library (World Sovereign Database)
+    match /laws/{lawId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // AI Chat conversations and sessions
+    match /chat_sessions/{sessionId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Default fallback
+    match /{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

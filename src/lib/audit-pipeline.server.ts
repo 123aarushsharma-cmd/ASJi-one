@@ -3,65 +3,108 @@ import crypto from "node:crypto";
 import { detectInput } from "./audit-input";
 import { formatEvidence, gatherSiteEvidence, type SiteEvidence } from "./audit.server";
 import { findRecentAuditByTarget, saveAuditToDb } from "./db.server";
+import type {
+  GroundingSource,
+  GroundingInfo,
+  AuditProvenance,
+  JurisdictionVerdictItem,
+  CrossBorderAnalysis,
+  RadarTerminalData,
+  AuditReport,
+} from "./audit-types";
+import { computeRadarTerminalLog } from "./audit-radar";
 
-export type GroundingSource = {
-  title: string;
-  uri: string;
+export type {
+  GroundingSource,
+  GroundingInfo,
+  AuditProvenance,
+  JurisdictionVerdictItem,
+  CrossBorderAnalysis,
+  RadarTerminalData,
+  AuditReport,
 };
+export { computeRadarTerminalLog };
 
-export type GroundingInfo = {
-  searchQueries: string[];
-  sources: GroundingSource[];
-  isGrounded: boolean;
-};
-
-export type AuditProvenance = {
-  scannedAt: string;
-  durationMs: number;
-  model: string;
-  method: "live-http-scan" | "operator-supplied-text";
-  confidence: "high" | "medium" | "low";
-  confidenceReason: string;
-  checks: { label: string; value: string }[];
-  sources: string[];
-  limitations: string[];
-};
-
-export type AuditReport = {
-  target: string;
-  originCountry: string;
+export function computeDeterministicComplianceScore(evidence: SiteEvidence): {
   score: number;
-  summary: string;
-  inputKind: "url" | "text";
-  evidence: string[];
-  evidenceFingerprint?: string;
-  hasModifiedSinceLastScan?: boolean;
-  previousScore?: number;
-  provenance: AuditProvenance;
-  grounding?: GroundingInfo;
-  dbRecordId?: string;
-  dbSavedAt?: string;
-  frameworks: { name: string; score: number; note: string }[];
-  criticalLeaks: {
-    title: string;
-    severity: "low" | "medium" | "high" | "critical";
-    detail: string;
-  }[];
-  fineRisk: { estimate: string; currency: string; rationale: string };
-  remediation: { step: string; impact: string; effort: string }[];
-};
+  missingHeaders: string[];
+} {
+  const missingHeaders = Object.entries(evidence.securityHeaders)
+    .filter(([, v]) => v === null)
+    .map(([k]) => k);
+
+  let score = 100;
+
+  // 1. SSL/TLS Transport Integrity (Max -25)
+  if (!evidence.httpsUpgrade || evidence.statusCode === 0) {
+    score -= 25;
+  }
+
+  // 2. Critical Security Header Baseline (Max -40)
+  if (
+    missingHeaders.includes("content-security-policy") &&
+    missingHeaders.includes("content-security-policy-report-only")
+  ) {
+    score -= 15;
+  }
+  if (missingHeaders.includes("strict-transport-security")) {
+    score -= 12;
+  }
+  if (missingHeaders.includes("x-frame-options")) {
+    score -= 8;
+  }
+  if (missingHeaders.includes("x-content-type-options")) {
+    score -= 5;
+  }
+
+  // 3. Pre-consent Cookie Tracking & Privacy Governance (Max -20)
+  if (evidence.setCookiePreConsent.length > 0 && evidence.consentSignals.length === 0) {
+    score -= 20;
+  } else if (evidence.setCookiePreConsent.length > 0) {
+    score -= 8;
+  }
+
+  // 4. Third-party Tracking Pixels & Telemetry (Max -15)
+  if (evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0) {
+    score -= 15;
+  } else if (evidence.trackerSignals.length > 0) {
+    score -= 5;
+  }
+
+  // 5. Statutory Transparency Links & Disclosures (Max -15)
+  if (evidence.policyLinks.length === 0 && evidence.discoveredPolicyUrls.length === 0) {
+    score -= 15;
+  }
+
+  const boundedScore = Math.max(15, Math.min(95, Math.round(score)));
+  return { score: boundedScore, missingHeaders };
+}
 
 export function computeEvidenceFingerprint(evidence: SiteEvidence): string {
+  // Normalize security headers to boolean existence only (preventing random header token changes)
+  const normSecHeaders: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(evidence.securityHeaders)) {
+    normSecHeaders[k] = v !== null;
+  }
+
+  // Normalize cookies to cookie names only (ignoring transient session IDs/timestamps)
+  const normCookies = evidence.setCookiePreConsent
+    .map((c) => c.split("=")[0].trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+
   const parts = [
-    String(evidence.statusCode),
+    evidence.statusCode < 400 ? "ok" : String(evidence.statusCode),
     evidence.httpsUpgrade ? "https" : "http",
-    JSON.stringify(evidence.securityHeaders),
-    evidence.setCookiePreConsent.slice().sort().join(","),
+    JSON.stringify(normSecHeaders),
+    normCookies.slice().sort().join(","),
     evidence.trackerSignals.slice().sort().join(","),
     evidence.consentSignals.slice().sort().join(","),
-    evidence.policyLinks.slice().sort().join(","),
-    evidence.discoveredPolicyUrls.slice().sort().join(","),
-    evidence.formsCollectingData.slice().sort().join(","),
+    evidence.policyLinks.length > 0 ? "has_policy" : "no_policy",
+    evidence.discoveredPolicyUrls.length > 0 ? "has_disc_policy" : "no_disc_policy",
+    evidence.formsCollectingData.length > 0
+      ? `forms_${evidence.formsCollectingData.length}`
+      : "no_forms",
     evidence.securityTxt ? "sec1" : "sec0",
     evidence.wellKnownDntPolicy ? "dnt1" : "dnt0",
     evidence.robotsTxt ? "rob1" : "rob0",
@@ -107,30 +150,50 @@ function extractJson(text: string): AuditReport {
 }
 
 const LAW_SOURCES = [
-  "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 32, 44",
-  "Digital Personal Data Protection Act, 2023 (India) — ss. 4-8, 13",
-  "ePrivacy Directive 2002/58/EC Art. 5(3) & EDPB cookie guidance",
-  "CCPA/CPRA, UK GDPR, LGPD, PIPEDA, PDPA, POPIA, PIPL statutory maxima",
-  "OWASP Secure Headers Project & Mozilla Observatory header baselines",
+  "Regulation (EU) 2016/679 (GDPR) — Arts. 5, 6, 13, 28, 32, 33, 44 & ePrivacy Directive Art. 5(3)",
+  "Digital Personal Data Protection Act, 2023 (India) & Draft Rules 2025 — ss. 4, 5, 6, 8, 9, 13",
+  "UAE Federal Decree-Law No. 45 of 2021 (PDPL) — Arts. 5, 6, 10, 22, 23",
+  "California Consumer Privacy Act / CPRA (Cal. Civ. Code § 1798.100 et seq. & 11 CCR § 7025 GPC)",
+  "UK GDPR & Data Protection Act 2018 / DUAA (ICO IDTA & Age-Appropriate Design Code)",
+  "Singapore Personal Data Protection Act 2012 (Part VIA Mandatory 72h Breach Notification)",
+  "Brazil Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018 Arts. 7, 18, 41 Encarregado)",
+  "Japan APPI & South Korea PIPA (EU Mutual Adequacy & Segregated Consent Rules)",
+  "OWASP Secure Headers Project, Mozilla Observatory & HSTS Preload baselines",
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage = "Operation timed out",
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), timeoutMs)),
+  ]);
+}
 
 async function generateWithRetry(
   ai: GoogleGenAI,
   model: string,
   contents: string,
   config: Record<string, unknown>,
-  maxRetries = 1,
+  timeoutMs = 12000,
+  maxRetries = 0,
 ) {
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const res = await ai.models.generateContent({
-        model,
-        contents,
-        config,
-      });
+      const res = await withTimeout(
+        ai.models.generateContent({
+          model,
+          contents,
+          config,
+        }),
+        timeoutMs,
+        `Model ${model} timed out after ${(timeoutMs / 1000).toFixed(1)}s`,
+      );
       if (res && res.text) return res;
     } catch (err: unknown) {
       lastError = err;
@@ -139,9 +202,10 @@ async function generateWithRetry(
         errStr.includes("429") ||
         errStr.includes("RESOURCE_EXHAUSTED") ||
         errStr.includes("exceeded your current quota") ||
-        errStr.includes("quota");
+        errStr.includes("quota") ||
+        errStr.includes("timed out");
 
-      // For 429 / Quota limits, do not sleep & retry on same model tier. Fail fast so candidate failover or live inspection takes over.
+      // For 429 / Quota limits or timeouts, fail fast so candidate failover takes over immediately.
       if (isQuotaOrRateLimit) {
         throw err;
       }
@@ -156,7 +220,7 @@ async function generateWithRetry(
         errStr.includes("overloaded");
 
       if (isRetryable && attempt < maxRetries) {
-        await sleep(300 * (attempt + 1));
+        await sleep(200 * (attempt + 1));
         continue;
       }
       throw err;
@@ -173,33 +237,7 @@ function generateFallbackAuditFromEvidence(
   sources: string[],
   limitations: string[],
 ): AuditReport {
-  const missingHeaders = Object.entries(evidence.securityHeaders)
-    .filter(([, v]) => v === null)
-    .map(([k]) => k);
-
-  let score = 100;
-
-  if (!evidence.httpsUpgrade) score -= 25;
-  if (missingHeaders.includes("content-security-policy")) score -= 15;
-  if (missingHeaders.includes("strict-transport-security")) score -= 12;
-  if (missingHeaders.includes("x-frame-options")) score -= 8;
-  if (missingHeaders.includes("x-content-type-options")) score -= 5;
-
-  if (evidence.setCookiePreConsent.length > 0 && evidence.consentSignals.length === 0) {
-    score -= 20;
-  } else if (evidence.setCookiePreConsent.length > 0) {
-    score -= 10;
-  }
-
-  if (evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0) {
-    score -= 15;
-  }
-
-  if (evidence.policyLinks.length === 0 && evidence.discoveredPolicyUrls.length === 0) {
-    score -= 15;
-  }
-
-  score = Math.max(15, Math.min(95, score));
+  const { score, missingHeaders } = computeDeterministicComplianceScore(evidence);
 
   const criticalLeaks: AuditReport["criticalLeaks"] = [];
 
@@ -257,32 +295,63 @@ function generateFallbackAuditFromEvidence(
 
   const frameworks = [
     {
-      name: "EU GDPR (Regulation 2016/679)",
-      score: Math.max(10, score - 5),
-      note: missingHeaders.includes("content-security-policy")
-        ? "Art. 32 security requirements breached due to missing security headers and unencrypted script exposure."
-        : "Partial compliance observed; review third-party data transfers.",
-    },
-    {
-      name: "India DPDP Act 2023",
+      name: "India DPDP Act 2023 & Draft Rules 2025",
       score: Math.max(15, score - 8),
       note:
         evidence.policyLinks.length === 0
-          ? "Section 13 statutory violation: missing published Data Protection Officer / Grievance details."
-          : "Requires explicit consent notice before personal data processing.",
+          ? "Section 13 statutory violation: missing published Data Protection / Grievance Officer contacts. Section 5 itemized notices missing."
+          : "Requires unambiguous prior consent under Section 6 and strict prohibition on children's behavioral tracking under Section 9.",
     },
     {
-      name: "ePrivacy Directive 2002/58/EC",
-      score: Math.max(10, score - 12),
+      name: "EU GDPR (Regulation 2016/679)",
+      score: Math.max(10, score - 5),
+      note: missingHeaders.includes("content-security-policy")
+        ? "Art. 32 security requirements breached due to missing security headers and unencrypted script exposure. Art 33 72-hour breach SLA applicable."
+        : "Partial compliance observed; review third-party US cloud data transfers under Chapter V.",
+    },
+    {
+      name: "UAE PDPL (Federal Decree-Law No. 45/2021)",
+      score: Math.max(10, score - 6),
+      note:
+        evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0
+          ? "Article 5 & 6 breach: Third-party telemetry active prior to explicit affirmative consent."
+          : "Requires bilingual Arabic/English notice and strict cross-border transfer controls under Art. 22-23.",
+    },
+    {
+      name: "CCPA / CPRA & US Multi-State",
+      score: Math.max(20, score - 3),
+      note: "Requires prominent 'Do Not Sell / Share My Personal Information' links and 11 CCR § 7025 Sec-GPC browser signal recognition.",
+    },
+    {
+      name: "UK GDPR & DPA 2018",
+      score: Math.max(12, score - 6),
+      note: "ICO statutory requirements: UK International Data Transfer Addendum (IDTA) and Age-Appropriate Design Code compliance.",
+    },
+    {
+      name: "Singapore PDPA 2012 (Amended 2020)",
+      score: Math.max(15, score - 7),
       note:
         evidence.setCookiePreConsent.length > 0
-          ? `Art. 5(3) violation: ${evidence.setCookiePreConsent.length} pre-consent tracking cookies set on initial GET request.`
-          : "Cookie consent mechanism required for non-essential cookies.",
+          ? "Section 13 Consent Obligation & Part VIA breach: Mandatory 72-hour breach notification to PDPC."
+          : "Adheres to core Purpose Limitation, Section 11(3) DPO publication, and Protection obligations.",
     },
     {
-      name: "CCPA / CPRA (California)",
-      score: Math.max(20, score - 3),
-      note: "Requires prominent 'Do Not Sell / Share My Personal Information' opt-out controls.",
+      name: "Brazil LGPD (Lei 13.709/2018)",
+      score: Math.max(10, score - 8),
+      note:
+        evidence.policyLinks.length === 0
+          ? "Art. 41 non-compliance: Statutory designation of Encarregado (DPO) missing."
+          : "Requires documented legal bases under Art. 7 and security measures under Art. 46.",
+    },
+    {
+      name: "Japan APPI & South Korea PIPA",
+      score: Math.max(15, score - 5),
+      note: "Mutual adequacy controls with EU; strict third-party data provision consent and segregated consent architecture.",
+    },
+    {
+      name: "Australia Privacy Act 1988 & Canada PIPEDA",
+      score: Math.max(18, score - 4),
+      note: "APP 1-13 accountability baselines and OPC Real Risk of Significant Harm (RROSH) breach threshold compliance.",
     },
   ];
 
@@ -348,6 +417,10 @@ function generateFallbackAuditFromEvidence(
       sources,
       limitations,
     },
+    radarTerminal: computeRadarTerminalLog(evidence.host, evidence, {
+      score,
+      criticalLeaks,
+    }),
   };
 }
 
@@ -356,14 +429,54 @@ export async function runAuditPipeline(
   scanMode: "deep-grounded" | "fast-lite" = "deep-grounded",
   bypassCache = false,
 ): Promise<AuditReport> {
+  const startedAt = Date.now();
+  try {
+    return await withTimeout(
+      runAuditPipelineInternal(rawInput, scanMode, bypassCache, startedAt),
+      24000,
+      "Audit pipeline reached 24s execution threshold",
+    );
+  } catch (err: unknown) {
+    console.warn("[Strict 30s Pipeline Guard] Fallback triggered due to:", err);
+    const detected = detectInput(rawInput);
+    if (detected.kind === "url") {
+      try {
+        const evidence = await gatherSiteEvidence(detected.url!);
+        const fallback = generateFallbackAuditFromEvidence(
+          evidence,
+          rawInput,
+          startedAt,
+          [
+            { label: "Target Host", value: evidence.host },
+            { label: "Execution Time", value: `${Date.now() - startedAt}ms (< 30s guarantee)` },
+          ],
+          LAW_SOURCES,
+          ["Live fallback generated to guarantee 30-second turnaround promise."],
+        );
+        try {
+          const saved = await saveAuditToDb(fallback, rawInput);
+          fallback.dbRecordId = saved.id;
+          fallback.dbSavedAt = saved.savedAt;
+        } catch {
+          /* ignore */
+        }
+        return fallback;
+      } catch {
+        /* proceed to throw if target unreachable */
+      }
+    }
+    throw err;
+  }
+}
+
+async function runAuditPipelineInternal(
+  rawInput: string,
+  scanMode: "deep-grounded" | "fast-lite",
+  bypassCache: boolean,
+  startedAt: number,
+): Promise<AuditReport> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
-
-  if (!geminiKey && !lovableKey) {
-    throw new Error("AI is not configured. Set GEMINI_API_KEY in environment variables.");
-  }
-
-  const startedAt = Date.now();
   const detected = detectInput(rawInput);
 
   let userContent: string;
@@ -489,6 +602,9 @@ export async function runAuditPipeline(
           confidenceReason: `Live research completed on ${targetLabel}. Target infrastructure, security headers, and privacy notices remain unchanged since prior audit — score (${cachedReport.score}/100) and report preserved.`,
         },
         dbSavedAt: new Date().toISOString(),
+        radarTerminal:
+          cachedReport.radarTerminal ||
+          computeRadarTerminalLog(targetLabel, liveEvidence, cachedReport),
       };
       try {
         const saved = await saveAuditToDb(reverifiedReport, rawInput);
@@ -519,35 +635,67 @@ export async function runAuditPipeline(
     });
 
     const candidates = [
-      { name: "gemini-3.6-flash", grounding: scanMode === "deep-grounded" },
-      { name: "gemini-3.6-flash", grounding: false },
-      { name: "gemini-3.1-flash-lite", grounding: false },
-      { name: "gemini-2.5-flash", grounding: false },
+      ...(scanMode === "deep-grounded"
+        ? [
+            {
+              id: "gemini-3.8-flash-grounded",
+              name: "gemini-3.8-flash",
+              grounding: true,
+              timeoutMs: 12000,
+            },
+          ]
+        : []),
+      {
+        id: "gemini-3.8-flash-plain",
+        name: "gemini-3.8-flash",
+        grounding: false,
+        timeoutMs: 11000,
+      },
+      {
+        id: "gemini-3.1-flash-lite",
+        name: "gemini-3.1-flash-lite",
+        grounding: false,
+        timeoutMs: 7000,
+      },
+      {
+        id: "gemini-flash-latest",
+        name: "gemini-flash-latest",
+        grounding: false,
+        timeoutMs: 7000,
+      },
+      {
+        id: "gemini-2.5-flash-plain",
+        name: "gemini-2.5-flash",
+        grounding: false,
+        timeoutMs: 7000,
+      },
     ];
 
     let success = false;
-    const quotaHitModels = new Set<string>();
+    const failedCandidateIds = new Set<string>();
 
     for (const cand of candidates) {
-      if (quotaHitModels.has(cand.name)) {
+      if (failedCandidateIds.has(cand.id)) {
         continue;
       }
 
       try {
         const config: Record<string, unknown> = {
           systemInstruction: SYSTEM_INSTRUCTION,
-          responseMimeType: "application/json",
           temperature: 0.0,
         };
         if (cand.grounding) {
           config.tools = [{ googleSearch: {} }];
+          // Note: Gemini API does not allow responseMimeType: "application/json" when tool use (such as Google Search) is enabled.
+        } else {
+          config.responseMimeType = "application/json";
         }
 
-        const res = await generateWithRetry(ai, cand.name, userContent, config, 1);
+        const res = await generateWithRetry(ai, cand.name, userContent, config, cand.timeoutMs, 0);
         reportContent = res.text ?? "";
         modelUsed = cand.grounding
-          ? "ASJi Autonomous Audit Engine v4.2 (Grounded Precedent)"
-          : `${cand.name} (Standard)`;
+          ? `ASJi Autonomous Audit Engine (${cand.name} Grounded)`
+          : `ASJi Audit Engine (${cand.name})`;
 
         if (cand.grounding) {
           const candidateObj = res.candidates?.[0];
@@ -580,13 +728,7 @@ export async function runAuditPipeline(
         break;
       } catch (err: unknown) {
         const errStr = String(err);
-        if (
-          errStr.includes("429") ||
-          errStr.includes("RESOURCE_EXHAUSTED") ||
-          errStr.includes("quota")
-        ) {
-          quotaHitModels.add(cand.name);
-        }
+        failedCandidateIds.add(cand.id);
         console.warn(
           `[Candidate Failover] Candidate ${cand.name} (grounded=${cand.grounding}) failed: ${errStr.slice(0, 100)}. Trying next candidate...`,
         );
@@ -690,6 +832,10 @@ export async function runAuditPipeline(
       sources,
       limitations,
     },
+    radarTerminal: computeRadarTerminalLog(targetLabel || report.target || rawInput, liveEvidence, {
+      ...report,
+      score: Math.max(0, Math.min(100, Math.round(report.score))),
+    }),
   };
 
   // Save automatically to backend database until user purges

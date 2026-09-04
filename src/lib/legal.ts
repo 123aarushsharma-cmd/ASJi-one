@@ -10,6 +10,10 @@ export const LEGAL = {
   securityEmail: "asji.online@gmail.com",
   phoneNumbers: ["+91 8290841179", "+91 9461584298"],
   phoneRaw: ["8290841179", "9461584298"],
+  website: {
+    domain: "asji.online",
+    url: "https://asji.online",
+  },
   instagram: {
     handle: "@asjiweblegal",
     url: "https://www.instagram.com/asjiweblegal",
@@ -24,10 +28,10 @@ export const LEGAL = {
 } as const;
 
 export const NOT_LEGAL_ADVICE =
-  "ASJi One provides automated technical compliance assessments. Reports offer actionable guidance for data protection and security teams, and are designed to complement your organization's legal and privacy review processes.";
+  "By executing this scan, you authorize a passive, non-intrusive public transport layer audit. Reports generate automated technical compliance logs bound by global legal frameworks and do not constitute formal courtroom representation.";
 
 export const AUTHORISATION_NOTICE =
-  "Scans conduct passive, non-intrusive public HTTP inspections to evaluate technical compliance parameters.";
+  "By executing this scan, you authorize a passive, non-intrusive public transport layer audit. Reports generate automated technical compliance logs bound by global legal frameworks and do not constitute formal courtroom representation.";
 
 export const LEGAL_PAGES = [
   { to: "/legal/terms", label: "Terms of Service" },

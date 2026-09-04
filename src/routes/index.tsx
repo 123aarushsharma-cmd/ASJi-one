@@ -1,7 +1,23 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Globe, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Globe,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Key,
+  FileCode2,
+  Shield,
+} from "lucide-react";
+import { toast } from "sonner";
+import { downloadReportAsPdf } from "@/lib/pdf-export";
 import { motion } from "motion/react";
 import logo from "@/assets/asji-logo.jpg.asset.json";
 import { IntroSplash } from "@/components/IntroSplash";
@@ -11,9 +27,14 @@ import { LinkedInShareButton } from "@/components/LinkedInShareButton";
 import { GroundedSearchCard } from "@/components/GroundedSearchCard";
 import { FineExposureCard } from "@/components/FineExposureCard";
 import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
+import { AutonomousTrustRadarTerminal } from "@/components/AutonomousTrustRadarTerminal";
+import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
+import { ASJiVectorLogo } from "@/components/ASJiVectorLogo";
 import { RemediationBillingModal } from "@/components/RemediationBillingModal";
 import { RemediationViewer } from "@/components/RemediationViewer";
+import { IntermediaryShieldCard } from "@/components/IntermediaryShieldCard";
 import { SovereignLegalMatrix } from "@/components/SovereignLegalMatrix";
+import { WorldLawsAtlas } from "@/components/WorldLawsAtlas";
 import { StatutoryGrievanceNotice } from "@/components/StatutoryGrievanceNotice";
 import { Footer } from "@/components/Footer";
 import { detectInput, validateAuditInput } from "@/lib/audit-input";
@@ -51,8 +72,71 @@ const SEVERITY_STYLES: Record<string, string> = {
   low: "border-border text-muted-foreground",
 };
 
+const reportContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const reportItemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+const STATUTORY_FRAMEWORKS = [
+  {
+    id: "ind-dpdp",
+    flag: "🇮🇳",
+    country: "INDIA",
+    label: "Digital Personal Data Protection Act (DPDP 2023) // Section 6(1) & 8(1)",
+  },
+  {
+    id: "eu-gdpr",
+    flag: "🇪🇺",
+    country: "EUROPE",
+    label: "General Data Protection Regulation (GDPR 2026 Reforms) // Article 7 & 32",
+  },
+  {
+    id: "uk-duaa",
+    flag: "🇬🇧",
+    country: "UNITED KINGDOM",
+    label: "Data Use and Access Act (DUAA 2026) // Statutory Compliance",
+  },
+  {
+    id: "uae-pdpl",
+    flag: "🇦🇪",
+    country: "UNITED ARAB EMIRATES",
+    label: "Federal Decree-Law No. 45 of 2021 (PDPL) // PropTech Infrastructure",
+  },
+  {
+    id: "ksa-pdpl",
+    flag: "🇸🇦",
+    country: "SAUDI ARABIA",
+    label: "SDAIA Personal Data Protection Law // 2024 Implementing Regulations",
+  },
+  {
+    id: "sg-pdpa",
+    flag: "🇸🇬",
+    country: "SINGAPORE",
+    label: "Personal Data Protection Act (PDPA) // Cross-Border Transfer Obligation",
+  },
+] as const;
+
 function Index() {
   const [input, setInput] = useState("");
+  const [selectedFramework, setSelectedFramework] = useState<string>("ind-dpdp");
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
   const [report, setReport] = useState<AuditReport | null>(null);
@@ -60,13 +144,40 @@ function Index() {
   const [scanned, setScanned] = useState("");
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showDetailedAnnexes, setShowDetailedAnnexes] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [retentionMode, setRetentionMode] = useState<RetentionOption>("5min");
   const [scanMode, setScanMode] = useState<"deep-grounded" | "fast-lite">("deep-grounded");
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const scanRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const runAudit = useServerFn(auditCompliance);
   const purgeDbServer = useServerFn(purgeDatabase);
+
+  const handleDownloadReportPdf = async () => {
+    const paperElement = document.getElementById("asji-letterhead-report-paper");
+    if (!paperElement) {
+      window.print();
+      return;
+    }
+    setIsDownloadingPdf(true);
+    try {
+      const success = await downloadReportAsPdf(
+        paperElement,
+        report?.target || scanned || "audit-report",
+      );
+      if (success) {
+        toast.success("Audit Report Downloaded", {
+          description: `Official ASJi compliance certificate saved for ${report?.target || scanned}`,
+        });
+      }
+    } catch (e) {
+      console.error("PDF download failed", e);
+      window.print();
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   const handlePurge = () => {
     setReport(null);
@@ -212,18 +323,17 @@ function Index() {
         >
           <div className="mb-6 inline-flex flex-col items-center">
             <span className="inline-block rounded-full border border-primary/30 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-primary bg-primary/5 backdrop-blur-sm font-medium">
-              GDPR · India DPDP · Global Compliance
+              6 Global Jurisdictions // Universal Sovereign Framework Coverage
             </span>
           </div>
-          <h1 className="mt-2 font-display text-4xl leading-[1.1] sm:text-6xl">
-            <span className="text-gold-gradient">Know exactly</span>
-            <br />
-            how compliant you are
+          <h1 className="mt-2 font-display text-4xl leading-[1.15] sm:text-6xl text-gold-gradient max-w-4xl mx-auto font-bold">
+            Live Cross-Border Data Privacy Interception.
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground">
-            Submit a website URL or paste raw infrastructure details. ASJi One audits it against
-            GDPR, India&apos;s DPDP Act and the regimes of your origin country — then returns a
-            score, the critical leaks and your estimated fine exposure.
+          <p className="mx-auto mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-muted-foreground font-mono">
+            ASJi One is a programmatic RegTech middleware engineered for global production
+            environments. We audit client-side interaction frames against active cross-border
+            statutory mandates in 30 seconds and compile instant runtime isolation patches with zero
+            system downtime.
           </p>
 
           <form
@@ -235,11 +345,11 @@ function Index() {
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor="site-input"
-                  className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5"
+                  className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 font-mono"
                 >
-                  <Globe className="h-3.5 w-3.5 text-primary" /> Target Domain or Website URL
+                  <Globe className="h-3.5 w-3.5 text-primary" /> ENTER PRODUCTION TARGET DOMAIN
                 </label>
-                <span className="text-[11px] text-muted-foreground font-medium">
+                <span className="text-[11px] text-muted-foreground font-mono">
                   Automated Inspection
                 </span>
               </div>
@@ -251,38 +361,63 @@ function Index() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   maxLength={8000}
-                  placeholder="e.g. yourcompany.com or hostinger.com"
-                  className="w-full rounded-xl bg-input/40 pl-11 pr-4 py-3.5 text-base text-foreground outline-none ring-1 ring-border transition-all placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/60"
+                  placeholder="e.g., https://enterprise-gateway.com"
+                  className="w-full rounded-xl bg-input/40 pl-11 pr-4 py-3.5 text-base font-mono text-foreground outline-none ring-1 ring-border transition-all placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/60"
                 />
               </div>
             </div>
 
+            {/* Statutory Framework Dropdown Node Selector */}
+            <div>
+              <label
+                htmlFor="framework-select"
+                className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 mb-2 font-mono"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> SELECT STATUTORY REGULATORY
+                FRAMEWORK (GLOBAL NODE):
+              </label>
+              <select
+                id="framework-select"
+                value={selectedFramework}
+                onChange={(e) => setSelectedFramework(e.target.value)}
+                className="w-full rounded-xl border border-border bg-black/80 px-4 py-3 text-xs font-mono text-foreground outline-none transition-all focus:border-primary/60 focus:ring-1 focus:ring-primary/60"
+              >
+                {STATUTORY_FRAMEWORKS.map((fw) => (
+                  <option key={fw.id} value={fw.id} className="bg-black text-foreground py-1">
+                    {fw.flag} {fw.country}: {fw.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Quick Domain Suggestion Chips */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-muted-foreground mr-1">Quick Test:</span>
-              {["example.com", "hostinger.com", "github.com", "wikipedia.org"].map((domain) => (
-                <button
-                  key={domain}
-                  type="button"
-                  onClick={() => {
-                    setInput(`https://${domain}`);
-                    setError(null);
-                  }}
-                  className="rounded-full border border-border/80 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-sans font-medium text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground"
-                >
-                  {domain}
-                </button>
-              ))}
+              <span className="text-[11px] text-muted-foreground mr-1 font-mono">Quick Test:</span>
+              {["enterprise-gateway.com", "hostinger.com", "github.com", "wikipedia.org"].map(
+                (domain) => (
+                  <button
+                    key={domain}
+                    type="button"
+                    onClick={() => {
+                      setInput(`https://${domain}`);
+                      setError(null);
+                    }}
+                    className="rounded-full border border-border/80 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-mono text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground cursor-pointer"
+                  >
+                    {domain}
+                  </button>
+                ),
+              )}
             </div>
 
             {detected && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-secondary/30 px-3 py-2 text-left">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-secondary/30 px-3 py-2 text-left font-mono">
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
                   {detected.kind === "url"
                     ? "Live Domain Scan Active"
                     : "Custom Stack Text Detected"}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-sans font-medium">
+                <span className="text-[11px] text-muted-foreground">
                   {detected.kind === "url"
                     ? `Inspecting ${detected.host}...`
                     : liveCheck && !liveCheck.ok
@@ -293,7 +428,7 @@ function Index() {
             )}
 
             {/* Terms Consent Checkbox */}
-            <label className="flex items-start gap-3 px-1 text-left text-[11px] leading-relaxed text-muted-foreground">
+            <label className="flex items-start gap-3 px-1 text-left text-[11px] leading-relaxed text-muted-foreground font-mono">
               <input
                 type="checkbox"
                 checked={agreed}
@@ -326,17 +461,17 @@ function Index() {
             <button
               type="submit"
               disabled={phase === "scanning" || !agreed || (liveCheck ? !liveCheck.ok : true)}
-              className="btn-gold w-full rounded-xl px-8 py-4 text-sm font-bold uppercase tracking-wider disabled:opacity-60 shadow-lg transition-all hover:scale-[1.01]"
+              className="btn-gold w-full rounded-xl px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider disabled:opacity-60 shadow-lg transition-all hover:scale-[1.01] font-mono cursor-pointer"
             >
               {phase === "scanning" ? "Running Deep Domain Scan..." : "Analyze Domain Compliance"}
             </button>
 
-            <p className="px-1 text-left text-[10px] leading-relaxed text-muted-foreground/80">
+            <p className="px-1 text-left text-[10px] leading-relaxed text-muted-foreground/80 font-mono">
               {AUTHORISATION_NOTICE}
             </p>
 
             {error && (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-left text-xs text-destructive flex flex-col gap-2">
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-left text-xs text-destructive flex flex-col gap-2 font-mono">
                 <p className="font-semibold text-xs flex items-center gap-1.5 text-destructive">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>Audit Inspection Notice</span>
@@ -352,19 +487,32 @@ function Index() {
             )}
           </form>
 
-          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-3 gap-4 text-center">
-            {[
-              ["120+", "Checks run"],
-              ["< 30s", "Full audit"],
-              ["GDPR+DPDP", "Aligned"],
-            ].map(([a, b]) => (
-              <div key={b} className="surface-panel px-3 py-5">
-                <p className="font-display text-xl text-gold-gradient sm:text-2xl">{a}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {b}
-                </p>
-              </div>
-            ))}
+          {/* REAL-TIME MULTI-REGION METRIC BADGES */}
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 md:grid-cols-3 gap-4 text-left">
+            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+              <p className="font-mono text-xs font-bold text-gold-gradient">
+                120+ Real-Time Checks // Automated interface stack evaluations.
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
+                Deterministic security &amp; telemetry inspection.
+              </p>
+            </div>
+            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+              <p className="font-mono text-xs font-bold text-gold-gradient">
+                &lt; 30s Latency Time // Immediate runtime packet logging.
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
+                Headless browser verification &amp; transit trace.
+              </p>
+            </div>
+            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+              <p className="font-mono text-xs font-bold text-gold-gradient">
+                6 Global Jurisdictions // Universal sovereign framework coverage.
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
+                Cross-border statutory routing maps.
+              </p>
+            </div>
           </div>
         </motion.section>
 
@@ -375,8 +523,18 @@ function Index() {
         )}
 
         {phase === "result" && report && (
-          <section ref={resultRef} className="animate-rise space-y-6 scroll-mt-8">
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 text-left">
+          <motion.section
+            ref={resultRef}
+            variants={reportContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-6 scroll-mt-8"
+          >
+            {/* Legal Disclaimer Header Banner */}
+            <motion.div
+              variants={reportItemVariants}
+              className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 text-left"
+            >
               <p className="text-[10px] uppercase tracking-[0.24em] text-primary">
                 Informational report · Not legal advice
               </p>
@@ -390,10 +548,23 @@ function Index() {
                 </Link>
                 .
               </p>
-            </div>
-            <div className="surface-panel flex flex-col items-center gap-8 p-8 lg:flex-row lg:items-center lg:gap-14">
+            </motion.div>
+
+            {/* Core Score Panel */}
+            <motion.div
+              variants={reportItemVariants}
+              className="surface-panel flex flex-col items-center gap-8 p-8 lg:flex-row lg:items-center lg:gap-14"
+            >
               <ScoreWheel score={report.score} />
               <div className="flex-1 text-center lg:text-left">
+                <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-black/60 p-1 shadow-md overflow-hidden">
+                    <ASJiVectorLogo className="h-full w-full" idSuffix="result_badge" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-gold-gradient">
+                    ASJi One // Official Verified Audit
+                  </span>
+                </div>
                 <div className="flex flex-wrap items-center justify-center lg:justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -444,59 +615,97 @@ function Index() {
                 )}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                   <button
+                    type="button"
+                    onClick={handleDownloadReportPdf}
+                    disabled={isDownloadingPdf}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/60 bg-emerald-500/20 px-6 py-3 text-xs font-mono font-bold text-emerald-300 transition-all hover:bg-emerald-500 hover:text-black shadow-lg cursor-pointer disabled:opacity-50"
+                  >
+                    {isDownloadingPdf ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 text-emerald-400" />
+                    )}
+                    <span>{isDownloadingPdf ? "Compiling PDF..." : "Download Report (PDF)"}</span>
+                  </button>
+
+                  <button
                     onClick={() => {
                       setPhase("idle");
                       setReport(null);
                     }}
-                    className="rounded-xl border border-primary/40 px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/10"
+                    className="rounded-xl border border-primary/40 px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/10 cursor-pointer"
                   >
                     Analyze another
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Google Search Grounding Section */}
-            <GroundedSearchCard grounding={report.grounding} />
+            {/* Statutory Intermediary Safe Harbor Shield Assessment */}
+            <motion.div variants={reportItemVariants}>
+              <IntermediaryShieldCard
+                report={report}
+                onOpenRemediationModal={() => setUnlockOpen(true)}
+              />
+            </motion.div>
 
-            {report.evidence?.length > 0 && (
-              <div className="surface-panel p-6">
-                <h3 className="font-display text-xl text-gold-gradient">
-                  {report.inputKind === "url" ? "Live scan evidence" : "Assessment basis"}
-                </h3>
+            {/* Fine Exposure Card (DPDP Act 2023 & Global Jurisdictions) */}
+            <motion.div variants={reportItemVariants}>
+              <FineExposureCard report={report} />
+            </motion.div>
+
+            {/* Top Critical Findings */}
+            {report.criticalLeaks?.length > 0 && (
+              <motion.div variants={reportItemVariants} className="surface-panel p-5 sm:p-7">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg sm:text-xl text-gold-gradient font-bold">
+                    Key Compliance Exposures
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {report.criticalLeaks.length} Actionable Vulnerabilities Detected
+                  </span>
+                </div>
                 <div className="gold-rule my-4" />
-                <ul className="space-y-2.5">
-                  {report.evidence.map((item, i) => (
+                <ul className="space-y-3.5">
+                  {report.criticalLeaks.slice(0, 3).map((leak) => (
                     <li
-                      key={i}
-                      className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
+                      key={leak.title}
+                      className="rounded-xl border border-border/50 bg-secondary/15 p-4"
                     >
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{item}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">{leak.title}</p>
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                            SEVERITY_STYLES[leak.severity] ?? SEVERITY_STYLES.low
+                          }`}
+                        >
+                          {leak.severity}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        {leak.detail}
+                      </p>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
             )}
 
-            {/* Fine Exposure Card (DPDP Act 2023 & Global Jurisdictions) */}
-            <FineExposureCard report={report} />
-
-            {/* Global & Regional Language Notice Scanner Card */}
-            <LocalizationScannerCard
-              report={report}
-              onOpenRemediationModal={() => setUnlockOpen(true)}
-            />
-
+            {/* Regulatory Framework Grid */}
             {report.frameworks?.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <motion.div
+                variants={reportItemVariants}
+                className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+              >
                 {report.frameworks.map((f) => (
-                  <div key={f.name} className="surface-panel p-5">
+                  <div key={f.name} className="surface-panel p-4 sm:p-5">
                     <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-sm font-semibold">{f.name}</p>
-                      <span className="font-display text-lg text-gold-gradient">{f.score}</span>
+                      <p className="text-xs sm:text-sm font-semibold text-foreground">{f.name}</p>
+                      <span className="font-display text-base sm:text-lg text-gold-gradient font-bold">
+                        {f.score}
+                      </span>
                     </div>
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-secondary">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -505,87 +714,207 @@ function Index() {
                         }}
                       />
                     </div>
-                    <p className="mt-3 text-xs text-muted-foreground">{f.note}</p>
+                    <p className="mt-2.5 text-xs text-muted-foreground leading-relaxed">{f.note}</p>
                   </div>
                 ))}
-              </div>
+              </motion.div>
             )}
 
-            {report.criticalLeaks?.length > 0 && (
-              <div className="surface-panel p-6">
-                <h3 className="font-display text-xl text-gold-gradient">Critical leaks</h3>
-                <div className="gold-rule my-4" />
-                <ul className="space-y-4">
-                  {report.criticalLeaks.map((leak) => (
-                    <li key={leak.title} className="flex flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-sm font-semibold">{leak.title}</p>
-                        <span
-                          className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] ${
-                            SEVERITY_STYLES[leak.severity] ?? SEVERITY_STYLES.low
-                          }`}
-                        >
-                          {leak.severity}
+            {/* Automated Remediation Code Patches Suite */}
+            <motion.div variants={reportItemVariants}>
+              {isUnlocked ? (
+                <RemediationViewer report={report} />
+              ) : (
+                <div className="surface-panel relative overflow-hidden p-6 sm:p-8 border-primary/40">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-xl font-bold text-gold-gradient">
+                          Automated Remediation Code Patches
+                        </h3>
+                        <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary uppercase">
+                          Ready To Deploy
                         </span>
                       </div>
-                      <p className="text-sm leading-relaxed text-muted-foreground">{leak.detail}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Compiled syntax-valid server scripts, edge middleware, and pre-consent
+                        cookie gates tailored specifically for {report.target || "your domain"}.
+                      </p>
+                    </div>
 
-            {isUnlocked ? (
-              <RemediationViewer report={report} />
-            ) : (
-              <div className="surface-panel relative overflow-hidden p-6 sm:p-8">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="font-display text-xl text-gold-gradient">Remediation plan</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                      GDPR &amp; Global Suite: $1,500
-                    </span>
-                    <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                      DPDP Act (India): ₹50,000
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+                        Instant Patch: ₹24,999 ($300)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Patch Inventory Preview Grid */}
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      {
+                        name: "security-headers.nginx.conf",
+                        desc: "NGINX production server header hardening",
+                        cat: "Server",
+                      },
+                      {
+                        name: "middleware.ts",
+                        desc: "Cloudflare Worker & Next.js edge transport shield",
+                        cat: "Edge",
+                      },
+                      {
+                        name: "asji-consent-manager.js",
+                        desc: "Zero-leak pre-consent cookie gating CMP script",
+                        cat: "Client",
+                      },
+                      {
+                        name: ".htaccess",
+                        desc: "Apache security directives & anti-sniffing rules",
+                        cat: "Server",
+                      },
+                      {
+                        name: "security-headers.express.ts",
+                        desc: "Node.js Express Helmet security middleware",
+                        cat: "Server",
+                      },
+                      {
+                        name: ".well-known/security.txt",
+                        desc: "RFC 9116 statutory vulnerability disclosure",
+                        cat: "Statutory",
+                      },
+                    ].map((patch, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl border border-border/60 bg-secondary/20 p-3.5 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono text-primary font-bold uppercase">
+                              {patch.cat}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              🔒 Locked
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs font-mono font-semibold text-foreground">
+                            {patch.name}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                            {patch.desc}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Blurred Code Teaser */}
+                  <div className="relative mt-4 rounded-xl bg-black/80 border border-border p-4 select-none blur-[4px]">
+                    <pre className="font-mono text-xs text-emerald-400">
+                      <code>
+                        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;
+                        preload" always;{"\n"}
+                        add_header Content-Security-Policy "default-src 'self'; script-src 'self'
+                        'unsafe-inline' https:; frame-ancestors 'none';" always;{"\n"}
+                        add_header X-Content-Type-Options "nosniff" always;{"\n"}
+                        add_header X-Frame-Options "DENY" always;{"\n"}
+                        proxy_cookie_flags ~* "Secure; HttpOnly; SameSite=Lax";
+                      </code>
+                    </pre>
+                  </div>
+
+                  {/* CTA Overlay */}
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/10 p-5">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Deliver turnkey code patches and executive certificates to your client
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Upon unlocking, export ready-to-run configurations and official client
+                        handover packs instantly.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setUnlockOpen(true)}
+                      className="btn-gold rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-wider text-black cursor-pointer shadow-lg shadow-primary/20 shrink-0"
+                    >
+                      Unlock Code Patches &amp; Client Delivery Pack
+                    </button>
                   </div>
                 </div>
-                <div className="gold-rule my-4" />
-                <ul className="space-y-4 blur-[7px] select-none" aria-hidden>
-                  {(report.remediation?.length ? report.remediation : Array(4).fill(null)).map(
-                    (step, i) => (
-                      <li key={i} className="space-y-1">
-                        <p className="text-sm font-semibold">
-                          {step?.step ?? "Detailed technical remediation step"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Impact: {step?.impact ?? "high"} · Effort: {step?.effort ?? "medium"}
-                        </p>
-                      </li>
-                    ),
-                  )}
-                </ul>
+              )}
+            </motion.div>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 bg-background/80 px-6 text-center backdrop-blur-md">
-                  <span className="rounded-full border border-primary/40 px-4 py-1 text-[10px] uppercase tracking-[0.28em] text-primary font-bold">
-                    Premium Technical Remediation
+            {/* Expandable Technical Engineering Logs & Statutory Annexes */}
+            <motion.div variants={reportItemVariants} className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDetailedAnnexes(!showDetailedAnnexes)}
+                className="w-full flex items-center justify-between rounded-xl border border-border/70 bg-secondary/30 p-4 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span>
+                    {showDetailedAnnexes
+                      ? "Hide Advanced Engineering Logs & Multi-Language Annexes"
+                      : "View Advanced Technical Radar Terminal, Live Evidence & Language Annexes"}
                   </span>
-                  <p className="font-display text-2xl text-gold-gradient font-bold">
-                    Unlock Remediation &amp; Compliance Billing Tiers
-                  </p>
-                  <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
-                    Actionable code fixes, DPA templates, statutory DPDP Act &amp; GDPR compliance
-                    blueprints starting at $1,500 (GDPR Global) and ₹50,000 (India DPDP Act).
-                  </p>
-                  <button
-                    onClick={() => setUnlockOpen(true)}
-                    className="btn-gold rounded-xl px-8 py-3.5 text-xs uppercase tracking-[0.2em] font-bold shadow-lg shadow-primary/10 transition-transform hover:scale-105"
-                  >
-                    Upgrade to Premium Remediation
-                  </button>
                 </div>
-              </div>
-            )}
+                {showDetailedAnnexes ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+
+              {showDetailedAnnexes && (
+                <div className="mt-6 space-y-6 animate-in fade-in duration-300">
+                  {/* ASJi ONE // AUTONOMOUS TRUST RADAR TERMINAL LOG */}
+                  <AutonomousTrustRadarTerminal
+                    report={report}
+                    onOpenRemediationModal={() => setUnlockOpen(true)}
+                  />
+
+                  {/* Official ASJi Web & Legal Solution Audit Certificate */}
+                  <ASJiLetterheadReport
+                    report={report}
+                    domain={report.target || scanned}
+                    score={report.score}
+                  />
+
+                  {/* Google Search Grounding Section */}
+                  <GroundedSearchCard grounding={report.grounding} />
+
+                  {/* Live Scan Evidence */}
+                  {report.evidence?.length > 0 && (
+                    <div className="surface-panel p-6">
+                      <h3 className="font-display text-xl text-gold-gradient">
+                        {report.inputKind === "url" ? "Live scan evidence" : "Assessment basis"}
+                      </h3>
+                      <div className="gold-rule my-4" />
+                      <ul className="space-y-2.5">
+                        {report.evidence.map((item, i) => (
+                          <li
+                            key={i}
+                            className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
+                          >
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Global & Regional Language Notice Scanner Card */}
+                  <LocalizationScannerCard
+                    report={report}
+                    onOpenRemediationModal={() => setUnlockOpen(true)}
+                  />
+                </div>
+              )}
+            </motion.div>
 
             <RemediationBillingModal
               isOpen={unlockOpen}
@@ -593,45 +922,53 @@ function Index() {
               onUnlockSuccess={() => setIsUnlocked(true)}
               report={report}
             />
-          </section>
+          </motion.section>
         )}
 
+        <WorldLawsAtlas />
         <SovereignLegalMatrix />
         <StatutoryGrievanceNotice />
 
         <section id="capabilities" className="mt-24 scroll-mt-8">
-          <h2 className="text-center font-display text-3xl text-gold-gradient">Capabilities</h2>
+          <h2 className="text-center font-display text-3xl text-gold-gradient font-bold">
+            Capabilities &amp; Core Architecture
+          </h2>
           <div className="gold-rule mx-auto mt-5 max-w-xs" />
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               [
+                "Cross-Border Transit Mapping",
+                "ASJi One tracking nodes automatically intercept outgoing TCP/IP packet streams to trace if outbound user metadata transfers outside sovereign territorial borders without automated signature compliance encryption.",
+              ],
+              [
                 "Threat Surface Mapping",
-                "Enumerate exposed endpoints, mixed content and insecure origins.",
+                "Enumerate exposed endpoints, mixed content and insecure origins across active client interaction frames.",
               ],
               [
                 "Consent Forensics",
-                "Verify banner behaviour, pre-consent cookies and storage writes.",
+                "Verify banner behaviour, pre-consent cookies, and storage writes against active regional DPDP / GDPR statutes.",
               ],
               [
                 "Regulatory Alignment",
-                "GDPR, DPDP, CCPA and ePrivacy signals graded against current guidance.",
+                "Cross-border statutory mandates audited across 6 sovereign nodes with deterministic compliance logging.",
               ],
               [
                 "Header Hardening",
-                "CSP, HSTS, referrer and frame policy scoring with fix guidance.",
+                "CSP, HSTS, referrer and frame policy evaluation with automated runtime isolation patch compilation.",
               ],
-              ["Vendor Visibility", "Identify third-party scripts and the data they can observe."],
               [
-                "Fine Exposure",
-                "Estimate regulatory penalty risk based on jurisdiction and findings.",
+                "Vendor Visibility",
+                "Identify third-party scripts, telemetry listeners, and external data exfiltration pathways with zero downtime.",
               ],
             ].map(([t, d]) => (
               <article
                 key={t}
-                className="surface-panel p-6 transition-colors hover:border-primary/40"
+                className="surface-panel p-6 border border-border/80 bg-black/60 rounded-2xl transition-colors hover:border-primary/40 font-mono"
               >
-                <h3 className="font-display text-lg text-foreground">{t}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d}</p>
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-gold-gradient">
+                  {t}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{d}</p>
               </article>
             ))}
           </div>
