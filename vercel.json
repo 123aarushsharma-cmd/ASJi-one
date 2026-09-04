@@ -1,15 +1,5 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/server/index.mjs"
-    }
-  ]
+  "outputDirectory": ".vercel/output"
 }

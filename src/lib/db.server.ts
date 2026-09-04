@@ -102,7 +102,8 @@ export async function saveAuditToDb(
 
   // Single-record authoritative check: replace any existing record with identical targetKey
   const existingIdx = records.findIndex((r) => {
-    const rKey = r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
+    const rKey =
+      r.targetKey || normalizeTargetKey(r.target) || normalizeTargetKey(r.report?.target);
     return rKey === targetKey || rKey === primaryKey || rKey === secondaryKey;
   });
 

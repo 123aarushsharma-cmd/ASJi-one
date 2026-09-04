@@ -24,6 +24,17 @@ export interface ChatAnswerResponse {
   suggestedFollowUps: string[];
 }
 
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage = "Operation timed out",
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), timeoutMs)),
+  ]);
+}
+
 export async function askComplianceOracle(
   question: string,
   history: { role: "user" | "model"; parts: string[] }[] = [],
@@ -92,30 +103,33 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
 
   try {
     const candidateModels = [
-      "gemini-3.8-flash",
-      "gemini-flash-latest",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
+      { name: "gemini-3.8-flash", timeoutMs: 6000 },
+      { name: "gemini-3.1-flash-lite", timeoutMs: 4000 },
+      { name: "gemini-flash-latest", timeoutMs: 4000 },
     ];
     let text = "";
     let lastError: unknown;
 
-    for (const model of candidateModels) {
+    for (const cand of candidateModels) {
       try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: [
-            ...history.map((h) => ({
-              role: h.role === "user" ? "user" : "model",
-              parts: [{ text: h.parts.join(" ") }],
-            })),
-            { role: "user", parts: [{ text: question }] },
-          ],
-          config: {
-            systemInstruction,
-            temperature: 0.2, // Low temperature for legal accuracy
-          },
-        });
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: cand.name,
+            contents: [
+              ...history.map((h) => ({
+                role: h.role === "user" ? "user" : "model",
+                parts: [{ text: h.parts.join(" ") }],
+              })),
+              { role: "user", parts: [{ text: question }] },
+            ],
+            config: {
+              systemInstruction,
+              temperature: 0.2, // Low temperature for legal accuracy
+            },
+          }),
+          cand.timeoutMs,
+          `Model ${cand.name} timed out after ${(cand.timeoutMs / 1000).toFixed(1)}s`,
+        );
 
         if (response && response.text) {
           text = response.text;
@@ -123,7 +137,17 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
         }
       } catch (err: unknown) {
         lastError = err;
-        console.warn(`[Oracle Model Failover] Candidate ${model} failed:`, err);
+        const errStr = String(err);
+        const isQuota =
+          errStr.includes("429") ||
+          errStr.includes("RESOURCE_EXHAUSTED") ||
+          errStr.includes("quota") ||
+          errStr.includes("exceeded your current quota");
+
+        console.warn(`[Oracle Model Failover] Candidate ${cand.name} failed:`, err);
+        if (isQuota && cand.name === "gemini-3.1-flash-lite") {
+          break;
+        }
       }
     }
 

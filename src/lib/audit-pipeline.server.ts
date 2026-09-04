@@ -179,7 +179,7 @@ async function generateWithRetry(
   model: string,
   contents: string,
   config: Record<string, unknown>,
-  timeoutMs = 12000,
+  timeoutMs = 7000,
   maxRetries = 0,
 ) {
   let lastError: unknown;
@@ -220,7 +220,7 @@ async function generateWithRetry(
         errStr.includes("overloaded");
 
       if (isRetryable && attempt < maxRetries) {
-        await sleep(200 * (attempt + 1));
+        await sleep(150 * (attempt + 1));
         continue;
       }
       throw err;
@@ -641,7 +641,7 @@ async function runAuditPipelineInternal(
               id: "gemini-3.8-flash-grounded",
               name: "gemini-3.8-flash",
               grounding: true,
-              timeoutMs: 12000,
+              timeoutMs: 8000,
             },
           ]
         : []),
@@ -649,25 +649,19 @@ async function runAuditPipelineInternal(
         id: "gemini-3.8-flash-plain",
         name: "gemini-3.8-flash",
         grounding: false,
-        timeoutMs: 11000,
+        timeoutMs: 6000,
       },
       {
         id: "gemini-3.1-flash-lite",
         name: "gemini-3.1-flash-lite",
         grounding: false,
-        timeoutMs: 7000,
+        timeoutMs: 4500,
       },
       {
         id: "gemini-flash-latest",
         name: "gemini-flash-latest",
         grounding: false,
-        timeoutMs: 7000,
-      },
-      {
-        id: "gemini-2.5-flash-plain",
-        name: "gemini-2.5-flash",
-        grounding: false,
-        timeoutMs: 7000,
+        timeoutMs: 4000,
       },
     ];
 
@@ -729,9 +723,23 @@ async function runAuditPipelineInternal(
       } catch (err: unknown) {
         const errStr = String(err);
         failedCandidateIds.add(cand.id);
+        const isQuota =
+          errStr.includes("429") ||
+          errStr.includes("RESOURCE_EXHAUSTED") ||
+          errStr.includes("quota") ||
+          errStr.includes("exceeded your current quota");
+
         console.warn(
           `[Candidate Failover] Candidate ${cand.name} (grounded=${cand.grounding}) failed: ${errStr.slice(0, 100)}. Trying next candidate...`,
         );
+
+        // If quota is exhausted and we already tried a plain non-grounded model, break directly to deterministic fallback
+        if (isQuota && !cand.grounding && cand.id === "gemini-3.1-flash-lite") {
+          console.warn(
+            "[Quota Limit Detected] Switching immediately to live deterministic audit engine.",
+          );
+          break;
+        }
       }
     }
 

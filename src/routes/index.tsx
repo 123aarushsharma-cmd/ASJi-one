@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Download,
   Globe,
@@ -15,6 +16,7 @@ import {
   Key,
   FileCode2,
   Shield,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadReportAsPdf } from "@/lib/pdf-export";
@@ -26,6 +28,7 @@ import { ScoreWheel } from "@/components/ScoreWheel";
 import { LinkedInShareButton } from "@/components/LinkedInShareButton";
 import { GroundedSearchCard } from "@/components/GroundedSearchCard";
 import { FineExposureCard } from "@/components/FineExposureCard";
+import { CountryLegalVerdictCard } from "@/components/CountryLegalVerdictCard";
 import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
 import { AutonomousTrustRadarTerminal } from "@/components/AutonomousTrustRadarTerminal";
 import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
@@ -654,6 +657,14 @@ function Index() {
               <FineExposureCard report={report} />
             </motion.div>
 
+            {/* Country-by-Country Legal Pass vs Wholly Fail Audit */}
+            <motion.div variants={reportItemVariants}>
+              <CountryLegalVerdictCard
+                report={report}
+                onOpenRemediationModal={() => setUnlockOpen(true)}
+              />
+            </motion.div>
+
             {/* Top Critical Findings */}
             {report.criticalLeaks?.length > 0 && (
               <motion.div variants={reportItemVariants} className="surface-panel p-5 sm:p-7">
@@ -691,32 +702,71 @@ function Index() {
               </motion.div>
             )}
 
-            {/* Regulatory Framework Grid */}
+            {/* Regulatory Framework Grid with Statutory Pass/Fail status */}
             {report.frameworks?.length > 0 && (
               <motion.div
                 variants={reportItemVariants}
                 className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {report.frameworks.map((f) => (
-                  <div key={f.name} className="surface-panel p-4 sm:p-5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-xs sm:text-sm font-semibold text-foreground">{f.name}</p>
-                      <span className="font-display text-base sm:text-lg text-gold-gradient font-bold">
-                        {f.score}
-                      </span>
+                {report.frameworks.map((f) => {
+                  const isPass = f.score >= 70;
+                  const isWarning = f.score >= 45 && f.score < 70;
+                  const isFail = f.score < 45;
+
+                  return (
+                    <div
+                      key={f.name}
+                      className="surface-panel p-4 sm:p-5 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight">
+                            {f.name}
+                          </p>
+                          <span className="font-display text-base sm:text-lg text-gold-gradient font-bold shrink-0">
+                            {f.score}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 ${
+                              isPass
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                                : isWarning
+                                  ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+                                  : "border-rose-500/40 bg-rose-500/10 text-rose-400"
+                            }`}
+                          >
+                            {isPass && <CheckCircle2 className="h-2.5 w-2.5" />}
+                            {isWarning && <AlertTriangle className="h-2.5 w-2.5" />}
+                            {isFail && <XCircle className="h-2.5 w-2.5" />}
+                            {isPass
+                              ? "STATUTORY PASS"
+                              : isWarning
+                                ? "CONDITIONAL"
+                                : "STATUTORY FAIL"}
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.max(0, Math.min(100, f.score))}%`,
+                              backgroundImage: isPass
+                                ? "linear-gradient(90deg, #10b981, #059669)"
+                                : isWarning
+                                  ? "linear-gradient(90deg, #f59e0b, #d97706)"
+                                  : "linear-gradient(90deg, #ef4444, #dc2626)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{f.note}</p>
                     </div>
-                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.max(0, Math.min(100, f.score))}%`,
-                          backgroundImage: "var(--gradient-gold)",
-                        }}
-                      />
-                    </div>
-                    <p className="mt-2.5 text-xs text-muted-foreground leading-relaxed">{f.note}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </motion.div>
             )}
 
@@ -926,7 +976,10 @@ function Index() {
         )}
 
         <WorldLawsAtlas />
-        <SovereignLegalMatrix />
+        <SovereignLegalMatrix
+          onOpenRemediationModal={() => setUnlockOpen(true)}
+          isUnlocked={isUnlocked}
+        />
         <StatutoryGrievanceNotice />
 
         <section id="capabilities" className="mt-24 scroll-mt-8">
