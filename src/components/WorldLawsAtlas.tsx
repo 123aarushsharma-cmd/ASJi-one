@@ -95,7 +95,7 @@ export function WorldLawsAtlas() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-4 py-1.5 font-mono text-xs font-semibold tracking-wider text-[#D4AF37] uppercase">
             <Globe className="h-4 w-4" />
-            <span>0.001% Elite Sovereign Standard // Firebase Synced</span>
+            <span>International Statutory Standard // Database Verified</span>
           </div>
           <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
             World Sovereign Data Protection Laws Atlas &amp; Repository
@@ -193,7 +193,7 @@ export function WorldLawsAtlas() {
 
                   <div className="mt-3 flex w-full items-center justify-between border-t border-white/5 pt-2 font-mono text-[9.5px] text-[#E5E5E5]/50">
                     <span className="text-[#D4AF37]/80 truncate max-w-[150px]">
-                      {law.governingBody.split("/")[0]}
+                      {law.acronym} Statutory Provisions
                     </span>
                     <span className="text-red-400 font-semibold">{law.region}</span>
                   </div>
@@ -342,10 +342,10 @@ export function WorldLawsAtlas() {
           <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-4 font-mono text-[10px] text-[#E5E5E5]/50">
             <span className="flex items-center gap-1.5">
               <Building2 className="h-3 w-3 text-[#D4AF37]" />
-              Supervisory Authority: {activeLaw.governingBody}
+              Statutory Framework: {activeLaw.lawName} ({activeLaw.acronym})
             </span>
             <span className="text-[#D4AF37]">
-              Synced to Firebase Database // 0.001% Elite Precision Standard
+              Synced to Compliance Database // Statutory Verification Standard
             </span>
           </div>
         </div>

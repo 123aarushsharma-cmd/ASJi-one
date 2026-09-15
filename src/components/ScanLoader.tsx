@@ -49,6 +49,7 @@ export function ScanLoader({ progress, url }: { progress: number; url: string })
   const [secondsRemaining, setSecondsRemaining] = useState(30.0);
   const [activeLogIndex, setActiveLogIndex] = useState(0);
   const startTimeRef = useRef(Date.now());
+  const displayedProgressRef = useRef(progress);
 
   useEffect(() => {
     startTimeRef.current = Date.now();
@@ -70,15 +71,17 @@ export function ScanLoader({ progress, url }: { progress: number; url: string })
 
   useEffect(() => {
     let rafId: number;
+
     const lerp = () => {
-      setDisplayedProgress((prev) => {
-        const diff = progress - prev;
-        if (Math.abs(diff) < 0.05) {
-          return progress;
-        }
-        return prev + diff * 0.15;
-      });
-      rafId = requestAnimationFrame(lerp);
+      const diff = progress - displayedProgressRef.current;
+      if (Math.abs(diff) > 0.05) {
+        displayedProgressRef.current += diff * 0.16;
+        setDisplayedProgress(displayedProgressRef.current);
+        rafId = requestAnimationFrame(lerp);
+      } else {
+        displayedProgressRef.current = progress;
+        setDisplayedProgress(progress);
+      }
     };
 
     rafId = requestAnimationFrame(lerp);

@@ -38,17 +38,6 @@ export function AutonomousTrustRadarTerminal({
     "terminal" | "matrix" | "penalty" | "dispute" | "crossborder" | "intermediary"
   >("terminal");
 
-  // Live compounding penalty clock simulation in Rupees
-  const [accruedPenalty, setAccruedPenalty] = useState(2500000000); // ₹250 Crores base cap
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      // Micro-increment statutory exposure counter by small increments to simulate live tracking
-      setAccruedPenalty((prev) => prev + Math.floor(Math.random() * 450 + 120));
-    }, 250);
-    return () => clearInterval(timer);
-  }, []);
-
   // Fallback if radarTerminal was not attached previously
   const radar: RadarTerminalData =
     report.radarTerminal || computeRadarTerminalLog(report.target || "domain.com", null, report);
@@ -162,20 +151,20 @@ export function AutonomousTrustRadarTerminal({
         <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-4 flex flex-col justify-between">
           <div>
             <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold block">
-              VERDICT STATUS (STRICT BINARY LOGIC)
+              ASSESSMENT STATUS (STRICT BINARY LOGIC)
             </span>
             <div className="mt-2 flex items-center gap-2">
               <span className="text-2xl font-black font-mono tracking-tight text-red-400">
                 {overallVerdict}
               </span>
               <span className="rounded bg-red-500/20 border border-red-500/40 px-2 py-0.5 text-[10px] font-bold text-red-300">
-                {hasAnyFailure ? "FAIL STATE LOCKED" : "ALL JURISDICTIONS CLEAR"}
+                {hasAnyFailure ? "RISK SIGNAL DETECTED" : "ALL JURISDICTIONS CLEAR"}
               </span>
             </div>
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground leading-relaxed">
-            Binary compliance enforcement active: Zero statistical score percentage drift. Output is
-            strictly PASS or FAIL.
+            Binary compliance signal evaluation active: Zero statistical score percentage drift.
+            Output is strictly PASS or FAIL.
           </p>
         </div>
 
@@ -184,22 +173,22 @@ export function AutonomousTrustRadarTerminal({
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-amber-300 uppercase tracking-widest font-bold flex items-center gap-1">
-                <Clock className="h-3 w-3 animate-spin" /> PENALTY CLOCK ALERT
+                <Clock className="h-3 w-3 text-amber-400" /> STATUTORY LIABILITY CEILING
               </span>
-              <span className="text-[9px] font-bold text-red-400 animate-pulse">DPDP SEC 33</span>
+              <span className="text-[9px] font-bold text-red-400">DPDP SEC 33 / GDPR ART 83</span>
             </div>
             <div className="mt-1.5">
               <p className="text-xl font-black text-amber-400 font-mono tracking-tight">
-                UP TO ₹250 CRORES LIABILITY
+                UP TO ₹250 CRORES / €20M
               </p>
               <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                Accruing exposure: ₹{accruedPenalty.toLocaleString("en-IN")} (~$30.1M USD)
+                Maximum statutory penalty ceiling per occurrence
               </p>
             </div>
           </div>
           <p className="mt-2 text-[10px] text-amber-300/80 leading-relaxed">
-            Statutory liability cap per incident under India DPDP Act 2023 Schedule 1 and EU GDPR
-            Art 83.
+            Evaluated against statutory penalty ceilings under India DPDP Act 2023 Schedule 1 and EU
+            GDPR Art 83.
           </p>
         </div>
 
@@ -660,13 +649,14 @@ export function AutonomousTrustRadarTerminal({
               </span>
             </div>
             <h3 className="font-display text-xl font-bold text-gold-gradient">
-              Activation Mandate: Upfront ₹24,999 ($300 USD) Wire Required
+              Activation Mandate: Instant Direct Bank Account UPI Payment Required
             </h3>
             <p className="font-mono text-xs text-muted-foreground leading-relaxed">
-              Code repository is gated under corporate RegTech paywall framework. Requires upfront
-              wire fee of <strong className="text-primary font-bold">₹24,999 ($300 USD)</strong> to
-              release full executable wrapper patch, server-side HTTP security headers, and
-              pre-consent CMP blockers.
+              Code repository is gated under statutory RegTech framework. Complete instant direct
+              bank account UPI transfer of{" "}
+              <strong className="text-primary font-bold">₹24,999 ($300 USD)</strong> to release full
+              executable wrapper patch, server-side HTTP security headers, and pre-consent CMP
+              blockers within seconds.
             </p>
           </div>
 
@@ -676,11 +666,12 @@ export function AutonomousTrustRadarTerminal({
               className="btn-gold flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-xl hover:shadow-primary/30 transition-all cursor-pointer"
             >
               <Zap className="h-4 w-4" />
-              <span>Complete Wire &amp; Unlock Patch (₹24,999 / $300)</span>
+              <span>Instant Direct UPI &amp; Unlock Patch (₹24,999)</span>
               <ArrowRight className="h-4 w-4" />
             </button>
             <p className="text-[10px] font-mono text-muted-foreground text-center sm:text-right">
-              Direct Wire • Instant UPI QR • Instant Code Release
+              Direct Bank Account Instant UPI • 8290841179-3@ibl • Arush Sharma • Instant Code
+              Release
             </p>
           </div>
         </div>

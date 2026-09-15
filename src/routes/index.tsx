@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
+  Award,
   CheckCircle2,
   Download,
   Globe,
@@ -39,6 +40,7 @@ import { IntermediaryShieldCard } from "@/components/IntermediaryShieldCard";
 import { SovereignLegalMatrix } from "@/components/SovereignLegalMatrix";
 import { WorldLawsAtlas } from "@/components/WorldLawsAtlas";
 import { StatutoryGrievanceNotice } from "@/components/StatutoryGrievanceNotice";
+import type { RetentionOption } from "@/components/AutoDeletionSecurity";
 import { Footer } from "@/components/Footer";
 import { detectInput, validateAuditInput } from "@/lib/audit-input";
 import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.functions";
@@ -47,20 +49,23 @@ import { AUTHORISATION_NOTICE, LEGAL, LEGAL_PAGES, NOT_LEGAL_ADVICE } from "@/li
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ASJi One — GDPR & DPDP Compliance Scanner" },
+      { title: "ASJi One" },
       {
         name: "description",
-        content:
-          "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
+        content: "Global Data privacy Compliance fixer",
       },
-      { property: "og:title", content: "ASJi One — GDPR & DPDP Compliance Scanner" },
+      { property: "og:title", content: "ASJi One" },
       {
         property: "og:description",
-        content:
-          "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
+        content: "Global Data privacy Compliance fixer",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "ASJi One" },
+      {
+        name: "twitter:description",
+        content: "Global Data privacy Compliance fixer",
+      },
     ],
   }),
   component: Index,
@@ -80,20 +85,20 @@ const reportContainerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
     },
   },
 };
 
 const reportItemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.5,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.38,
+      ease: [0.16, 1, 0.3, 1] as const,
     },
   },
 };
@@ -326,17 +331,17 @@ function Index() {
         >
           <div className="mb-6 inline-flex flex-col items-center">
             <span className="inline-block rounded-full border border-primary/30 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-primary bg-primary/5 backdrop-blur-sm font-medium">
-              6 Global Jurisdictions // Universal Sovereign Framework Coverage
+              6 Global Jurisdictions // Multi-Jurisdiction Compliance Assessment
             </span>
           </div>
           <h1 className="mt-2 font-display text-4xl leading-[1.15] sm:text-6xl text-gold-gradient max-w-4xl mx-auto font-bold">
-            Live Cross-Border Data Privacy Interception.
+            Live Cross-Border Data Privacy Audit.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-muted-foreground font-mono">
-            ASJi One is a programmatic RegTech middleware engineered for global production
-            environments. We audit client-side interaction frames against active cross-border
-            statutory mandates in 30 seconds and compile instant runtime isolation patches with zero
-            system downtime.
+            ASJi One is a RegTech analysis platform engineered for production web applications. We
+            perform controlled runtime network inspection, evaluate client-side tracking, and verify
+            server header security against 6 global statutory mandates in under 30 seconds with
+            workflows designed to minimise service disruption.
           </p>
 
           <form
@@ -502,7 +507,7 @@ function Index() {
             </div>
             <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
-                &lt; 30s Latency Time // Immediate runtime packet logging.
+                &lt; 30s Scan Performance // Rapid technical assessment.
               </p>
               <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
                 Headless browser verification &amp; transit trace.
@@ -565,13 +570,13 @@ function Index() {
                     <ASJiVectorLogo className="h-full w-full" idSuffix="result_badge" />
                   </div>
                   <span className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-gold-gradient">
-                    ASJi One // Official Verified Audit
+                    ASJi One // Technical Compliance Assessment
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-center lg:justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
-                      Compliance score for
+                      ASJi Trust Index (Technical Risk Indicator) for
                     </p>
                     <h2 className="mt-2 font-display text-3xl text-gold-gradient break-all">
                       {report.target || scanned}
@@ -617,26 +622,30 @@ function Index() {
                   </div>
                 )}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-                  <button
-                    type="button"
-                    onClick={handleDownloadReportPdf}
-                    disabled={isDownloadingPdf}
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/60 bg-emerald-500/20 px-6 py-3 text-xs font-mono font-bold text-emerald-300 transition-all hover:bg-emerald-500 hover:text-black shadow-lg cursor-pointer disabled:opacity-50"
+                  <a
+                    href="#radar-terminal"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowDetailedAnnexes(true);
+                      setTimeout(() => {
+                        document
+                          .getElementById("asji-letterhead-report-paper")
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 100);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-primary/60 bg-primary/20 px-6 py-3 text-xs font-mono font-bold text-primary transition-all hover:bg-primary/30 shadow-lg cursor-pointer"
                   >
-                    {isDownloadingPdf ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 text-emerald-400" />
-                    )}
-                    <span>{isDownloadingPdf ? "Compiling PDF..." : "Download Report (PDF)"}</span>
-                  </button>
+                    <Award className="h-4 w-4 text-primary" />
+                    <span>View Official Report Card</span>
+                  </a>
 
                   <button
+                    type="button"
                     onClick={() => {
                       setPhase("idle");
                       setReport(null);
                     }}
-                    className="rounded-xl border border-primary/40 px-6 py-3 text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/10 cursor-pointer"
+                    className="rounded-xl border border-border px-6 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
                   >
                     Analyze another
                   </button>
@@ -716,7 +725,7 @@ function Index() {
                   return (
                     <div
                       key={f.name}
-                      className="surface-panel p-4 sm:p-5 flex flex-col justify-between"
+                      className="surface-panel card-hover fps-120 p-4 sm:p-5 flex flex-col justify-between cursor-default"
                     >
                       <div>
                         <div className="flex items-start justify-between gap-3">
@@ -991,7 +1000,7 @@ function Index() {
             {[
               [
                 "Cross-Border Transit Mapping",
-                "ASJi One tracking nodes automatically intercept outgoing TCP/IP packet streams to trace if outbound user metadata transfers outside sovereign territorial borders without automated signature compliance encryption.",
+                "ASJi One performs controlled runtime network inspection to analyse relevant outbound traffic and data-flow signals across sovereign territorial borders.",
               ],
               [
                 "Threat Surface Mapping",
@@ -1011,12 +1020,12 @@ function Index() {
               ],
               [
                 "Vendor Visibility",
-                "Identify third-party scripts, telemetry listeners, and external data exfiltration pathways with zero downtime.",
+                "Identify third-party scripts, telemetry listeners, and external data transport pathways through non-disruptive runtime verification.",
               ],
             ].map(([t, d]) => (
               <article
                 key={t}
-                className="surface-panel p-6 border border-border/80 bg-black/60 rounded-2xl transition-colors hover:border-primary/40 font-mono"
+                className="surface-panel card-hover fps-120 p-6 border border-border/80 bg-black/60 rounded-2xl transition-all hover:border-primary/40 font-mono"
               >
                 <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-gold-gradient">
                   {t}

@@ -11,8 +11,8 @@ export type RadarSiteEvidence = {
   host?: string;
   statusCode?: number;
   httpsUpgrade?: boolean;
-  securityHeaders?: Record<string, string>;
-  responseHeaders?: Record<string, string>;
+  securityHeaders?: Record<string, string | null>;
+  responseHeaders?: Record<string, string | null>;
   setCookiePreConsent?: string[];
   trackerSignals?: string[];
   consentSignals?: string[];
@@ -379,11 +379,11 @@ TARGET DOMAIN: ${cleanTarget}
 ========================================================================================
      🛠️ AUTONOMOUS CODE REMEDIATION WRAPPER PATCH [L O C K E D 🔒]
 ========================================================================================
-// CODE REPOSITORY IS LOCKED UNDER CORPORATE REGTECH PAYWALL SECTIONS.
+// CODE REPOSITORY IS LOCKED UNDER STATUTORY REGTECH AUDIT FRAMEWORK.
 // LIABILITY PENALTY STATUS: ACCRUING UP TO ₹250 CRORES UNTIL COMPLETION PATCH IS INJECTED.
-// REQUIRE UPFRONT DATA DEPLOYMENT REGISTRY TRANSFER FEE OF ₹24,999 ($300 USD) TO RELEASE FULL CODE.
+// COMPLETE INSTANT DIRECT BANK ACCOUNT UPI TRANSFER (8290841179-3@ibl - ARUSH SHARMA) OF ₹24,999 ($300 USD) TO UNLOCK FULL PRODUCTION CODE PATCHES IN SECONDS.
 
-👉 [BUTTON ACTION: COMPLETE CORE WIRE TRANSFER & UNLOCK EXECUTABLE WRAPPER PATCH]
+👉 [BUTTON ACTION: INSTANT DIRECT UPI TRANSFER & UNLOCK EXECUTABLE CODE PATCHES]
 ----------------------------------------------------------------------------------------${intermediarySectionInTerminal}`;
 
   return {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Bot, Send, X, Minimize2, Maximize2, RefreshCw, ChevronRight, Trash2 } from "lucide-react";
 import { askAiOracle } from "@/lib/audit.functions";
 import { saveChatMessage, deleteChatSession, type ChatMessage } from "@/lib/firestore-service";
@@ -141,13 +142,20 @@ export function SovereignAiChatbot({ initialOpen = false }: SovereignChatProps) 
   };
 
   return (
-    <>
+    <AnimatePresence>
       {/* Floating Launcher Button (Logo Only) */}
       {!isOpen && (
-        <button
+        <motion.button
+          key="asji-oracle-trigger"
           id="asji-oracle-trigger"
           onClick={handleOpen}
-          className="group fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/60 bg-black/90 text-[#D4AF37] shadow-2xl shadow-black/80 backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-[#D4AF37] hover:bg-black hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ type: "spring", stiffness: 350, damping: 25 }}
+          className="group fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/60 bg-black/90 text-[#D4AF37] shadow-2xl shadow-black/80 backdrop-blur-xl fps-120 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
           aria-label="Open ASJi One AI"
           title="ASJi One AI"
         >
@@ -158,14 +166,19 @@ export function SovereignAiChatbot({ initialOpen = false }: SovereignChatProps) 
               <span className="relative inline-flex h-3 w-3 rounded-full bg-[#D4AF37]" />
             </span>
           </div>
-        </button>
+        </motion.button>
       )}
 
       {/* Main Chatbot Interface Window */}
       {isOpen && (
-        <div
+        <motion.div
+          key="asji-oracle-window"
           id="asji-oracle-window"
-          className={`fixed bottom-4 right-4 z-50 flex flex-col rounded-3xl border border-[#D4AF37]/35 bg-[#0a0a0a]/95 text-white shadow-2xl shadow-black/90 backdrop-blur-2xl transition-all duration-300 ${
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          className={`fixed bottom-4 right-4 z-50 flex flex-col rounded-3xl border border-[#D4AF37]/35 bg-[#0a0a0a]/95 text-white shadow-2xl shadow-black/90 backdrop-blur-2xl fps-120 transition-[width,height] duration-300 ${
             isExpanded
               ? "h-[85vh] w-[95vw] max-w-4xl sm:bottom-6 sm:right-6"
               : "h-[580px] w-[92vw] max-w-md sm:bottom-6 sm:right-6"
@@ -330,8 +343,8 @@ export function SovereignAiChatbot({ initialOpen = false }: SovereignChatProps) 
               </button>
             </form>
           </div>
-        </div>
+        </motion.div>
       )}
-    </>
+    </AnimatePresence>
   );
 }

@@ -63,8 +63,8 @@ export function IntermediaryShieldCard({
             </div>
             <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground">
               {isSafe
-                ? "Platform qualifies for statutory safe harbor liability shield"
-                : "Platform risks losing legal intermediary immunity"}
+                ? "Platform aligns with statutory safe harbor criteria"
+                : "Platform demonstrates potential intermediary statutory risk"}
             </h3>
           </div>
         </div>

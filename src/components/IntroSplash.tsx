@@ -3,31 +3,40 @@ import { AnimatePresence, motion } from "motion/react";
 import { ShieldCheck } from "lucide-react";
 
 export function IntroSplash({ onComplete }: { onComplete?: () => void }) {
+  // Always initialize to true so SSR HTML matches initial client hydration exactly
   const [isVisible, setIsVisible] = useState(true);
 
   const handleFinish = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("asji_splash_shown", "1");
+    }
     setIsVisible(false);
     if (onComplete) onComplete();
   }, [onComplete]);
 
   useEffect(() => {
+    // If previously shown in this session, dismiss immediately post-hydration
+    if (sessionStorage.getItem("asji_splash_shown")) {
+      setIsVisible(false);
+      if (onComplete) onComplete();
+      return;
+    }
+
     const timer = setTimeout(() => {
       handleFinish();
-    }, 700);
+    }, 600);
     return () => clearTimeout(timer);
-  }, [handleFinish]);
-
-  if (!isVisible) return null;
+  }, [handleFinish, onComplete]);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
           key="intro-splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0F19] text-foreground select-none overflow-hidden"
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0B0F19] text-foreground select-none overflow-hidden fps-120"
         >
           {/* Subtle background ambient radial light */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(212,175,55,0.12),transparent_60%)] pointer-events-none" />

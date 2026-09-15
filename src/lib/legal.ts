@@ -28,10 +28,10 @@ export const LEGAL = {
 } as const;
 
 export const NOT_LEGAL_ADVICE =
-  "By executing this scan, you authorize a passive, non-intrusive public transport layer audit. Reports generate automated technical compliance logs bound by global legal frameworks and do not constitute formal courtroom representation.";
+  "ASJi One provides technical compliance intelligence, regulatory mapping, risk-oriented insights, and compliance-focused drafting assistance. Its outputs are intended to support privacy, security, governance, and compliance workflows and do not constitute legal advice, a legal opinion, regulatory approval, certification, or a definitive determination of legal compliance. Organizations should independently assess their applicable legal obligations and obtain professional legal advice where appropriate.";
 
 export const AUTHORISATION_NOTICE =
-  "By executing this scan, you authorize a passive, non-intrusive public transport layer audit. Reports generate automated technical compliance logs bound by global legal frameworks and do not constitute formal courtroom representation.";
+  "By executing this scan, you confirm authorization to assess the target. ASJi One provides technical compliance intelligence and regulatory mapping for governance workflows, and does not constitute formal legal advice or regulatory certification.";
 
 export const LEGAL_PAGES = [
   { to: "/legal/terms", label: "Terms of Service" },

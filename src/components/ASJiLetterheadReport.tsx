@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Globe,
@@ -20,6 +20,7 @@ import type { AuditReport } from "@/lib/audit.functions";
 import { downloadReportAsPdf, openStandalonePrintWindow } from "@/lib/pdf-export";
 import { detectDomainOriginCountry } from "@/lib/country-origin";
 import { ASJiVectorLogo } from "./ASJiVectorLogo";
+import { getUnifiedJurisdictionVerdicts } from "@/lib/unified-verdicts";
 
 interface ASJiLetterheadReportProps {
   report?: AuditReport | null;
@@ -71,90 +72,72 @@ export function ASJiLetterheadReport({
         day: "numeric",
       });
 
-  const certNumber = `ASJI-CERT-2026-${targetDomain
-    .slice(0, 4)
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "X")}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const certNumber = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < targetDomain.length; i++) {
+      hash = (hash << 5) - hash + targetDomain.charCodeAt(i);
+      hash |= 0;
+    }
+    const num = Math.abs(hash % 9000) + 1000;
+    return `ASJI-CERT-2026-${targetDomain
+      .slice(0, 4)
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "X")}-${num}`;
+  }, [targetDomain]);
 
-  // Evaluate the EXACT 6 Global Laws
-  const radarMatrix = report?.radarTerminal?.verdictMatrix;
+  // Evaluate the EXACT 6 Global Laws using the Unified Sovereign Audit Standard
+  const unified = useMemo(() => {
+    const reportData: AuditReport = (report || {
+      target: targetDomain,
+      score: complianceScore,
+      frameworks: [],
+      criticalLeaks: [],
+      evidence: [],
+      summary: "",
+      originCountry: origin.countryName,
+    }) as AuditReport;
+    return getUnifiedJurisdictionVerdicts(reportData);
+  }, [report, targetDomain, complianceScore, origin.countryName]);
 
-  const indiaPass = radarMatrix ? radarMatrix.indiaDpdp2023.pass : complianceScore >= 75;
-  const euPass = radarMatrix ? radarMatrix.euGdprReforms.pass : complianceScore >= 85;
-  const ukPass = radarMatrix ? radarMatrix.ukDuaa2026.pass : complianceScore >= 80;
-  const uaePass = radarMatrix ? radarMatrix.uaeDecreeLaw45.pass : complianceScore >= 70;
-  const saudiPass = radarMatrix ? radarMatrix.saudiArabiaPdpl.pass : complianceScore >= 70;
-  const singaporePass = radarMatrix ? radarMatrix.singaporePdpa.pass : complianceScore >= 80;
+  const lawsVerdictList: LawVerdict[] = useMemo(() => {
+    const primaryIds = [
+      { id: "in-dpdp", statuteRef: "Sec. 6(1) & Sec. 8(1)" },
+      { id: "eu-gdpr", statuteRef: "Art. 7, 13, 32 & 44" },
+      { id: "gb-ukgdpr", statuteRef: "DUAA & PECR Reg 6" },
+      { id: "ae-pdpl", statuteRef: "Decree-Law 45 Art. 4, 9" },
+      { id: "sa-pdpl", statuteRef: "Royal Decree M/19" },
+      { id: "sg-pdpa", statuteRef: "Section 26 Transfer Lim." },
+    ];
 
-  const lawsVerdictList: LawVerdict[] = [
-    {
-      id: "in-dpdp",
-      country: "India",
-      flag: "🇮🇳",
-      lawName: "DPDP Act 2023",
-      statuteRef: "Sec. 6(1) & Sec. 8(1)",
-      focusArea: "Pre-consent telemetry drift & infrastructure safeguards",
-      pass: indiaPass,
-      isOriginCountry: origin.countryName === "India",
-    },
-    {
-      id: "eu-gdpr",
-      country: "European Union",
-      flag: "🇪🇺",
-      lawName: "GDPR (EU 2016/679)",
-      statuteRef: "Art. 7, 13, 32 & 44",
-      focusArea: "Prior opt-in cookie consent & cross-border data transfer",
-      pass: euPass,
-      isOriginCountry: origin.countryName === "European Union",
-    },
-    {
-      id: "uk-duaa",
-      country: "United Kingdom",
-      flag: "🇬🇧",
-      lawName: "UK DUAA 2026",
-      statuteRef: "Statutory Standard",
-      focusArea: "Preference architecture & client telemetry isolation",
-      pass: ukPass,
-      isOriginCountry: origin.countryName === "United Kingdom",
-    },
-    {
-      id: "ae-pdpl",
-      country: "United Arab Emirates",
-      flag: "🇦🇪",
-      lawName: "UAE Decree-Law 45",
-      statuteRef: "Art. 4, 6 & 13",
-      focusArea: "Bilingual privacy disclosures & selection tokens",
-      pass: uaePass,
-      isOriginCountry: origin.countryName === "United Arab Emirates",
-    },
-    {
-      id: "sa-pdpl",
-      country: "Saudi Arabia",
-      flag: "🇸🇦",
-      lawName: "Saudi Arabia PDPL",
-      statuteRef: "2024 Implementing Regs",
-      focusArea: "Explicit opt-in consent for analytics & cross-border packet routing",
-      pass: saudiPass,
-      isOriginCountry: origin.countryName === "Saudi Arabia",
-    },
-    {
-      id: "sg-pdpa",
-      country: "Singapore",
-      flag: "🇸🇬",
-      lawName: "Singapore PDPA",
-      statuteRef: "Section 26 Transfer Limitation",
-      focusArea: "Cross-border data packet streams & comparable protection tokens",
-      pass: singaporePass,
-      isOriginCountry: origin.countryName === "Singapore",
-    },
-  ];
+    return primaryIds.map((item) => {
+      const v = unified.verdictMap[item.id];
+      const isOriginCountry =
+        v?.isOriginCountry ||
+        origin.countryName.toLowerCase().includes(v?.country.toLowerCase() || "");
+
+      return {
+        id: v ? v.id : item.id,
+        country: v ? v.country : "Jurisdiction",
+        flag: v ? v.flag : "🌐",
+        lawName: v ? v.statuteName : "Statutory Standard",
+        statuteRef: v ? v.statuteRef : item.statuteRef,
+        focusArea: v ? v.focusArea : "Statutory compliance and telemetry safeguard controls",
+        pass: v ? v.passed : complianceScore >= 75,
+        isOriginCountry: Boolean(isOriginCountry),
+      };
+    });
+  }, [unified, origin.countryName, complianceScore]);
 
   const passingLaws = lawsVerdictList.filter((l) => l.pass);
   const failingLaws = lawsVerdictList.filter((l) => !l.pass);
 
   // Check if Origin Country passes its own domestic law
   const originLaw = lawsVerdictList.find((l) => l.isOriginCountry);
-  const originPass = originLaw ? originLaw.pass : complianceScore >= 75;
+  const originPass = originLaw
+    ? originLaw.pass
+    : unified.originVerdict
+      ? unified.originVerdict.passed
+      : complianceScore >= 75;
 
   const reportPaperRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -200,7 +183,7 @@ export function ASJiLetterheadReport({
         <div className="flex items-center gap-2">
           <Award className="h-4 w-4 text-[#E5C158] shrink-0" />
           <span className="font-mono text-xs font-bold text-[#E5C158] uppercase tracking-wider">
-            Official ASJi Web &amp; Legal Solutions Certificate &amp; Audit Report
+            Official ASJi Web &amp; Legal Solutions Audit &amp; Compliance Report
           </span>
         </div>
 
@@ -353,7 +336,7 @@ export function ASJiLetterheadReport({
                 className="font-mono text-[8.5px] uppercase tracking-widest block font-bold"
                 style={{ color: "#E5C158" }}
               >
-                OFFICIAL TECHNICAL COMPLIANCE &amp; SOVEREIGN PRIVACY AUDIT CERTIFICATE
+                OFFICIAL TECHNICAL COMPLIANCE &amp; SOVEREIGN PRIVACY AUDIT REPORT
               </span>
               <span className="text-[9px] font-mono" style={{ color: "#a3a3a3" }}>
                 SERIAL: <strong className="text-white font-mono">{certNumber}</strong>
@@ -442,34 +425,35 @@ export function ASJiLetterheadReport({
                 <span className="font-mono text-xl font-black text-white">{complianceScore}%</span>
                 <span
                   className="text-[8.5px] font-mono block font-bold"
-                  style={{ color: complianceScore >= 75 ? "#34d399" : "#fb7185" }}
+                  style={{ color: unified.overallPassed ? "#34d399" : "#fb7185" }}
                 >
-                  {complianceScore >= 75 ? "OVERALL: PASS" : "OVERALL: FAIL"}
+                  {unified.overallPassed ? "OVERALL: PASS" : "OVERALL: FAIL"}
                 </span>
               </div>
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-lg border font-mono text-xs font-black"
                 style={{
-                  borderColor: complianceScore >= 75 ? "#34d399" : "#fb7185",
-                  backgroundColor:
-                    complianceScore >= 75 ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)",
-                  color: complianceScore >= 75 ? "#34d399" : "#fb7185",
+                  borderColor: unified.overallPassed ? "#34d399" : "#fb7185",
+                  backgroundColor: unified.overallPassed
+                    ? "rgba(16, 185, 129, 0.15)"
+                    : "rgba(244, 63, 94, 0.15)",
+                  color: unified.overallPassed ? "#34d399" : "#fb7185",
                 }}
               >
-                {complianceScore >= 75 ? "PASS" : "FAIL"}
+                {unified.overallPassed ? "PASS" : "FAIL"}
               </div>
             </div>
           </div>
 
           {/* 4. TOTAL 6 STATUTORY JURISDICTIONS EVALUATION TABLE */}
           <div
-            className="overflow-hidden rounded-lg border mb-2.5"
+            className="overflow-x-auto rounded-lg border mb-2.5 print:overflow-visible"
             style={{
               borderColor: "rgba(255, 255, 255, 0.12)",
               backgroundColor: "rgba(0, 0, 0, 0.4)",
             }}
           >
-            <table className="w-full text-left text-[10px] font-mono border-collapse">
+            <table className="w-full min-w-[500px] print:min-w-full text-left text-[10px] font-mono border-collapse">
               <thead>
                 <tr
                   className="border-b text-[8.5px] uppercase tracking-wider"
@@ -487,7 +471,7 @@ export function ASJiLetterheadReport({
                   <th className="px-2.5 py-1.5 font-bold text-center">Status</th>
                 </tr>
               </thead>
-              <tbody style={{ divideColor: "rgba(255, 255, 255, 0.08)" }}>
+              <tbody className="divide-y divide-white/10">
                 {lawsVerdictList.map((item, idx) => (
                   <tr
                     key={item.id}
@@ -636,6 +620,101 @@ export function ASJiLetterheadReport({
                 )}
               </div>
             </div>
+          </div>
+
+          {/* 5.5 DETECTED TECHNICAL COMPLIANCE FINDINGS & AUDIT EXPOSURES */}
+          <div
+            className="rounded-lg border p-3 text-[9px] font-mono mb-2.5"
+            style={{
+              backgroundColor: "#0f0e0c",
+              borderColor: "rgba(212, 175, 55, 0.3)",
+            }}
+          >
+            <div
+              className="flex items-center justify-between border-b pb-1.5 mb-2"
+              style={{ borderBottomColor: "rgba(255, 255, 255, 0.1)" }}
+            >
+              <span
+                className="font-bold uppercase tracking-wider text-[9.5px]"
+                style={{ color: "#E5C158" }}
+              >
+                DETECTED TECHNICAL COMPLIANCE FINDINGS &amp; AUDIT EXPOSURES
+              </span>
+              <span className="text-[8px] uppercase tracking-wider" style={{ color: "#888888" }}>
+                Result-Oriented Scan Log
+              </span>
+            </div>
+
+            {/* Critical Leaks / Exposures Itemized */}
+            {report?.criticalLeaks && report.criticalLeaks.length > 0 ? (
+              <div className="space-y-1.5">
+                {report.criticalLeaks.map((leak, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded p-1.5 border"
+                    style={{
+                      backgroundColor: "rgba(0, 0, 0, 0.4)",
+                      borderColor:
+                        leak.severity === "critical" || leak.severity === "high"
+                          ? "rgba(244, 63, 94, 0.3)"
+                          : "rgba(245, 158, 11, 0.3)",
+                    }}
+                  >
+                    <div className="flex items-start gap-1.5">
+                      <span
+                        className="mt-0.5 rounded px-1 py-0.2 text-[7px] font-bold uppercase shrink-0"
+                        style={{
+                          backgroundColor:
+                            leak.severity === "critical" || leak.severity === "high"
+                              ? "rgba(244, 63, 94, 0.2)"
+                              : "rgba(245, 158, 11, 0.2)",
+                          color:
+                            leak.severity === "critical" || leak.severity === "high"
+                              ? "#fb7185"
+                              : "#fbbf24",
+                          border:
+                            leak.severity === "critical" || leak.severity === "high"
+                              ? "1px solid rgba(244, 63, 94, 0.4)"
+                              : "1px solid rgba(245, 158, 11, 0.4)",
+                        }}
+                      >
+                        {leak.severity}
+                      </span>
+                      <div>
+                        <span className="font-bold text-white block">{leak.title}</span>
+                        <span className="text-[8px] leading-tight block text-gray-300">
+                          {leak.detail}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[#34d399] font-bold text-[8.5px] py-1">
+                ✓ No critical vulnerabilities or unconsented telemetry leaks detected.
+              </div>
+            )}
+
+            {/* Evidence items summary */}
+            {report?.evidence && report.evidence.length > 0 && (
+              <div
+                className="mt-2 pt-2 border-t text-[8px]"
+                style={{ borderTopColor: "rgba(255, 255, 255, 0.08)", color: "#a3a3a3" }}
+              >
+                <span className="font-bold uppercase block mb-1" style={{ color: "#D4AF37" }}>
+                  VERIFIED AUDIT EVIDENCE SIGNALS ({report.evidence.length} Signals Captured):
+                </span>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-gray-300">
+                  {report.evidence.slice(0, 6).map((item, idx) => (
+                    <li key={idx} className="truncate flex items-center gap-1">
+                      <span className="text-[#D4AF37]">•</span>
+                      <span className="truncate">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* 6. LEGAL SIGNATORY & CRYPTOGRAPHIC SEAL BOX */}

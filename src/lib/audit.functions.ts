@@ -25,7 +25,8 @@ export const auditCompliance = createServerFn({ method: "POST" })
     if (typeof input !== "string") throw new Error("Invalid input.");
     const result = validateAuditInput(input);
     if (!result.ok) throw new Error(result.error);
-    const mode = scanMode === "fast-lite" ? "fast-lite" : "deep-grounded";
+    const mode: "deep-grounded" | "fast-lite" =
+      scanMode === "fast-lite" ? "fast-lite" : "deep-grounded";
     return { input: input.trim(), scanMode: mode };
   })
   .handler(async ({ data }): Promise<AuditReport> => {

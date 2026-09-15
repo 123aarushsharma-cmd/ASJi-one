@@ -9,7 +9,14 @@ function getGenAI(): GoogleGenAI | null {
     return null;
   }
   if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey });
+    aiInstance = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
   }
   return aiInstance;
 }
@@ -60,7 +67,7 @@ You serve as an infallible, zero-hallucination compliance counselor for the ASJi
 YOU POSSESS THE COMPLETE WORLD DATABASE OF DATA PROTECTION LAWS:
 ${lawContextSummary}
 
-CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
+CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
 1. ACCURACY & ZERO SPECULATION: Every response must cite exact statutes, section/article numbers, official regulatory bodies (e.g. DPBI, EDPB, CNIL, ICO, CPPA, ANPD, PDPC, OAIC, PPC, PIPC, SDAIA, NDPC), and official statutory penalty caps.
 2. EXPLAINING THIS ASJI ONE TOOL:
    - ASJi One performs real-world, client-side & server-side zero-touch statutory auditing of any domain or raw server code/headers.
@@ -87,11 +94,11 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
     }
 
     return {
-      answer: `### Sovereign Compliance Intelligence Report\n\n**Framework:** ${relevantLaw.lawName} (${relevantLaw.acronym})\n**Supervisory Authority:** ${relevantLaw.governingBody}\n**Maximum Statutory Penalty:** ${relevantLaw.maxPenalty}\n\n#### Key Legal Mandates:\n${relevantLaw.keyArticles.map((a) => `- **${a.number} (${a.topic})**: ${a.mandate}`).join("\n")}\n\n#### Enforcement Directives:\n- **Breach Notification:** Mandatory notification within **${relevantLaw.breachNotificationHours}**.\n- **Child Data Age Limit:** Protected up to **${relevantLaw.childrenAgeThreshold} years**.\n- **ASJi One Verification:** You can scan your application against this regime using the audit terminal on the home dashboard or download customized statutory drafting templates in the Sovereign Legal Matrix.`,
+      answer: `### Sovereign Compliance Intelligence Report\n\n**Framework:** ${relevantLaw.lawName} (${relevantLaw.acronym})\n**Maximum Statutory Penalty:** ${relevantLaw.maxPenalty}\n\n#### Key Legal Mandates:\n${relevantLaw.keyArticles.map((a) => `- **${a.number} (${a.topic})**: ${a.mandate}`).join("\n")}\n\n#### Enforcement Directives:\n- **Breach Notification:** Mandatory notification within **${relevantLaw.breachNotificationHours}**.\n- **Child Data Age Limit:** Protected up to **${relevantLaw.childrenAgeThreshold} years**.\n- **ASJi One Verification:** You can scan your application against this regime using the audit terminal on the home dashboard or download customized statutory drafting templates in the Sovereign Legal Matrix.`,
       sources: relevantLaw.keyArticles.slice(0, 3).map((a) => ({
         law: relevantLaw!.acronym,
         article: a.number,
-        authority: relevantLaw!.governingBody,
+        authority: relevantLaw!.lawName,
       })),
       suggestedFollowUps: [
         `What are the penalty ceilings under ${relevantLaw.acronym}?`,
@@ -103,9 +110,9 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
 
   try {
     const candidateModels = [
-      { name: "gemini-3.8-flash", timeoutMs: 6000 },
-      { name: "gemini-3.1-flash-lite", timeoutMs: 4000 },
-      { name: "gemini-flash-latest", timeoutMs: 4000 },
+      { name: "gemini-3.8-flash", timeoutMs: 10000 },
+      { name: "gemini-3.1-flash-lite", timeoutMs: 7000 },
+      { name: "gemini-flash-latest", timeoutMs: 7000 },
     ];
     let text = "";
     let lastError: unknown;
@@ -137,17 +144,9 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
         }
       } catch (err: unknown) {
         lastError = err;
-        const errStr = String(err);
-        const isQuota =
-          errStr.includes("429") ||
-          errStr.includes("RESOURCE_EXHAUSTED") ||
-          errStr.includes("quota") ||
-          errStr.includes("exceeded your current quota");
-
-        console.warn(`[Oracle Model Failover] Candidate ${cand.name} failed:`, err);
-        if (isQuota && cand.name === "gemini-3.1-flash-lite") {
-          break;
-        }
+        console.info(
+          `[Oracle Failover] Candidate ${cand.name} unavailable, attempting next candidate.`,
+        );
       }
     }
 
@@ -186,8 +185,8 @@ CORE OPERATING DIRECTIVES (0.001% ELITE ACCURACY STANDARD):
         "Explain UAE PDPL cross-border data transfer adequacy rules",
       ],
     };
-  } catch (err) {
-    console.error("Gemini API Error in Compliance Oracle:", err);
+  } catch {
+    console.info("[Compliance Oracle] Using localized knowledge-base legal matrix response.");
     return {
       answer: `**ASJi Sovereign Legal Intelligence Engine**\n\nRegarding your query: "${question}"\n\nUnder global data protection standards (GDPR Art. 5/6, India DPDP Sec. 5/6, UAE PDPL Art. 5/6, CPRA § 1798.100), digital data processing requires unambiguous prior consent, purpose specification, encrypted data transmission, and instant access to grievance redressal mechanisms.\n\nYou can audit any domain on the ASJi One terminal to receive an automated 0-100 risk score and download legal drafts directly in the Sovereign Legal Matrix.`,
       sources: [

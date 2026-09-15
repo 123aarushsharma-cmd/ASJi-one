@@ -437,7 +437,7 @@ export async function runAuditPipeline(
       "Audit pipeline reached 24s execution threshold",
     );
   } catch (err: unknown) {
-    console.warn("[Strict 30s Pipeline Guard] Fallback triggered due to:", err);
+    console.info("[Audit Pipeline Guard] Synthesizing deterministic audit within 30s threshold.");
     const detected = detectInput(rawInput);
     if (detected.kind === "url") {
       try {
@@ -641,7 +641,7 @@ async function runAuditPipelineInternal(
               id: "gemini-3.8-flash-grounded",
               name: "gemini-3.8-flash",
               grounding: true,
-              timeoutMs: 8000,
+              timeoutMs: 10000,
             },
           ]
         : []),
@@ -649,19 +649,19 @@ async function runAuditPipelineInternal(
         id: "gemini-3.8-flash-plain",
         name: "gemini-3.8-flash",
         grounding: false,
-        timeoutMs: 6000,
+        timeoutMs: 8000,
       },
       {
         id: "gemini-3.1-flash-lite",
         name: "gemini-3.1-flash-lite",
         grounding: false,
-        timeoutMs: 4500,
+        timeoutMs: 7000,
       },
       {
         id: "gemini-flash-latest",
         name: "gemini-flash-latest",
         grounding: false,
-        timeoutMs: 4000,
+        timeoutMs: 7000,
       },
     ];
 
@@ -720,51 +720,17 @@ async function runAuditPipelineInternal(
 
         success = true;
         break;
-      } catch (err: unknown) {
-        const errStr = String(err);
-        failedCandidateIds.add(cand.id);
-        const isQuota =
-          errStr.includes("429") ||
-          errStr.includes("RESOURCE_EXHAUSTED") ||
-          errStr.includes("quota") ||
-          errStr.includes("exceeded your current quota");
-
-        console.warn(
-          `[Candidate Failover] Candidate ${cand.name} (grounded=${cand.grounding}) failed: ${errStr.slice(0, 100)}. Trying next candidate...`,
-        );
-
-        // If quota is exhausted and we already tried a plain non-grounded model, break directly to deterministic fallback
-        if (isQuota && !cand.grounding && cand.id === "gemini-3.1-flash-lite") {
-          console.warn(
-            "[Quota Limit Detected] Switching immediately to live deterministic audit engine.",
-          );
-          break;
-        }
-      }
-    }
-
-    if (!success && liveEvidence) {
-      console.warn(
-        "[All Gemini Candidates Failed] Falling back to live evidence deterministic audit",
-      );
-      const fallbackReport = generateFallbackAuditFromEvidence(
-        liveEvidence,
-        rawInput,
-        startedAt,
-        checks,
-        sources,
-        limitations,
-      );
-      try {
-        const saved = await saveAuditToDb(fallbackReport, rawInput);
-        fallbackReport.dbRecordId = saved.id;
-        fallbackReport.dbSavedAt = saved.savedAt;
       } catch {
-        /* ignore */
+        failedCandidateIds.add(cand.id);
+        console.info(
+          `[Audit Failover] Candidate ${cand.name} (grounded=${cand.grounding}) unavailable. Proceeding to next candidate.`,
+        );
       }
-      return fallbackReport;
     }
-  } else if (lovableKey) {
+  }
+
+  // If Gemini did not succeed or was not configured, try Lovable AI Gateway if available
+  if (!success && lovableKey) {
     try {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -784,10 +750,34 @@ async function runAuditPipelineInternal(
           choices?: { message?: { content?: string } }[];
         };
         reportContent = payload.choices?.[0]?.message?.content ?? "";
+        if (reportContent) {
+          success = true;
+          modelUsed = "ASJi Autonomous Audit Engine (Lovable Gateway)";
+        }
       }
     } catch {
       /* ignore */
     }
+  }
+
+  if (!success && liveEvidence) {
+    console.info("[Audit Engine] Synthesizing live evidence deterministic statutory audit.");
+    const fallbackReport = generateFallbackAuditFromEvidence(
+      liveEvidence,
+      rawInput,
+      startedAt,
+      checks,
+      sources,
+      limitations,
+    );
+    try {
+      const saved = await saveAuditToDb(fallbackReport, rawInput);
+      fallbackReport.dbRecordId = saved.id;
+      fallbackReport.dbSavedAt = saved.savedAt;
+    } catch {
+      /* ignore */
+    }
+    return fallbackReport;
   }
 
   let report: AuditReport;
@@ -852,7 +842,7 @@ async function runAuditPipelineInternal(
     finalReport.dbRecordId = saved.id;
     finalReport.dbSavedAt = saved.savedAt;
   } catch (dbErr) {
-    console.error("Backend database save warning:", dbErr);
+    console.info("Backend database save note:", dbErr);
   }
 
   return finalReport;

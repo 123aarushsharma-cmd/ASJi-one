@@ -149,7 +149,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Award className="h-4 w-4" /> Official Certificate Report
+          <Award className="h-4 w-4" /> Official Audit Summary Report
         </button>
         <button
           onClick={() => setActiveTab("statutory")}

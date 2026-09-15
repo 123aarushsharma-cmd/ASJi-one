@@ -174,8 +174,8 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
             </div>
 
             <p className="mt-3 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
-              The Digital Personal Data Protection (DPDP) Act 2023 empowers the Data Protection
-              Board of India to impose direct monetary penalties up to ₹250 Crores per adjudication.
+              Certain contraventions under applicable DPDP 2023 provisions may attract penalties of
+              up to ₹250 crore, subject to applicable statutory provisions and circumstances.
             </p>
           </div>
 

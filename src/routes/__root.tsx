@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { SovereignAiChatbot } from "@/components/SovereignAiChatbot";
+import { SovereignInspectionGuard } from "@/components/SovereignInspectionGuard";
 
 function NotFoundComponent() {
   return (
@@ -82,11 +83,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover",
       },
-      { title: "ASJi One — GDPR & DPDP Compliance Scanner" },
+      { title: "ASJi One" },
       {
         name: "description",
-        content:
-          "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
+        content: "Global Data privacy Compliance fixer",
       },
       {
         name: "robots",
@@ -94,34 +94,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "author", content: "ASJi Law & Legal Engineering" },
       { property: "og:site_name", content: "ASJi One" },
-      { property: "og:title", content: "ASJi One — GDPR & DPDP Compliance Scanner" },
+      { property: "og:title", content: "ASJi One" },
       {
         property: "og:description",
-        content:
-          "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
+        content: "Global Data privacy Compliance fixer",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@ASJiOne" },
-      { name: "twitter:title", content: "ASJi One — GDPR & DPDP Compliance Scanner" },
+      { name: "twitter:title", content: "ASJi One" },
       {
         name: "twitter:description",
-        content:
-          "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
-      },
-      {
-        property: "og:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9442eb3f-6fad-409d-a461-d85cbe2d3c59",
-      },
-      {
-        property: "og:image:alt",
-        content: "ASJi One Compliance & Security Audit Platform",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9442eb3f-6fad-409d-a461-d85cbe2d3c59",
+        content: "Global Data privacy Compliance fixer",
       },
     ],
     links: [
@@ -156,7 +140,6 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -166,6 +149,7 @@ function RootComponent() {
       <Outlet />
       <CookieConsentBanner />
       <SovereignAiChatbot />
+      <SovereignInspectionGuard />
     </QueryClientProvider>
   );
 }

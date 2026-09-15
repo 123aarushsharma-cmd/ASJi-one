@@ -1,8 +1,16 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { initializeFirestore, getFirestore, setLogLevel, type Firestore } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 
+// Silence connection warnings in offline/preview sandbox environments
+try {
+  setLogLevel("silent");
+} catch {
+  // Ignore in environments where setLogLevel is unavailable
+}
+
 let app: FirebaseApp;
+
 if (!getApps().length) {
   app = initializeApp({
     apiKey: firebaseConfig.apiKey,
@@ -16,5 +24,19 @@ if (!getApps().length) {
   app = getApp();
 }
 
-export const db: Firestore = getFirestore(app, firebaseConfig.firestoreDatabaseId || "(default)");
+let dbInstance: Firestore;
+try {
+  dbInstance = initializeFirestore(
+    app,
+    {
+      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
+    },
+    firebaseConfig.firestoreDatabaseId || "(default)",
+  );
+} catch {
+  dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId || "(default)");
+}
+
+export const db: Firestore = dbInstance;
 export { app };

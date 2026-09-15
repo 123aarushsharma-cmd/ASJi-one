@@ -265,7 +265,7 @@ export function SovereignLegalMatrix({
 
                   <div className="mt-2.5 flex w-full items-center justify-between border-t border-white/5 pt-2 font-mono text-[9.5px] text-[#E5E5E5]/50">
                     <span className="text-[#D4AF37]/80 truncate max-w-[160px]">
-                      {draft.governingBody.split("/")[0]}
+                      {draft.titleHeader}
                     </span>
                     <span className="text-rose-400 font-medium">
                       Penalty: {draft.statutoryPenalty.split(" ")[0]}{" "}
@@ -316,7 +316,7 @@ export function SovereignLegalMatrix({
                   </span>
                 </div>
                 <p className="font-mono text-[10px] text-[#E5E5E5]/60">
-                  Supervisory Authority: {activeDraft.governingBody}
+                  Statutory Reference: {activeDraft.statutoryReference}
                 </p>
               </div>
             </div>
@@ -509,8 +509,8 @@ export function SovereignLegalMatrix({
                 </div>
                 <p className="text-rose-300/80 leading-relaxed">
                   {activeDraft.statutoryPenalty}. Non-compliance with mandatory notice, consent, or
-                  data breach protocols is subject to direct administrative action by{" "}
-                  {activeDraft.governingBody}.
+                  data breach protocols is subject to direct statutory enforcement and
+                  administrative penalties.
                 </p>
               </div>
             </div>

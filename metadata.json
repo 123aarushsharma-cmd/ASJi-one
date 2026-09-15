@@ -1,6 +1,6 @@
 {
   "name": "ASJi One",
-  "description": "GDPR & DPDP Compliance Scanner",
+  "description": "Global Data privacy Compliance fixer",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

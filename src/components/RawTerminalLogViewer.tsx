@@ -355,7 +355,7 @@ export function RawTerminalLogViewer({
             className="group relative inline-flex items-center gap-2.5 rounded-xl border-2 border-[#D4AF37] bg-gradient-to-r from-[#D4AF37] via-[#E5C158] to-[#D4AF37] px-4 py-2.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-[0_0_20px_rgba(212,175,55,0.35)] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(212,175,55,0.6)] cursor-pointer"
           >
             <Sparkles className="h-4 w-4 text-black animate-spin" />
-            <span>👉 COMPLETE WIRE TRANSFER &amp; UNLOCK EXECUTABLE PATCH</span>
+            <span>👉 INSTANT DIRECT UPI TRANSFER &amp; UNLOCK EXECUTABLE PATCH</span>
             <ExternalLink className="h-3.5 w-3.5 text-black opacity-80 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>

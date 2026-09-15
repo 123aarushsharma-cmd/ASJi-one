@@ -9,8 +9,8 @@ export interface SEOHeadProps {
 }
 
 export function SEOHead({
-  title = "ASJi One — GDPR & DPDP Compliance Scanner",
-  description = "Analyse any website or infrastructure text for GDPR, India DPDP and global compliance risk. Instant 0-100 score, critical leaks and fine exposure.",
+  title = "ASJi One | Data Privacy & Cross-Border Compliance Audit Platform",
+  description = "ASJi One | Data Privacy & Cross-Border Compliance Audit Platform. Instant 0-100 ASJi Trust Index, potential compliance gaps, and statutory penalty risk analysis.",
   ogImage = "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/9442eb3f-6fad-409d-a461-d85cbe2d3c59",
   robots = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
   canonicalUrl,

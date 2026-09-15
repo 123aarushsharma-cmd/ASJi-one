@@ -51,7 +51,7 @@ export function ScoreWheel({ score }: { score: number }) {
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-75 ease-out"
+          className="transform-gpu will-change-[stroke-dashoffset]"
         />
       </svg>
       <div className="absolute flex flex-col items-center">
