@@ -44,31 +44,54 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  const handleHardReset = () => {
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+        localStorage.removeItem("asji_unlocked_global");
+        window.location.href = "/";
+      }
+    } catch {
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+      <div className="max-w-lg text-center">
+        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 border border-primary/30 text-primary mb-3">
+          <span className="text-xl">⚠️</span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground font-display">
+          Session Restored
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          The compliance scanner encountered a temporary context reload. Click below to resume your
+          audit session immediately.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+
+        {error?.message && (
+          <div className="mt-4 p-3 bg-black/60 border border-white/10 rounded-xl text-left text-xs font-mono text-muted-foreground overflow-x-auto max-h-24">
+            <code>{error.message}</code>
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 cursor-pointer"
           >
-            Try again
+            Reload Scanner
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          <button
+            onClick={handleHardReset}
+            className="inline-flex items-center justify-center rounded-xl border border-input bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent cursor-pointer"
           >
-            Go home
-          </a>
+            Fresh Session
+          </button>
         </div>
       </div>
     </div>
