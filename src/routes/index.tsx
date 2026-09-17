@@ -11,19 +11,22 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Key,
   FileCode2,
   Shield,
   XCircle,
+  Scale,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadReportAsPdf } from "@/lib/pdf-export";
 import { motion } from "motion/react";
 import logo from "@/assets/asji-logo.jpg.asset.json";
-import { IntroSplash } from "@/components/IntroSplash";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
+import { STATUTORY_FRAMEWORKS } from "@/lib/audit-statutes";
 import { ScanLoader } from "@/components/ScanLoader";
 import { ScoreWheel } from "@/components/ScoreWheel";
 import { LinkedInShareButton } from "@/components/LinkedInShareButton";
@@ -31,7 +34,6 @@ import { GroundedSearchCard } from "@/components/GroundedSearchCard";
 import { FineExposureCard } from "@/components/FineExposureCard";
 import { CountryLegalVerdictCard } from "@/components/CountryLegalVerdictCard";
 import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
-import { AutonomousTrustRadarTerminal } from "@/components/AutonomousTrustRadarTerminal";
 import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
 import { ASJiVectorLogo } from "@/components/ASJiVectorLogo";
 import { RemediationBillingModal } from "@/components/RemediationBillingModal";
@@ -39,6 +41,7 @@ import { RemediationViewer } from "@/components/RemediationViewer";
 import { IntermediaryShieldCard } from "@/components/IntermediaryShieldCard";
 import { SovereignLegalMatrix } from "@/components/SovereignLegalMatrix";
 import { WorldLawsAtlas } from "@/components/WorldLawsAtlas";
+import { StatutoryLegalSolutionCard } from "@/components/StatutoryLegalSolutionCard";
 import { StatutoryGrievanceNotice } from "@/components/StatutoryGrievanceNotice";
 import type { RetentionOption } from "@/components/AutoDeletionSecurity";
 import { Footer } from "@/components/Footer";
@@ -103,45 +106,6 @@ const reportItemVariants = {
   },
 };
 
-const STATUTORY_FRAMEWORKS = [
-  {
-    id: "ind-dpdp",
-    flag: "🇮🇳",
-    country: "INDIA",
-    label: "Digital Personal Data Protection Act (DPDP 2023) // Section 6(1) & 8(1)",
-  },
-  {
-    id: "eu-gdpr",
-    flag: "🇪🇺",
-    country: "EUROPE",
-    label: "General Data Protection Regulation (GDPR 2026 Reforms) // Article 7 & 32",
-  },
-  {
-    id: "uk-duaa",
-    flag: "🇬🇧",
-    country: "UNITED KINGDOM",
-    label: "Data Use and Access Act (DUAA 2026) // Statutory Compliance",
-  },
-  {
-    id: "uae-pdpl",
-    flag: "🇦🇪",
-    country: "UNITED ARAB EMIRATES",
-    label: "Federal Decree-Law No. 45 of 2021 (PDPL) // PropTech Infrastructure",
-  },
-  {
-    id: "ksa-pdpl",
-    flag: "🇸🇦",
-    country: "SAUDI ARABIA",
-    label: "SDAIA Personal Data Protection Law // 2024 Implementing Regulations",
-  },
-  {
-    id: "sg-pdpa",
-    flag: "🇸🇬",
-    country: "SINGAPORE",
-    label: "Personal Data Protection Act (PDPA) // Cross-Border Transfer Obligation",
-  },
-] as const;
-
 function Index() {
   const [input, setInput] = useState("");
   const [selectedFramework, setSelectedFramework] = useState<string>("ind-dpdp");
@@ -151,7 +115,10 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   const [scanned, setScanned] = useState("");
   const [unlockOpen, setUnlockOpen] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [initialBillingTier, setInitialBillingTier] = useState<
+    "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle"
+  >("full-bundle");
+  const [unlockedTiers, setUnlockedTiers] = useState<string[]>([]);
   const [showDetailedAnnexes, setShowDetailedAnnexes] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [retentionMode, setRetentionMode] = useState<RetentionOption>("5min");
@@ -199,6 +166,48 @@ function Index() {
     } catch {
       // ignore
     }
+  };
+
+  // Restore unlock state for scanned domain if previously purchased
+  useEffect(() => {
+    if (report?.target) {
+      const domain = report.target.replace(/^https?:\/\//i, "").split("/")[0];
+      try {
+        const storedTiers = JSON.parse(
+          localStorage.getItem(`asji_unlocked_tiers_${domain}`) || "[]",
+        );
+        const isDomainUnlocked = localStorage.getItem(`asji_unlocked_${domain}`) === "true";
+        const isGlobalUnlocked = localStorage.getItem("asji_unlocked_global") === "true";
+        if (storedTiers.length > 0) {
+          setUnlockedTiers(storedTiers);
+        } else if (isDomainUnlocked || isGlobalUnlocked) {
+          setUnlockedTiers(["full-bundle"]);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [report]);
+
+  const isCodePatchesUnlocked =
+    unlockedTiers.includes("patch-code") || unlockedTiers.includes("full-bundle");
+
+  const isLegalUnlocked =
+    unlockedTiers.includes("full-bundle") ||
+    unlockedTiers.includes("gdpr-global") ||
+    (unlockedTiers.includes("dpdp-india") && selectedFramework === "ind-dpdp");
+
+  const handleOpenUnlockModal = (
+    tier: "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle" = "full-bundle",
+  ) => {
+    setInitialBillingTier(tier);
+    setUnlockOpen(true);
+  };
+
+  const handleUnlockSuccess = (
+    tierId: "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle",
+  ) => {
+    setUnlockedTiers((prev) => (prev.includes(tierId) ? prev : [...prev, tierId]));
   };
 
   useEffect(() => {
@@ -284,39 +293,37 @@ function Index() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen flex flex-col justify-between">
-      <IntroSplash />
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-5 sm:py-6">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex items-center gap-3.5"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex items-center gap-3"
         >
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-primary/30 bg-black/80 shadow-md shadow-primary/10"
-          >
-            <img
-              src="/asji-logo.svg"
-              alt="ASJi One Logo"
-              className="h-full w-full object-contain p-0.5"
+          <div className="relative h-10 w-10 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-black/80 shadow-md shadow-primary/10 p-0.5">
+            <AnimatedLogo
+              size="sm"
+              withGlow={false}
+              withRays={false}
+              idSuffix="nav_emblem"
+              className="h-full w-full"
             />
-          </motion.div>
-          <div className="leading-tight">
-            <p className="font-display text-2xl tracking-tight text-gold-gradient font-bold">
+          </div>
+          <div className="leading-tight text-left">
+            <p className="font-display text-xl sm:text-2xl tracking-tight text-gold-gradient font-bold">
               ASJi One
             </p>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground font-medium">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-medium">
               Trust Intelligence
             </p>
           </div>
         </motion.div>
-        <nav className="flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#scan" className="transition-colors hover:text-primary font-medium">
+
+        <nav className="flex items-center gap-5 sm:gap-7 text-xs sm:text-sm text-muted-foreground font-medium">
+          <a href="#scan" className="transition-colors hover:text-primary">
             Scanner
           </a>
-          <a href="#capabilities" className="transition-colors hover:text-primary font-medium">
+          <a href="#capabilities" className="transition-colors hover:text-primary">
             Capabilities
           </a>
         </nav>
@@ -329,19 +336,24 @@ function Index() {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="pt-8 pb-16 text-center sm:pt-14"
         >
-          <div className="mb-6 inline-flex flex-col items-center">
-            <span className="inline-block rounded-full border border-primary/30 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-primary bg-primary/5 backdrop-blur-sm font-medium">
-              6 Global Jurisdictions // Multi-Jurisdiction Compliance Assessment
+          <div className="mb-4 inline-flex flex-col items-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold">
+              <ShieldCheck className="h-3.5 w-3.5" /> 14+ Sovereign Global Jurisdictions //
+              Remediation Patches &amp; Legal Solutions
             </span>
           </div>
-          <h1 className="mt-2 font-display text-4xl leading-[1.15] sm:text-6xl text-gold-gradient max-w-4xl mx-auto font-bold">
-            Live Cross-Border Data Privacy Audit.
+          <h1 className="mt-2 font-display text-3xl leading-tight sm:text-5xl lg:text-6xl text-gold-gradient max-w-4xl mx-auto font-extrabold tracking-tight">
+            Audit Any Domain Against Global Privacy Laws.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-sm sm:text-base leading-relaxed text-muted-foreground font-mono">
-            ASJi One is a RegTech analysis platform engineered for production web applications. We
-            perform controlled runtime network inspection, evaluate client-side tracking, and verify
-            server header security against 6 global statutory mandates in under 30 seconds with
-            workflows designed to minimise service disruption.
+          <p className="mx-auto mt-4 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-muted-foreground font-mono">
+            Inspect tracking cookies, consent mechanisms, and server security headers across{" "}
+            <strong>14+ sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
+            European Union (GDPR), United Kingdom (DUAA 2026), United States (CPRA/CCPA), UAE
+            (PDPL), Saudi Arabia (PDPL), Singapore (PDPA), Brazil (LGPD), Canada (PIPEDA),
+            Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), and Nigeria (NDPA).
+            Pinpoint statutory non-compliance violations, estimate legal fine exposure, and unlock
+            both <strong>autonomous remediation code patches</strong> and{" "}
+            <strong>bespoke statutory legal solutions</strong>.
           </p>
 
           <form
@@ -370,28 +382,37 @@ function Index() {
                   onChange={(e) => setInput(e.target.value)}
                   maxLength={8000}
                   placeholder="e.g., https://enterprise-gateway.com"
-                  className="w-full rounded-xl bg-input/40 pl-11 pr-4 py-3.5 text-base font-mono text-foreground outline-none ring-1 ring-border transition-all placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/60"
+                  className="w-full rounded-xl bg-input/40 pl-11 pr-10 py-3.5 text-base font-mono text-foreground outline-none ring-1 ring-border transition-all placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/60 min-h-[48px]"
                 />
+                {input && (
+                  <button
+                    type="button"
+                    onClick={() => setInput("")}
+                    className="absolute right-3.5 flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label="Clear input"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Statutory Framework Dropdown Node Selector */}
+            {/* Statutory Regulatory Framework Selector */}
             <div>
               <label
                 htmlFor="framework-select"
-                className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 mb-2 font-mono"
+                className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 font-mono mb-2"
               >
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> SELECT STATUTORY REGULATORY
-                FRAMEWORK (GLOBAL NODE):
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Statutory Regulatory Framework:
               </label>
               <select
                 id="framework-select"
                 value={selectedFramework}
                 onChange={(e) => setSelectedFramework(e.target.value)}
-                className="w-full rounded-xl border border-border bg-black/80 px-4 py-3 text-xs font-mono text-foreground outline-none transition-all focus:border-primary/60 focus:ring-1 focus:ring-primary/60"
+                className="w-full rounded-xl border border-border/80 bg-black/80 px-4 py-3 text-sm font-mono text-foreground outline-none transition-all focus:border-primary/60 focus:ring-1 focus:ring-primary/60 min-h-[48px] cursor-pointer"
               >
                 {STATUTORY_FRAMEWORKS.map((fw) => (
-                  <option key={fw.id} value={fw.id} className="bg-black text-foreground py-1">
+                  <option key={fw.id} value={fw.id} className="bg-black text-foreground py-1.5">
                     {fw.flag} {fw.country}: {fw.label}
                   </option>
                 ))}
@@ -399,8 +420,10 @@ function Index() {
             </div>
 
             {/* Quick Domain Suggestion Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-muted-foreground mr-1 font-mono">Quick Test:</span>
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar py-1 flex-nowrap sm:flex-wrap">
+              <span className="text-[11px] text-muted-foreground mr-1 font-mono shrink-0">
+                Quick Test:
+              </span>
               {["enterprise-gateway.com", "hostinger.com", "github.com", "wikipedia.org"].map(
                 (domain) => (
                   <button
@@ -410,7 +433,7 @@ function Index() {
                       setInput(`https://${domain}`);
                       setError(null);
                     }}
-                    className="rounded-full border border-border/80 bg-secondary/40 px-2.5 py-0.5 text-[11px] font-mono text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground cursor-pointer"
+                    className="shrink-0 rounded-full border border-border/80 bg-secondary/40 px-3 py-1.5 text-[11px] font-mono text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground cursor-pointer min-h-[32px] flex items-center"
                   >
                     {domain}
                   </button>
@@ -515,11 +538,34 @@ function Index() {
             </div>
             <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
-                6 Global Jurisdictions // Universal sovereign framework coverage.
+                14+ Global Jurisdictions // Sovereign framework coverage.
               </p>
               <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
-                Cross-border statutory routing maps.
+                Cross-border statutory routing maps &amp; continuous regulatory sync.
               </p>
+            </div>
+          </div>
+
+          {/* Statutory Legal Disclaimer & Intermediary Safe Harbor Banner */}
+          <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 text-left font-mono text-xs">
+            <div className="flex items-start gap-3">
+              <Scale className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-2">
+                  <span>Statutory Legal Disclaimer &amp; Intermediary Safe Harbor Notice</span>
+                  <span className="text-[10px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded">
+                    Strict Operator Protection
+                  </span>
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  ASJi One is an automated diagnostic software and technical verification platform.
+                  Audits, gap analyses, and sample policies generated by this platform are technical
+                  and informational templates designed to assist engineering and compliance teams.
+                  They do not constitute formal attorney-client legal representation or statutory
+                  legal advice. Organizations must have final notices reviewed by their qualified
+                  legal counsel.
+                </p>
+              </div>
             </div>
           </div>
         </motion.section>
@@ -532,6 +578,7 @@ function Index() {
 
         {phase === "result" && report && (
           <motion.section
+            id="report-results"
             ref={resultRef}
             variants={reportContainerVariants}
             initial="hidden"
@@ -623,7 +670,7 @@ function Index() {
                 )}
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                   <a
-                    href="#radar-terminal"
+                    href="#asji-letterhead-report-paper"
                     onClick={(e) => {
                       e.preventDefault();
                       setShowDetailedAnnexes(true);
@@ -781,7 +828,7 @@ function Index() {
 
             {/* Automated Remediation Code Patches Suite */}
             <motion.div variants={reportItemVariants}>
-              {isUnlocked ? (
+              {isCodePatchesUnlocked ? (
                 <RemediationViewer report={report} />
               ) : (
                 <div className="surface-panel relative overflow-hidden p-6 sm:p-8 border-primary/40">
@@ -895,14 +942,30 @@ function Index() {
 
                     <button
                       type="button"
-                      onClick={() => setUnlockOpen(true)}
+                      onClick={() => handleOpenUnlockModal("patch-code")}
                       className="btn-gold rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-wider text-black cursor-pointer shadow-lg shadow-primary/20 shrink-0"
                     >
-                      Unlock Code Patches &amp; Client Delivery Pack
+                      Unlock Code Patches (₹24,999)
                     </button>
                   </div>
                 </div>
               )}
+            </motion.div>
+
+            {/* Tailored Statutory Legal Solution & What You Don't Follow Under Your Privacy Law */}
+            <motion.div variants={reportItemVariants}>
+              <StatutoryLegalSolutionCard
+                report={report}
+                frameworkId={selectedFramework}
+                isUnlocked={isLegalUnlocked}
+                unlockedTier={unlockedTiers[unlockedTiers.length - 1] || null}
+                onOpenUnlockModal={(tier) =>
+                  handleOpenUnlockModal(
+                    (tier as "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle") ||
+                      (selectedFramework === "ind-dpdp" ? "dpdp-india" : "gdpr-global"),
+                  )
+                }
+              />
             </motion.div>
 
             {/* Expandable Technical Engineering Logs & Statutory Annexes */}
@@ -916,8 +979,8 @@ function Index() {
                   <Shield className="h-4 w-4 text-primary" />
                   <span>
                     {showDetailedAnnexes
-                      ? "Hide Advanced Engineering Logs & Multi-Language Annexes"
-                      : "View Advanced Technical Radar Terminal, Live Evidence & Language Annexes"}
+                      ? "Hide Official Certificate & Audit Annexes"
+                      : "View Official Certificate, Grounded Search Evidence & Localization Annexes"}
                   </span>
                 </div>
                 {showDetailedAnnexes ? (
@@ -929,12 +992,6 @@ function Index() {
 
               {showDetailedAnnexes && (
                 <div className="mt-6 space-y-6 animate-in fade-in duration-300">
-                  {/* ASJi ONE // AUTONOMOUS TRUST RADAR TERMINAL LOG */}
-                  <AutonomousTrustRadarTerminal
-                    report={report}
-                    onOpenRemediationModal={() => setUnlockOpen(true)}
-                  />
-
                   {/* Official ASJi Web & Legal Solution Audit Certificate */}
                   <ASJiLetterheadReport
                     report={report}
@@ -969,7 +1026,7 @@ function Index() {
                   {/* Global & Regional Language Notice Scanner Card */}
                   <LocalizationScannerCard
                     report={report}
-                    onOpenRemediationModal={() => setUnlockOpen(true)}
+                    onOpenRemediationModal={() => handleOpenUnlockModal("full-bundle")}
                   />
                 </div>
               )}
@@ -978,20 +1035,142 @@ function Index() {
             <RemediationBillingModal
               isOpen={unlockOpen}
               onClose={() => setUnlockOpen(false)}
-              onUnlockSuccess={() => setIsUnlocked(true)}
+              onUnlockSuccess={handleUnlockSuccess}
               report={report}
+              frameworkId={selectedFramework}
+              initialTier={initialBillingTier}
             />
           </motion.section>
         )}
 
-        <WorldLawsAtlas />
-        <SovereignLegalMatrix
-          onOpenRemediationModal={() => setUnlockOpen(true)}
-          isUnlocked={isUnlocked}
-        />
+        {/* STARTING PAGE CONTENT - SHOWN WHEN NO ACTIVE AUDIT REPORT */}
+        {!report && (
+          <div className="mt-12 space-y-14">
+            {/* 3-Step Work Focus Pipeline */}
+            <section className="rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/5 via-black/40 to-transparent p-6 sm:p-8">
+              <div className="text-center max-w-2xl mx-auto">
+                <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
+                  Streamlined Statutory Audit Pipeline
+                </span>
+                <h2 className="mt-2 font-display text-2xl sm:text-3xl font-bold text-gold-gradient">
+                  How ASJi One Identifies Gaps &amp; Solves Compliance
+                </h2>
+                <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-mono">
+                  Controlled, deterministic, and non-disruptive inspection across 14+ sovereign
+                  global privacy mandates.
+                </p>
+              </div>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold mb-3">
+                    1
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground">Target &amp; Law Selection</h3>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                    Input your production domain and select from 14+ sovereign jurisdictions (India
+                    DPDP 2023, EU GDPR, UK DUAA, US CPRA, UAE PDPL, etc.).
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 font-bold mb-3">
+                    2
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground">Statutory Gaps Pinpointed</h3>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                    Automated scan detects pre-consent tracking, missing privacy notices,
+                    unappointed grievance officers, and fine risks under that specific statute.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold mb-3">
+                    3
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground">
+                    Patches &amp; Legal Solutions
+                  </h3>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                    Receive both autonomous engineering code patches (NGINX, Cloudflare, Express,
+                    CMP) and tailored statutory legal solutions &amp; policies.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Supported Sovereign Jurisdictions - 14+ Bento Cards with quick select */}
+            <section>
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
+                <div>
+                  <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
+                    Cross-Border Statutory Coverage
+                  </span>
+                  <h2 className="font-display text-2xl font-bold text-gold-gradient">
+                    Supported Sovereign Privacy Mandates (14+ Global Jurisdictions)
+                  </h2>
+                </div>
+                <span className="text-xs font-mono text-muted-foreground">
+                  Click any card to activate framework
+                </span>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {STATUTORY_FRAMEWORKS.map((fw) => {
+                  const isSelected = selectedFramework === fw.id;
+                  return (
+                    <div
+                      key={fw.id}
+                      onClick={() => {
+                        setSelectedFramework(fw.id);
+                        document.getElementById("scan")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className={`group cursor-pointer rounded-2xl border p-5 transition-all font-mono ${
+                        isSelected
+                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40"
+                          : "border-border/80 bg-black/50 hover:border-primary/50 hover:bg-black/80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">{fw.flag}</span>
+                        <span className="rounded bg-secondary/80 px-2 py-0.5 text-[10px] text-muted-foreground uppercase">
+                          {fw.region}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                        {fw.country}: {fw.label}
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Enforced by <strong className="text-foreground">{fw.authority}</strong>
+                      </p>
+                      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
+                        <span className="text-[11px] text-primary font-semibold">
+                          {isSelected ? "Active Framework ✓" : "Select Node →"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Deterministic Audit
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Direct World Laws Database Atlas & Sovereign Matrix */}
+            <div className="space-y-14">
+              <WorldLawsAtlas />
+              <SovereignLegalMatrix
+                onOpenRemediationModal={() => handleOpenUnlockModal("gdpr-global")}
+                isUnlocked={isLegalUnlocked}
+              />
+            </div>
+          </div>
+        )}
+
         <StatutoryGrievanceNotice />
 
-        <section id="capabilities" className="mt-24 scroll-mt-8">
+        <section id="capabilities" className="mt-20 scroll-mt-8">
           <h2 className="text-center font-display text-3xl text-gold-gradient font-bold">
             Capabilities &amp; Core Architecture
           </h2>
@@ -1025,7 +1204,7 @@ function Index() {
             ].map(([t, d]) => (
               <article
                 key={t}
-                className="surface-panel card-hover fps-120 p-6 border border-border/80 bg-black/60 rounded-2xl transition-all hover:border-primary/40 font-mono"
+                className="surface-panel card-hover fps-120 p-6 border border-border/80 bg-black/60 rounded-2xl transition-all hover:border-primary/50 font-mono"
               >
                 <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-gold-gradient">
                   {t}

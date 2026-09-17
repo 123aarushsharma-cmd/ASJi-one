@@ -155,7 +155,7 @@ export function SovereignAiChatbot({ initialOpen = false }: SovereignChatProps) 
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.94 }}
           transition={{ type: "spring", stiffness: 350, damping: 25 }}
-          className="group fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/60 bg-black/90 text-[#D4AF37] shadow-2xl shadow-black/80 backdrop-blur-xl fps-120 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+          className="group fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[#D4AF37]/60 bg-black/90 text-[#D4AF37] shadow-2xl shadow-black/80 backdrop-blur-xl fps-120 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
           aria-label="Open ASJi One AI"
           title="ASJi One AI"
         >
