@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, Instagram, Linkedin, ExternalLink, Globe, Sparkles } from "lucide-react";
 import { LEGAL, LEGAL_PAGES } from "@/lib/legal";
+import { openCookiePreferencesModal } from "@/components/CookieConsent";
 
 export function Footer() {
   return (
@@ -131,6 +132,13 @@ export function Footer() {
               {p.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => openCookiePreferencesModal()}
+            className="transition-colors hover:text-primary cursor-pointer"
+          >
+            Cookie Settings
+          </button>
         </nav>
 
         {/* Legal Disclaimer */}

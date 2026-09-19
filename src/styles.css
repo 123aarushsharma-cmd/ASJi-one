@@ -197,13 +197,17 @@
 }
 
 @utility surface-panel {
+  background-color: #141210;
   background: linear-gradient(160deg, oklch(0.22 0.014 85 / 90%), oklch(0.16 0.01 85 / 92%));
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border: 1px solid oklch(0.79 0.14 87 / 18%);
   border-radius: var(--radius-2xl);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 @utility btn-gold {
