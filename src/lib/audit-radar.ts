@@ -301,7 +301,7 @@ export function computeRadarTerminalLog(
 
   const anomalyCaptureLog = crossBorderCompliant
     ? "All client transaction and telemetry packets remain strictly routed through sovereign-compliant TLS 1.3 endpoints with valid cryptographic signatures."
-    : `Outbound telemetry stream detected transmitting client session tokens to US-East (${destinationDetails}) without automated endpoint encryption signatures.`;
+    : `Outbound telemetry stream detected transmitting client session tokens to US-East (${destinationDetails}) without endpoint encryption signatures.`;
 
   const crossBorder: CrossBorderAnalysis = {
     routingLedgerStatus: crossBorderCompliant ? "COMPLIANT" : "NON-COMPLIANT",
@@ -314,29 +314,29 @@ export function computeRadarTerminalLog(
   };
 
   // 3. Construct Intermediary Exception Log Block
-  const legalInterceptionExplanation = `- NOTICE: This platform utilizes multi-layered Intermediary Immunity Frameworks (Safe Harbor Protections) alongside pre-authenticated blanket consent terms. While raw client-side telemetry packet leaks are technically visible inside the browser runtime memory cache, the corporate infrastructure leverages active treaty exemptions to legally bypass direct Section 33 DPDP Act enforcement actions until a formal regulatory order is issued.`;
+  const legalInterceptionExplanation = `- NOTICE: This platform evaluates multi-layered Intermediary Immunity Frameworks (Safe Harbor Protections) alongside pre-authenticated consent terms. While raw client-side telemetry packet leaks are observable inside the browser runtime memory cache, corporate infrastructure may leverage applicable statutory safe harbor provisions (e.g. India IT Act Sec. 79 / US Sec. 230) where strict intermediary due diligence criteria are satisfied.`;
 
   const intermediaryAdvisoryLogRaw = `----------------------------------------------------------------------------------------
 [ASJi ONE // ADVANCED STATUTORY INTERMEDIARY ADVISORY REGISTER]
 TARGET NODE: ${cleanTarget}
-VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD ACTIVE)
+VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)
 
 [THE LEGAL INTERCEPTION EXPLANATION]:
 ${legalInterceptionExplanation}
 
 ========================================================================================
-     ⚖️ SPECIALIZED COMPLIANCE ESCAPE DEFENSE ANALYSIS [L O C K E D 🔒]
+     ⚖️ SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D 🔒]
 ========================================================================================
-// CRITICAL EXEMPTION MITIGATION ARGUMENTS AND STRATEGIC LITIGATION SHIELDS
-// FOR INTERMEDIARY NETWORKS AND BIG-TECH ENTITIES ARE ENCRYPTED.
-// REQUIRE PREMIUM RECONCILIATION RETAINER ACTIVATION REGISTRY FEE OF ₹24,999 ($300 USD).
+// STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS
+// FOR INTERMEDIARY NETWORKS AND ENTERPRISE ENTITIES ARE RESTRICTED.
+// REQUIRES AUDIT DEFENSE RETAINER ACTIVATION OF ₹24,999 ($300 USD).
 ----------------------------------------------------------------------------------------`;
 
   const intermediaryAdvisory: IntermediaryAdvisoryData = {
     isIntermediary: intermediary.isIntermediary,
     conglomerateName: intermediary.conglomerateName || "Global Intermediary Network",
     immunityTag: "Safe Harbor / India IT Act Sec. 79 & US Sec. 230",
-    verdictStatus: "🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD ACTIVE)",
+    verdictStatus: "🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)",
     legalExplanation: legalInterceptionExplanation,
     advisoryLogRaw: intermediaryAdvisoryLogRaw,
     treatyExemptionShieldActive: intermediary.isIntermediary,
@@ -347,17 +347,17 @@ ${legalInterceptionExplanation}
     ? `\n\n----------------------------------------------------------------------------------------
 [ASJi ONE // ADVANCED STATUTORY INTERMEDIARY ADVISORY REGISTER]
 TARGET NODE: ${cleanTarget}
-VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD ACTIVE)
+VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)
 
 [THE LEGAL INTERCEPTION EXPLANATION]:
 ${legalInterceptionExplanation}
 
 ========================================================================================
-     ⚖️ SPECIALIZED COMPLIANCE ESCAPE DEFENSE ANALYSIS [L O C K E D 🔒]
+     ⚖️ SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D 🔒]
 ========================================================================================
-// CRITICAL EXEMPTION MITIGATION ARGUMENTS AND STRATEGIC LITIGATION SHIELDS
-// FOR INTERMEDIARY NETWORKS AND BIG-TECH ENTITIES ARE ENCRYPTED.
-// REQUIRE PREMIUM RECONCILIATION RETAINER ACTIVATION REGISTRY FEE OF ₹24,999 ($300 USD).`
+// STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS
+// FOR INTERMEDIARY NETWORKS AND ENTERPRISE ENTITIES ARE RESTRICTED.
+// REQUIRES AUDIT DEFENSE RETAINER ACTIVATION OF ₹24,999 ($300 USD).`
     : "";
 
   const terminalLogRaw = `----------------------------------------------------------------------------------------
@@ -377,13 +377,13 @@ TARGET DOMAIN: ${cleanTarget}
 - ANOMALY CAPTURE LOG: ${anomalyCaptureLog}
 
 ========================================================================================
-     🛠️ AUTONOMOUS CODE REMEDIATION WRAPPER PATCH [L O C K E D 🔒]
+     🛠️ PRODUCTION REMEDIATION CODE SUITE [L O C K E D 🔒]
 ========================================================================================
 // CODE REPOSITORY IS LOCKED UNDER STATUTORY REGTECH AUDIT FRAMEWORK.
-// LIABILITY PENALTY STATUS: ACCRUING UP TO ₹250 CRORES UNTIL COMPLETION PATCH IS INJECTED.
-// COMPLETE INSTANT DIRECT BANK ACCOUNT UPI TRANSFER (8290841179-3@ibl - ARUSH SHARMA) OF ₹24,999 ($300 USD) TO UNLOCK FULL PRODUCTION CODE PATCHES IN SECONDS.
+// POTENTIAL STATUTORY LIABILITY EXPOSURE: MAXIMUM CAP UP TO ₹250 CRORES UNDER SECTION 33 DPDP ACT UNLESS REMEDIATED.
+// COMPLETE DIRECT UPI TRANSFER (8290841179-3@ibl - ARUSH SHARMA) OF ₹24,999 ($300 USD) TO UNLOCK THE PRODUCTION REMEDIATION SUITE.
 
-👉 [BUTTON ACTION: INSTANT DIRECT UPI TRANSFER & UNLOCK EXECUTABLE CODE PATCHES]
+👉 [BUTTON ACTION: DIRECT UPI TRANSFER & UNLOCK REMEDIATION CODE PATCHES]
 ----------------------------------------------------------------------------------------${intermediarySectionInTerminal}`;
 
   return {

@@ -1,0 +1,295 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile and authorization identity record",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique Firebase Auth user identifier"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Primary verified user email address"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 150,
+          "description": "User display name"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User profile avatar photo URL"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "admin", "auditor"],
+          "description": "Role tier for RBAC access control"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Server timestamp of user account registration"
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "Server timestamp of most recent authentication"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "AuditRecord": {
+      "title": "AuditRecord",
+      "description": "Sovereign compliance audit ledger entry for an analyzed web domain",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique audit identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who initiated the audit"
+        },
+        "domain": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Audited domain name or URL"
+        },
+        "score": {
+          "type": "number",
+          "description": "Overall compliance composite index (0-100)"
+        },
+        "verdict": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "High-level statutory audit outcome classification"
+        },
+        "criticalFindingsCount": {
+          "type": "number",
+          "description": "Number of critical statutory privacy vulnerabilities"
+        },
+        "statutoryExceptionsCount": {
+          "type": "number",
+          "description": "Count of statutory exceptions or safe harbors qualified"
+        },
+        "reportSummary": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "Executive summary of findings"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when audit was recorded"
+        }
+      },
+      "required": ["id", "userId", "domain", "score"]
+    },
+    "WorldLaw": {
+      "title": "WorldLaw",
+      "description": "Verified sovereign data protection statute with statutory penalty limits and articles",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Canonical law identifier slug"
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Sovereign jurisdiction country name"
+        },
+        "countryCode": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "ISO country code"
+        },
+        "flag": {
+          "type": "string",
+          "description": "Jurisdiction flag emoji"
+        },
+        "region": {
+          "type": "string",
+          "enum": ["Asia-Pacific", "Middle East", "Europe & UK", "Americas", "Africa"],
+          "description": "Geographical region"
+        },
+        "lawName": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Full formal title of the data protection legislation"
+        },
+        "acronym": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Short statutory acronym"
+        },
+        "enactedYear": {
+          "type": "number",
+          "description": "Year statute was enacted or reformed"
+        },
+        "governingBody": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Statutory regulatory authority or supervisory commissioner"
+        },
+        "officialPortal": {
+          "type": "string",
+          "description": "Official government gazette or regulatory portal URL"
+        },
+        "maxPenalty": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Statutory penalty ceiling per violation"
+        },
+        "breachNotificationHours": {
+          "type": "string",
+          "description": "Mandatory breach notification deadline window"
+        },
+        "childrenAgeThreshold": {
+          "type": "string",
+          "description": "Statutory minor age threshold requiring parental consent"
+        },
+        "statutorySummary": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Legal scope summary"
+        },
+        "verifiedByGoogleSearch": {
+          "type": "boolean",
+          "description": "Whether statutory articles were grounded and verified against official gazettes"
+        },
+        "lastVerified": {
+          "type": "string",
+          "description": "Timestamp of latest statutory verification check"
+        }
+      },
+      "required": ["id", "country", "lawName", "acronym", "governingBody", "maxPenalty"]
+    },
+    "UserSavedNotice": {
+      "title": "UserSavedNotice",
+      "description": "Customized statutory legal drafting notice or charter generated and saved by user",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique notice identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the owning user"
+        },
+        "domain": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Associated domain name"
+        },
+        "lawId": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Target statutory regime"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Document title"
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 50000,
+          "description": "Full statutory legal text"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "title", "content"]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "Sovereign AI compliance oracle consultation thread",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Chat session ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of owning user"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Topic or first prompt preview"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Session creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Most recent message timestamp"
+        }
+      },
+      "required": ["id", "userId"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual turn in an AI compliance consultation with search grounding metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique message ID"
+        },
+        "sender": {
+          "type": "string",
+          "enum": ["user", "assistant", "system"],
+          "description": "Message author role"
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 25000,
+          "description": "Message content or response text"
+        },
+        "groundingSources": {
+          "type": "string",
+          "description": "JSON string of verified Google Search sources and statutory citations"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of message"
+        }
+      },
+      "required": ["sender", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document isolated per user"
+    },
+    "/users/{userId}/audits/{auditId}": {
+      "schema": "AuditRecord",
+      "description": "Private compliance audit history for the authenticated user"
+    },
+    "/users/{userId}/notices/{noticeId}": {
+      "schema": "UserSavedNotice",
+      "description": "User generated statutory privacy notices and grievance charters"
+    },
+    "/users/{userId}/chat_sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "User private consultation sessions with the AI Compliance Oracle"
+    },
+    "/users/{userId}/chat_sessions/{sessionId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Message turns within a private user chat session"
+    },
+    "/laws/{lawId}": {
+      "schema": "WorldLaw",
+      "description": "Public repository of verified global data protection statutory frameworks"
+    }
+  }
+}

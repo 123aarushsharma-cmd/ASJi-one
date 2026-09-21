@@ -122,6 +122,7 @@ Rules for rigour:
 - Infer the origin country from TLD, HTML lang, hosting/CDN headers, currency/locale hints and content, and state the reasoning briefly.
 - Apply GDPR and India DPDP always, plus every additional regime plausibly applicable to the origin country and its likely user base.
 - Judge pre-consent cookies, US-bound transfers (Google Fonts/Analytics/Meta), missing CMP, absent privacy policy or grievance officer (DPDP s.13), missing security headers, plaintext HTTP, and personal-data forms without a stated lawful basis as concrete violations with article/section references.
+- STATUTORY EXCEPTIONS EVALUATION: Evaluate if the website qualifies for statutory exemptions (e.g. ePrivacy Art. 5(3) / UK PECR strictly necessary technical cookie exception, India DPDP Act Section 17 domestic/research/defense scope, or CCPA commercial threshold exceptions). State any qualified exceptions clearly.
 - Fine estimates must be anchored to the real statutory maxima (GDPR up to EUR 20M or 4% global turnover; DPDP up to INR 250 crore per breach type) and scaled to the apparent size of the entity, with the reasoning stated.
 
 Respond with ONLY a JSON object of this exact shape:
@@ -508,10 +509,10 @@ export async function runAuditPipeline(
       startedAt,
       [
         { label: "Target / Mode", value: evidence.host },
-        { label: "Execution Time", value: `${Date.now() - startedAt}ms (< 30s guarantee)` },
+        { label: "Execution Time", value: `${Date.now() - startedAt}ms (fast diagnostic runtime)` },
       ],
       LAW_SOURCES,
-      ["Live statutory synthesis generated to guarantee uninterrupted compliance analysis."],
+      ["Live statutory synthesis generated for continuous compliance analysis."],
     );
     try {
       const saved = await saveAuditToDb(fallback, rawInput);
@@ -693,6 +694,12 @@ async function runAuditPipelineInternal(
       ...(scanMode === "deep-grounded"
         ? [
             {
+              id: "gemini-3.5-flash-grounded",
+              name: "gemini-3.5-flash",
+              grounding: true,
+              timeoutMs: 12000,
+            },
+            {
               id: "gemini-3.8-flash-grounded",
               name: "gemini-3.8-flash",
               grounding: true,
@@ -700,6 +707,12 @@ async function runAuditPipelineInternal(
             },
           ]
         : []),
+      {
+        id: "gemini-3.5-flash-plain",
+        name: "gemini-3.5-flash",
+        grounding: false,
+        timeoutMs: 8000,
+      },
       {
         id: "gemini-3.8-flash-plain",
         name: "gemini-3.8-flash",

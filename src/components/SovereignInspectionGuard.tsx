@@ -130,7 +130,7 @@ export function SovereignInspectionGuard() {
 
         <p className="mt-4 text-[10px] text-[#888888]">
           Under normal usage without inspection attempts, all platform audit tools and calculators
-          operate with 100% full visibility.
+          operate with complete diagnostic visibility.
         </p>
       </div>
     </div>

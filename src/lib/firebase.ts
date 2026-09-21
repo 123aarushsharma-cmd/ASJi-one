@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { initializeFirestore, getFirestore, setLogLevel, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 // Silence connection warnings in offline/preview sandbox environments
@@ -39,4 +40,5 @@ try {
 }
 
 export const db: Firestore = dbInstance;
+export const auth: Auth = getAuth(app);
 export { app };

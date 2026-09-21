@@ -348,7 +348,7 @@ In accordance with statutory mandates, our officer is appointed to resolve priva
 - Regulatory Escalation: If unresolved, you hold the statutory right to escalate your complaint to ${fw.authority}.
 
 6. CROSS-BORDER DATA TRANSIT
-Data transferred across territorial borders is protected using sovereign encryption and standard contractual clauses guaranteeing parity of protection.
+Data transferred across territorial borders is protected using sovereign encryption and standard contractual clauses establishing parity of protection under applicable statutory transfer mechanisms.
 `;
 
   // Generate Sample Consent Gate Charter

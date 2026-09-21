@@ -97,6 +97,147 @@ export async function fetchLawById(lawId: string): Promise<WorldLaw | null> {
   }
 }
 
+export interface UserAuditRecord {
+  id: string;
+  userId: string;
+  domain: string;
+  score: number;
+  verdict: string;
+  criticalFindingsCount: number;
+  statutoryExceptionsCount: number;
+  reportSummary?: string;
+  createdAt: string;
+  reportData?: unknown;
+}
+
+export interface UserNoticeRecord {
+  id: string;
+  userId: string;
+  domain: string;
+  lawId: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * Saves an audit report to the authenticated user's private Firestore vault.
+ */
+export async function saveUserAudit(
+  userId: string,
+  audit: Omit<UserAuditRecord, "userId" | "createdAt"> & { createdAt?: string },
+): Promise<void> {
+  if (!userId) return;
+  try {
+    const auditDocRef = doc(db, "users", userId, "audits", audit.id);
+    await setDoc(
+      auditDocRef,
+      {
+        ...audit,
+        userId,
+        createdAt: audit.createdAt || new Date().toISOString(),
+        syncedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    console.warn("Failed to persist user audit to private Firestore:", err);
+  }
+}
+
+/**
+ * Fetches all private audits saved under the user's isolated account.
+ */
+export async function fetchUserAudits(userId: string): Promise<UserAuditRecord[]> {
+  if (!userId) return [];
+  try {
+    const auditsCol = collection(db, "users", userId, "audits");
+    const snapshot = await getDocs(auditsCol);
+    const results: UserAuditRecord[] = [];
+    snapshot.forEach((d) => {
+      results.push(d.data() as UserAuditRecord);
+    });
+    return results.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  } catch (err) {
+    console.warn("Failed to retrieve user audits from Firestore:", err);
+    return [];
+  }
+}
+
+/**
+ * Deletes a user audit record from private cloud persistence.
+ */
+export async function deleteUserAudit(userId: string, auditId: string): Promise<void> {
+  if (!userId || !auditId) return;
+  try {
+    const auditDocRef = doc(db, "users", userId, "audits", auditId);
+    await deleteDoc(auditDocRef);
+  } catch (err) {
+    console.warn("Failed to delete user audit from Firestore:", err);
+  }
+}
+
+/**
+ * Saves a customized statutory notice or policy charter to user's private vault.
+ */
+export async function saveUserNotice(
+  userId: string,
+  notice: Omit<UserNoticeRecord, "userId" | "createdAt"> & { createdAt?: string },
+): Promise<void> {
+  if (!userId) return;
+  try {
+    const noticeDocRef = doc(db, "users", userId, "notices", notice.id);
+    await setDoc(
+      noticeDocRef,
+      {
+        ...notice,
+        userId,
+        createdAt: notice.createdAt || new Date().toISOString(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    console.warn("Failed to save notice to user vault:", err);
+  }
+}
+
+/**
+ * Fetches user's saved notices from private vault.
+ */
+export async function fetchUserNotices(userId: string): Promise<UserNoticeRecord[]> {
+  if (!userId) return [];
+  try {
+    const noticesCol = collection(db, "users", userId, "notices");
+    const snapshot = await getDocs(noticesCol);
+    const results: UserNoticeRecord[] = [];
+    snapshot.forEach((d) => {
+      results.push(d.data() as UserNoticeRecord);
+    });
+    return results.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  } catch (err) {
+    console.warn("Failed to retrieve user notices from Firestore:", err);
+    return [];
+  }
+}
+
+/**
+ * Deletes a notice from user's vault.
+ */
+export async function deleteUserNotice(userId: string, noticeId: string): Promise<void> {
+  if (!userId || !noticeId) return;
+  try {
+    const noticeDocRef = doc(db, "users", userId, "notices", noticeId);
+    await deleteDoc(noticeDocRef);
+  } catch (err) {
+    console.warn("Failed to delete notice from Firestore:", err);
+  }
+}
+
 /**
  * Saves a message to a chat session in Firestore for persistent history.
  */

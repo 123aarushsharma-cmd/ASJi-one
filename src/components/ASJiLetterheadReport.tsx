@@ -21,6 +21,10 @@ import { downloadReportAsPdf, openStandalonePrintWindow } from "@/lib/pdf-export
 import { detectDomainOriginCountry } from "@/lib/country-origin";
 import { ASJiVectorLogo } from "./ASJiVectorLogo";
 import { getUnifiedJurisdictionVerdicts } from "@/lib/unified-verdicts";
+import {
+  evaluateStatutoryExceptions,
+  type DomainExceptionsAnalysis,
+} from "@/lib/statutory-exceptions";
 
 interface ASJiLetterheadReportProps {
   report?: AuditReport | null;
@@ -98,6 +102,10 @@ export function ASJiLetterheadReport({
     }) as AuditReport;
     return getUnifiedJurisdictionVerdicts(reportData);
   }, [report, targetDomain, complianceScore, origin.countryName]);
+
+  const statutoryExceptions: DomainExceptionsAnalysis = useMemo(() => {
+    return evaluateStatutoryExceptions(report, targetDomain);
+  }, [report, targetDomain]);
 
   const lawsVerdictList: LawVerdict[] = useMemo(() => {
     const primaryIds = [
@@ -619,6 +627,105 @@ export function ASJiLetterheadReport({
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* 5.4 STATUTORY EXCEPTIONS, EXEMPTIONS & SAFE HARBORS REGISTER */}
+          <div
+            className="rounded-lg border p-3 text-[9px] font-mono mb-2.5"
+            style={{
+              backgroundColor: "#0d0c0a",
+              borderColor: "rgba(212, 175, 55, 0.35)",
+            }}
+          >
+            <div
+              className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-1.5 mb-2 gap-1"
+              style={{ borderBottomColor: "rgba(255, 255, 255, 0.1)" }}
+            >
+              <div className="flex items-center gap-1.5">
+                <Scale className="h-3 w-3 text-primary" />
+                <span
+                  className="font-bold uppercase tracking-wider text-[9.5px]"
+                  style={{ color: "#E5C158" }}
+                >
+                  STATUTORY EXCEPTIONS, EXEMPTIONS &amp; SAFE HARBOR REGISTER
+                </span>
+              </div>
+              <span
+                className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                  statutoryExceptions.hasAnyQualifiedException
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-red-500/15 text-red-300 border border-red-500/30"
+                }`}
+              >
+                {statutoryExceptions.hasAnyQualifiedException
+                  ? `${statutoryExceptions.qualifiedCount} of ${statutoryExceptions.totalEvaluated} Statutory Exceptions Qualified`
+                  : "Full Statutory Scope Applicable (No Exemptions)"}
+              </span>
+            </div>
+
+            {/* Legal Evaluation Conclusion */}
+            <p className="text-[8.5px] leading-relaxed text-gray-300 mb-2.5 bg-black/40 p-2 rounded border border-white/5">
+              <strong className="text-white">Statutory Assessment: </strong>
+              {statutoryExceptions.summaryConclusion}
+            </p>
+
+            {/* Itemized Exceptions Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {statutoryExceptions.exceptionsList.map((exc) => {
+                const isQualified =
+                  exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
+                  exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
+
+                return (
+                  <div
+                    key={exc.id}
+                    className="rounded border p-2 flex flex-col justify-between"
+                    style={{
+                      backgroundColor: isQualified
+                        ? "rgba(16, 185, 129, 0.05)"
+                        : "rgba(0, 0, 0, 0.35)",
+                      borderColor: isQualified
+                        ? "rgba(16, 185, 129, 0.3)"
+                        : "rgba(255, 255, 255, 0.08)",
+                    }}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
+                          <span>{exc.flag}</span>
+                          <span className="truncate">{exc.exceptionTitle}</span>
+                        </span>
+                        <span
+                          className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
+                            exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-white/5 text-gray-400 border border-white/10"
+                          }`}
+                        >
+                          {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                            ? "EXEMPT"
+                            : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                              ? "CONDITIONAL"
+                              : "NOT EXEMPT"}
+                        </span>
+                      </div>
+                      <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
+                        {exc.sectionOrArticle}
+                      </div>
+                      <p className="text-[7.5px] text-gray-300 leading-tight">
+                        {exc.auditRationale}
+                      </p>
+                    </div>
+                    <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
+                      <strong className="text-gray-200">Legal Effect: </strong>
+                      {exc.impactOnVerdict}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

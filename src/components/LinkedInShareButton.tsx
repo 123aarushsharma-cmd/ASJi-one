@@ -153,7 +153,7 @@ Check your own website's liability exposure & generate an official legal summary
         </button>
       </div>
 
-      {/* Bulletproof Interactive Sharing Modal */}
+      {/* Interactive Sharing Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-primary/50 bg-[#0d0c0b] p-6 text-foreground shadow-2xl animate-in zoom-in-95 duration-200">

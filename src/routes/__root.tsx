@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsent } from "@/components/CookieConsent";
 import { SovereignInspectionGuard } from "@/components/SovereignInspectionGuard";
+import { AuthProvider } from "@/lib/auth-context";
 
 function NotFoundComponent() {
   return (
@@ -167,10 +168,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <CookieConsent />
-      <SovereignInspectionGuard />
+      <AuthProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <CookieConsent />
+        <SovereignInspectionGuard />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

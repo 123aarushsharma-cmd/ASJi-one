@@ -10,10 +10,12 @@ export type WorldLaw = {
   status: "In Force" | "Active & Enforced" | "Draft Rules 2025" | "Amended";
   governingBody: string;
   officialPortal: string;
+  officialGazetteUrl?: string;
+  verifiedByAuthority?: boolean;
   maxPenalty: string;
   extraterritorialScope: boolean;
   dpoMandatory: boolean;
-  breachNotificationHours: number | "Immediate" | "Reasonable time";
+  breachNotificationHours: number | "Immediate" | "Reasonable time" | "72 hours or immediate";
   childrenAgeThreshold: number | "N/A";
   crossBorderAdequacyRequired: boolean;
   corePrinciples: string[];
@@ -798,5 +800,330 @@ export const WORLD_LAWS_DATA: WorldLaw[] = [
       "Africa's largest economy's comprehensive privacy law establishing the NDPC and introducing high-grade accountability for major data fiduciaries.",
     standardDraftTemplate:
       "NDPA 2023 Major Data Controller Compliance Framework & NDPC Statutory Notice.",
+    verifiedByAuthority: true,
+    officialGazetteUrl: "https://ndpc.gov.ng/laws",
+  },
+
+  // 15. SWITZERLAND
+  {
+    id: "switzerland-fadp",
+    country: "Switzerland",
+    countryCode: "CH",
+    flag: "🇨🇭",
+    region: "Europe & UK",
+    lawName: "Federal Act on Data Protection 2023 (revFADP / nDSG)",
+    acronym: "FADP (nDSG)",
+    enactedYear: 2023,
+    status: "In Force",
+    governingBody: "Federal Data Protection and Information Commissioner (FDPIC / EDÖB)",
+    officialPortal: "https://www.edoeb.admin.ch",
+    officialGazetteUrl: "https://www.fedlex.admin.ch/eli/cc/2022/491/en",
+    verifiedByAuthority: true,
+    maxPenalty: "Up to CHF 250,000 personal criminal fines for culpable individuals",
+    extraterritorialScope: true,
+    dpoMandatory: false,
+    breachNotificationHours: "Immediate",
+    childrenAgeThreshold: "N/A",
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "Personal criminal liability directly attaching to culpable decision-makers (Art 60-66)",
+      "Strict adequacy assessment requirement for cross-border data flows (Art 16-17)",
+      "Privacy by Design and Privacy by Default statutory duty (Art 7)",
+      "Mandatory Data Protection Impact Assessments (DPIA) for high-risk processing (Art 22)",
+    ],
+    keyArticles: [
+      {
+        number: "Art 6-7",
+        topic: "Principles & Privacy by Design",
+        mandate:
+          "Lawful processing in good faith, proportionality, and privacy by design default settings.",
+      },
+      {
+        number: "Art 16-17",
+        topic: "Cross-Border Transfers",
+        mandate: "Disclose target states and ensure adequacy or standard contractual clauses.",
+      },
+      {
+        number: "Art 24",
+        topic: "Breach Notification",
+        mandate:
+          "Notification to the FDPIC as quickly as possible if high risk to personality rights.",
+      },
+      {
+        number: "Art 60-66",
+        topic: "Criminal Penalties",
+        mandate:
+          "Intentional breach of secrecy or failure to comply with minimum security standards carries criminal fines up to CHF 250k.",
+      },
+    ],
+    statutorySummary:
+      "Switzerland's modern data privacy framework aligned with European standards, distinguished by personal criminal sanctions for responsible corporate officers.",
+    standardDraftTemplate:
+      "Swiss FADP Transnational Data Transfer Schedule & Art. 19 Information Notice.",
+  },
+
+  // 16. NEW ZEALAND
+  {
+    id: "new-zealand-privacy-act",
+    country: "New Zealand",
+    countryCode: "NZ",
+    flag: "🇳🇿",
+    region: "Asia-Pacific",
+    lawName: "Privacy Act 2020 (Public Act 2020 No 31)",
+    acronym: "Privacy Act 2020",
+    enactedYear: 2020,
+    status: "In Force",
+    governingBody: "Office of the Privacy Commissioner (OPC / Te Mana Mātāpono Matatapu)",
+    officialPortal: "https://www.privacy.org.nz",
+    officialGazetteUrl: "https://www.legislation.govt.nz/act/public/2020/0031/latest/LMS23223.html",
+    verifiedByAuthority: true,
+    maxPenalty:
+      "Fines up to NZD $350,000 for compliance order failure and human rights tribunal damages",
+    extraterritorialScope: true,
+    dpoMandatory: true,
+    breachNotificationHours: 72,
+    childrenAgeThreshold: "N/A",
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "13 Information Privacy Principles (IPPs) governing entire data lifecycle",
+      "Mandatory Privacy Officer appointment for all organizations (Sec 201)",
+      "Mandatory notifiable privacy breach reporting to OPC and affected individuals (Part 6)",
+      "IPP 12 cross-border disclosure restrictions requiring comparable safeguards",
+    ],
+    keyArticles: [
+      {
+        number: "IPP 1-4",
+        topic: "Collection Principles",
+        mandate:
+          "Lawful purpose, direct collection from individual, and transparent notice of collection.",
+      },
+      {
+        number: "IPP 12",
+        topic: "Cross-Border Disclosures",
+        mandate:
+          "Prohibits offshore disclosure unless foreign recipient is subject to comparable privacy laws.",
+      },
+      {
+        number: "Part 6",
+        topic: "Breach Notification",
+        mandate:
+          "Must notify Privacy Commissioner as soon as practicable if breach causes serious harm.",
+      },
+    ],
+    statutorySummary:
+      "New Zealand's statutory regime providing extraterritorial jurisdiction over overseas businesses and legally enforceable access rights.",
+    standardDraftTemplate:
+      "New Zealand IPP Transparency Statement & IPP 12 Cross-Border Agreement.",
+  },
+
+  // 17. ARGENTINA
+  {
+    id: "argentina-pdpa",
+    country: "Argentina",
+    countryCode: "AR",
+    flag: "🇦🇷",
+    region: "Americas",
+    lawName: "Personal Data Protection Act No. 25.326 & AAIP Resolutions",
+    acronym: "Law 25.326",
+    enactedYear: 2000,
+    status: "Active & Enforced",
+    governingBody: "Agencia de Acceso a la Información Pública (AAIP)",
+    officialPortal: "https://www.argentina.gob.ar/aaip",
+    officialGazetteUrl:
+      "https://servicios.infoleg.gob.ar/infolegInternet/anexos/60000-64999/64790/norma.htm",
+    verifiedByAuthority: true,
+    maxPenalty: "Fines up to ARS 100,000,000 (updated statutory units) and database suspension",
+    extraterritorialScope: true,
+    dpoMandatory: false,
+    breachNotificationHours: "Reasonable time",
+    childrenAgeThreshold: 18,
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "Habeas Data constitutional guarantee and database registration mandate",
+      "Express, written or electronic opt-in consent requirement (Art 5)",
+      "Adequacy whitelist for international data transfers (Art 12)",
+      "Strict purpose limitation and automated 5-day deletion following purpose fulfillment",
+    ],
+    keyArticles: [
+      {
+        number: "Article 5",
+        topic: "Consent",
+        mandate:
+          "Processing of personal data is unlawful without the prior express and informed consent of the titular.",
+      },
+      {
+        number: "Article 9",
+        topic: "Data Security",
+        mandate:
+          "Adoption of technical and organizational measures to ensure integrity and confidentiality.",
+      },
+      {
+        number: "Article 12",
+        topic: "Transfers",
+        mandate:
+          "Prohibits transfer of personal data to countries that do not provide adequate protection levels.",
+      },
+    ],
+    statutorySummary:
+      "One of the Latin American jurisdictions recognized as having European adequacy status, featuring mandatory database filing with the AAIP.",
+    standardDraftTemplate:
+      "AAIP Model International Data Transfer Clauses & Argentine Privacy Notice.",
+  },
+
+  // 18. VIETNAM
+  {
+    id: "vietnam-pdpd",
+    country: "Vietnam",
+    countryCode: "VN",
+    flag: "🇻🇳",
+    region: "Asia-Pacific",
+    lawName: "Personal Data Protection Decree No. 13/2023/ND-CP",
+    acronym: "PDPD Decree 13",
+    enactedYear: 2023,
+    status: "In Force",
+    governingBody: "Ministry of Public Security (MPS) / Department of Cyber Security (A05)",
+    officialPortal: "https://bocongan.gov.vn",
+    officialGazetteUrl: "https://vanban.chinhphu.vn/default.aspx?pageid=27160&docid=207757",
+    verifiedByAuthority: true,
+    maxPenalty: "Up to 5% of total revenue for cross-border data transfer violations",
+    extraterritorialScope: true,
+    dpoMandatory: true,
+    breachNotificationHours: 72,
+    childrenAgeThreshold: 16,
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "Mandatory Data Protection Impact Assessment (DPIA) filed with MPS within 60 days",
+      "Cross-Border Transfer Assessment (Form 06) filed with A05 prior to overseas processing",
+      "Sensitive personal data designation requiring dedicated DPO department",
+      "Clear affirmative consent with no default pre-ticked opt-ins permitted",
+    ],
+    keyArticles: [
+      {
+        number: "Article 9-11",
+        topic: "Consent & Processing",
+        mandate:
+          "Valid only if data subject acts voluntarily and knows purpose. Silence or non-response is not consent.",
+      },
+      {
+        number: "Article 24",
+        topic: "DPIA Filing",
+        mandate:
+          "Data Controller must compile and archive DPIA dossiers available for MPS inspection.",
+      },
+      {
+        number: "Article 25",
+        topic: "Cross-Border Transfer",
+        mandate:
+          "Impact assessment dossier of outbound transfer must be submitted to A05 within 60 days of processing.",
+      },
+    ],
+    statutorySummary:
+      "Vietnam's foundational data privacy regulation introducing strict government filing mandates and cross-border scrutiny.",
+    standardDraftTemplate:
+      "Vietnam PDPD Decree 13 Impact Assessment & Cross-Border Data Transfer Charter.",
+  },
+
+  // 19. TÜRKİYE
+  {
+    id: "turkey-kvkk",
+    country: "Türkiye",
+    countryCode: "TR",
+    flag: "🇹🇷",
+    region: "Europe & UK",
+    lawName: "Law on Protection of Personal Data No. 6698 (KVKK 2024 Reform)",
+    acronym: "KVKK",
+    enactedYear: 2016,
+    status: "Amended",
+    governingBody: "Personal Data Protection Authority (Kişisel Verileri Koruma Kurumu - KVKK)",
+    officialPortal: "https://www.kvkk.gov.tr",
+    officialGazetteUrl: "https://www.resmigazete.gov.tr/eskiler/2016/04/20160407-8.htm",
+    verifiedByAuthority: true,
+    maxPenalty: "Administrative fines up to TRY 9,500,000 per violation category",
+    extraterritorialScope: true,
+    dpoMandatory: false,
+    breachNotificationHours: 72,
+    childrenAgeThreshold: 18,
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "Mandatory registration in VERBİS (Data Controllers Registry Information System)",
+      "Explicit consent requirement for processing special categories of personal data",
+      "72-hour breach reporting directly to the KVKK Board and affected parties",
+      "2024 reform standard contractual clauses for cross-border data transfers",
+    ],
+    keyArticles: [
+      {
+        number: "Article 10",
+        topic: "Obligation to Inform",
+        mandate: "Fulfill statutory disclosure notice at time of collecting personal data.",
+      },
+      {
+        number: "Article 12",
+        topic: "Data Security",
+        mandate:
+          "Take all necessary technical and organizational measures to prevent unlawful processing.",
+      },
+      {
+        number: "Article 16",
+        topic: "VERBİS Registry",
+        mandate:
+          "Data controllers meeting turnover or employee thresholds must enroll in VERBİS prior to processing.",
+      },
+    ],
+    statutorySummary:
+      "Türkiye's comprehensive personal data protection legislation substantially amended in 2024 to modernize cross-border data transfer mechanisms.",
+    standardDraftTemplate:
+      "KVKK Aydınlatma Metni (Information Notice) & VERBİS Compliance Register.",
+  },
+
+  // 20. PHILIPPINES
+  {
+    id: "philippines-dpa",
+    country: "Philippines",
+    countryCode: "PH",
+    flag: "🇵🇭",
+    region: "Asia-Pacific",
+    lawName: "Data Privacy Act of 2012 (Republic Act No. 10173)",
+    acronym: "DPA RA 10173",
+    enactedYear: 2012,
+    status: "In Force",
+    governingBody: "National Privacy Commission (NPC)",
+    officialPortal: "https://privacy.gov.ph",
+    officialGazetteUrl: "https://www.officialgazette.gov.ph/2012/08/15/republic-act-no-10173/",
+    verifiedByAuthority: true,
+    maxPenalty: "Imprisonment up to 6 years and fines up to PHP 5,000,000",
+    extraterritorialScope: true,
+    dpoMandatory: true,
+    breachNotificationHours: 72,
+    childrenAgeThreshold: 18,
+    crossBorderAdequacyRequired: true,
+    corePrinciples: [
+      "Mandatory appointment and registration of Data Protection Officer (DPO) with NPC",
+      "General data privacy principles: Transparency, Legitimate Purpose, and Proportionality",
+      "72-hour mandatory breach notification threshold for sensitive personal information breaches",
+      "Strict criminal penalties for unauthorized processing or improper disposal",
+    ],
+    keyArticles: [
+      {
+        number: "Section 11-12",
+        topic: "Principles & Lawful Processing",
+        mandate:
+          "Transparency, legitimate purpose, and proportionality must govern personal information processing.",
+      },
+      {
+        number: "Section 20",
+        topic: "Security Guidelines",
+        mandate:
+          "Reasonable and appropriate organizational, physical, and technical measures required.",
+      },
+      {
+        number: "Section 21",
+        topic: "Accountability",
+        mandate:
+          "Data controller is responsible for personal information under its custody or control.",
+      },
+    ],
+    statutorySummary:
+      "Southeast Asia's landmark privacy legislation with strict criminal enforcement provisions, mandatory DPO registration, and active NPC oversight.",
+    standardDraftTemplate: "NPC Registered Privacy Manual Template & RA 10173 Consent Schedule.",
   },
 ];

@@ -338,7 +338,7 @@ function Index() {
         >
           <div className="mb-4 inline-flex flex-col items-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold">
-              <ShieldCheck className="h-3.5 w-3.5" /> 14+ Sovereign Global Jurisdictions //
+              <ShieldCheck className="h-3.5 w-3.5" /> 20+ Sovereign Global Jurisdictions //
               Remediation Patches &amp; Legal Solutions
             </span>
           </div>

@@ -68,26 +68,42 @@ export async function downloadReportAsPdf(
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 8; // 8mm margin on all sides
-    const maxContentWidth = pageWidth - margin * 2; // 194mm
-    const maxContentHeight = pageHeight - margin * 2; // 281mm
+    const margin = 8; // 8mm margin
+    const contentWidth = pageWidth - margin * 2; // 194mm
+    const maxPageContentHeight = pageHeight - margin * 2; // 281mm
 
     const imgAspect = img.width / img.height;
-    const maxAspect = maxContentWidth / maxContentHeight;
+    const totalPdfHeight = contentWidth / imgAspect;
 
-    let finalWidth = maxContentWidth;
-    let finalHeight = maxContentWidth / imgAspect;
+    if (totalPdfHeight <= maxPageContentHeight) {
+      // Fits within 1 single A4 page
+      const yOffset = margin + (maxPageContentHeight - totalPdfHeight) / 2;
+      pdf.addImage(
+        imgData,
+        "PNG",
+        margin,
+        yOffset,
+        contentWidth,
+        totalPdfHeight,
+        undefined,
+        "FAST",
+      );
+    } else {
+      // Dynamic multi-page support for comprehensive statutory dossiers
+      let heightLeft = totalPdfHeight;
+      let yPos = margin;
 
-    // Guarantee that the content fits strictly within 1 single A4 page
-    if (finalHeight > maxContentHeight) {
-      finalHeight = maxContentHeight;
-      finalWidth = maxContentHeight * imgAspect;
+      pdf.addImage(imgData, "PNG", margin, yPos, contentWidth, totalPdfHeight, undefined, "FAST");
+      heightLeft -= maxPageContentHeight;
+
+      while (heightLeft > 0) {
+        yPos -= pageHeight - margin * 2;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", margin, yPos, contentWidth, totalPdfHeight, undefined, "FAST");
+        heightLeft -= maxPageContentHeight;
+      }
     }
 
-    const xPos = (pageWidth - finalWidth) / 2;
-    const yPos = (pageHeight - finalHeight) / 2;
-
-    pdf.addImage(imgData, "PNG", xPos, yPos, finalWidth, finalHeight, undefined, "FAST");
     pdf.save(filename);
 
     return true;

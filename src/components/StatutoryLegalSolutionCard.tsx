@@ -81,7 +81,7 @@ ${gap.statutoryRemedy}
   .join("\n--------------------------------------------------------------------------------\n")}
 
 ================================================================================
-STATUTORY LEGAL SOLUTIONS & REGULATORY DEFENSE SUITE
+STATUTORY COMPLIANCE ANALYSIS & REGULATORY REMEDIATION SUITE
 ================================================================================
 
 [A] STATUTORY PRIVACY NOTICE PROVISIONS:
@@ -96,7 +96,7 @@ ${solution.sampleConsentGateCharter}
 --------------------------------------------------------------------------------
 ${solution.sampleGrievanceCharter}
 
-[D] BOARD-READY 4-PHASE RECTIFICATION & ENFORCEMENT DEFENSE ROADMAP:
+[D] ACTIONABLE 4-PHASE STATUTORY RECTIFICATION & DEFENSE ROADMAP:
 --------------------------------------------------------------------------------
 ${solution.sampleRectificationRoadmap}
 `;
@@ -200,7 +200,7 @@ ${solution.sampleRectificationRoadmap}
             )}
           </div>
           <p className="mt-2 text-[11px] text-red-200/90 leading-relaxed">
-            Our automated regulatory telemetry engine identified specific non-compliance items on{" "}
+            Our regulatory telemetry engine identified specific statutory non-compliance items on{" "}
             <strong>{solution.targetDomain}</strong> under {solution.lawName}. Failure to address
             these items exposes the domain operator to formal regulatory proceedings and penalties
             under {solution.authority}.
@@ -340,11 +340,11 @@ ${solution.sampleRectificationRoadmap}
           <div>
             <h4 className="font-display text-xl sm:text-2xl font-bold text-gold-gradient flex items-center gap-2">
               <Scale className="h-5 w-5 text-primary" /> Statutory Legal Solution &amp; Regulatory
-              Defense Suite
+              Remediation Suite
             </h4>
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-              Complete legally sound compliance drafts, charters, and enforcement defense compiled
-              for <strong>{solution.targetDomain}</strong>.
+              Comprehensive statutory compliance drafts, governance charters, and regulatory defense
+              roadmap compiled for <strong>{solution.targetDomain}</strong>.
             </p>
           </div>
 
@@ -498,10 +498,10 @@ ${solution.sampleRectificationRoadmap}
                   <Sparkles className="h-4.5 w-4.5 text-primary" />
                   <div>
                     <h5 className="font-bold text-sm text-foreground">
-                      Board-Ready 4-Phase Rectification &amp; Defense Roadmap
+                      Actionable 4-Phase Rectification &amp; Defense Roadmap
                     </h5>
                     <span className="text-[10px] text-muted-foreground">
-                      Executive milestone timeline for full technical &amp; legal compliance
+                      Structured milestone timeline for full technical &amp; legal compliance
                     </span>
                   </div>
                 </div>

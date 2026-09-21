@@ -27,7 +27,10 @@ export interface ChatAnswerResponse {
     law: string;
     article: string;
     authority: string;
+    uri?: string;
   }[];
+  groundedQueries?: string[];
+  verifiedOnlineSources?: { title: string; uri: string }[];
   suggestedFollowUps: string[];
 }
 
@@ -57,27 +60,29 @@ Governing Body: ${law.governingBody}
 Max Penalties: ${law.maxPenalty}
 Breach Notification Window: ${law.breachNotificationHours} hours/rule
 Children Age Threshold: ${law.childrenAgeThreshold}
+Official Portal / Gazette: ${law.officialPortal} ${law.officialGazetteUrl ? `| ${law.officialGazetteUrl}` : ""}
 Key Articles: ${law.keyArticles.map((a) => `${a.number} (${a.topic}): ${a.mandate}`).join("; ")}
 Core Mandates: ${law.corePrinciples.join("; ")}`,
   ).join("\n\n");
 
-  const systemInstruction = `You are ASJi Sovereign AI Oracle, the world's highest precision legal compliance intelligence system and sovereign data protection authority advisor.
-You serve as an infallible, zero-hallucination compliance counselor for the ASJi One enterprise law-tech platform.
+  const systemInstruction = `You are ASJi Sovereign AI Oracle, an advanced legal compliance intelligence system and sovereign data protection authority advisor.
+You serve as a rigorous, evidence-grounded compliance counselor for the ASJi One enterprise law-tech platform.
 
 YOU POSSESS THE COMPLETE WORLD DATABASE OF DATA PROTECTION LAWS:
 ${lawContextSummary}
 
-CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
-1. ACCURACY & ZERO SPECULATION: Every response must cite exact statutes, section/article numbers, official regulatory bodies (e.g. DPBI, EDPB, CNIL, ICO, CPPA, ANPD, PDPC, OAIC, PPC, PIPC, SDAIA, NDPC), and official statutory penalty caps.
-2. EXPLAINING THIS ASJI ONE TOOL:
-   - ASJi One performs real-world, client-side & server-side zero-touch statutory auditing of any domain or raw server code/headers.
+CORE OPERATING DIRECTIVES (PRECISION ACCURACY & VERIFICATION STANDARD):
+1. ACCURACY & ZERO HALLUCINATION: Never invent statutory sections or penalty caps. When citing law, cite verified statutory codes, official gazettes, or supervisory decisions (e.g. DPBI India, EDPB, CNIL, ICO, CPPA, ANPD, PDPC, OAIC, PPC, PIPC, SDAIA, NDPC, FDPIC, OPC).
+2. USE GOOGLE SEARCH GROUNDING: Use live Google Search data to verify recent enforcement actions, official gazettes, and statutory regulatory interpretations before responding.
+3. EXPLAINING ASJI ONE:
+   - ASJi One performs real-world, passive zero-touch statutory auditing of any domain or raw server code/headers.
    - It checks tracker telemetry, pre-consent cookies (ePrivacy / DPDP / GDPR), TLS/HSTS ciphers, CSP headers, DPO designations, cross-border data transfer adequacy, child data profiling, and generates verifiable PDF/JSON compliance certificates.
-   - Features include the 14+ World Sovereign Database, the 6 Sovereign Legal Matrix with downloadable legal drafting templates (India DPDP Section 5/6, UAE PDPL, EU GDPR DPA Art 28, CPRA DNSMPI, Singapore PDPA, Brazil LGPD), and live audit history.
-3. STRUCTURE:
+   - Features include the 20+ World Sovereign Database, the Sovereign Legal Matrix with downloadable legal drafting templates (India DPDP Section 5/6, UAE PDPL, EU GDPR DPA Art 28, CPRA DNSMPI, Singapore PDPA, Brazil LGPD, Swiss FADP), and live audit history.
+4. STRUCTURE:
    - Provide crisp, direct, executive-ready answers.
-   - Use bold statutory citations.
+   - Use bold statutory citations and verifiable dates/penalties.
    - Highlight actionable compliance steps or technical remedies (e.g., CMP banner flags, TLS 1.3 configs, Sec-GPC header listeners, Grievance Officer email publication).
-4. MULTI-JURISDICTION COMPARISONS: If asked about cross-border differences (e.g. EU GDPR vs India DPDP vs UAE PDPL vs CPRA), provide side-by-side contrast of fines, breach reporting deadlines, and consent thresholds.`;
+5. MULTI-JURISDICTION COMPARISONS: If asked about cross-border differences, provide side-by-side contrast of fines, breach reporting deadlines, and consent thresholds.`;
 
   if (!ai) {
     // Intelligent deterministic response engine if GEMINI_API_KEY is not configured
@@ -94,11 +99,12 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
     }
 
     return {
-      answer: `### Sovereign Compliance Intelligence Report\n\n**Framework:** ${relevantLaw.lawName} (${relevantLaw.acronym})\n**Maximum Statutory Penalty:** ${relevantLaw.maxPenalty}\n\n#### Key Legal Mandates:\n${relevantLaw.keyArticles.map((a) => `- **${a.number} (${a.topic})**: ${a.mandate}`).join("\n")}\n\n#### Enforcement Directives:\n- **Breach Notification:** Mandatory notification within **${relevantLaw.breachNotificationHours}**.\n- **Child Data Age Limit:** Protected up to **${relevantLaw.childrenAgeThreshold} years**.\n- **ASJi One Verification:** You can scan your application against this regime using the audit terminal on the home dashboard or download customized statutory drafting templates in the Sovereign Legal Matrix.`,
+      answer: `### Sovereign Compliance Intelligence Report\n\n**Framework:** ${relevantLaw.lawName} (${relevantLaw.acronym})\n**Maximum Statutory Penalty:** ${relevantLaw.maxPenalty}\n\n#### Key Legal Mandates:\n${relevantLaw.keyArticles.map((a) => `- **${a.number} (${a.topic})**: ${a.mandate}`).join("\n")}\n\n#### Enforcement Directives:\n- **Breach Notification:** Mandatory notification within **${relevantLaw.breachNotificationHours}**.\n- **Child Data Age Limit:** Protected up to **${relevantLaw.childrenAgeThreshold} years**.\n- **Official Gazette & Authority:** ${relevantLaw.officialPortal}\n- **ASJi One Verification:** You can scan your application against this regime using the audit terminal on the home dashboard or download customized statutory drafting templates in the Sovereign Legal Matrix.`,
       sources: relevantLaw.keyArticles.slice(0, 3).map((a) => ({
         law: relevantLaw!.acronym,
         article: a.number,
         authority: relevantLaw!.lawName,
+        uri: relevantLaw!.officialPortal,
       })),
       suggestedFollowUps: [
         `What are the penalty ceilings under ${relevantLaw.acronym}?`,
@@ -109,16 +115,29 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
   }
 
   try {
+    // Priority: gemini-3.5-flash with Google Search Grounding as mandated
     const candidateModels = [
-      { name: "gemini-3.8-flash", timeoutMs: 10000 },
-      { name: "gemini-3.1-flash-lite", timeoutMs: 7000 },
-      { name: "gemini-flash-latest", timeoutMs: 7000 },
+      { name: "gemini-3.5-flash", grounding: true, timeoutMs: 14000 },
+      { name: "gemini-3.8-flash", grounding: true, timeoutMs: 12000 },
+      { name: "gemini-3.5-flash", grounding: false, timeoutMs: 9000 },
+      { name: "gemini-3.1-flash-lite", grounding: false, timeoutMs: 7000 },
     ];
     let text = "";
     let lastError: unknown;
+    const verifiedOnlineSources: { title: string; uri: string }[] = [];
+    const groundedQueries: string[] = [];
 
     for (const cand of candidateModels) {
       try {
+        const config: Record<string, unknown> = {
+          systemInstruction,
+          temperature: 0.1, // Near zero temperature for strict legal fidelity
+        };
+
+        if (cand.grounding) {
+          config.tools = [{ googleSearch: {} }];
+        }
+
         const response = await withTimeout(
           ai.models.generateContent({
             model: cand.name,
@@ -129,10 +148,7 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
               })),
               { role: "user", parts: [{ text: question }] },
             ],
-            config: {
-              systemInstruction,
-              temperature: 0.2, // Low temperature for legal accuracy
-            },
+            config,
           }),
           cand.timeoutMs,
           `Model ${cand.name} timed out after ${(cand.timeoutMs / 1000).toFixed(1)}s`,
@@ -140,12 +156,32 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
 
         if (response && response.text) {
           text = response.text;
+
+          // Extract verified Google Search Grounding citations
+          const candidate = response.candidates?.[0];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const grounding = (candidate as any)?.groundingMetadata;
+          if (grounding) {
+            if (Array.isArray(grounding.webSearchQueries)) {
+              groundedQueries.push(...grounding.webSearchQueries);
+            }
+            if (Array.isArray(grounding.groundingChunks)) {
+              for (const chunk of grounding.groundingChunks) {
+                if (chunk?.web?.uri) {
+                  verifiedOnlineSources.push({
+                    title: chunk.web.title || "Official Regulatory Record",
+                    uri: chunk.web.uri,
+                  });
+                }
+              }
+            }
+          }
           break;
         }
       } catch (err: unknown) {
         lastError = err;
         console.info(
-          `[Oracle Failover] Candidate ${cand.name} unavailable, attempting next candidate.`,
+          `[Oracle Failover] Candidate ${cand.name} (grounding: ${cand.grounding}) unavailable, attempting next candidate.`,
         );
       }
     }
@@ -165,6 +201,7 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
       law: l.acronym,
       article: l.keyArticles[0]?.number || "Statutory Code",
       authority: l.governingBody,
+      uri: l.officialPortal,
     }));
 
     return {
@@ -177,8 +214,11 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
                 law: "Global Data Protection Database",
                 article: "Cross-Jurisdictional Matrix",
                 authority: "ASJi Sovereign Law-Tech Database",
+                uri: "https://www.meity.gov.in",
               },
             ],
+      groundedQueries: groundedQueries.slice(0, 5),
+      verifiedOnlineSources: verifiedOnlineSources.slice(0, 6),
       suggestedFollowUps: [
         "How do I fix pre-consent cookie leaks detected by ASJi One?",
         "What are the mandatory clauses for India DPDP Act 2023 consent notices?",
@@ -194,6 +234,7 @@ CORE OPERATING DIRECTIVES (PRECISION ACCURACY STANDARD):
           law: "Global Harmonized Privacy Standard",
           article: "ISO/IEC 27701 & GDPR",
           authority: "International Regulators",
+          uri: "https://edpb.europa.eu",
         },
       ],
       suggestedFollowUps: [
