@@ -90,11 +90,11 @@ const BILLING_TIERS: TierDetails[] = [
     name: "GDPR & Multi-Sovereign Legal Pack",
     priceInr: "₹45,000",
     priceNum: 45000,
-    unlockSummary: "All 14+ Sovereign Legal Solutions (GDPR, DUAA, CCPA, PDPL)",
+    unlockSummary: "All 14 Sovereign Legal Solutions (GDPR, DUAA, CCPA, PDPL)",
     description:
       "Complete statutory legal solution matrix and non-compliance disclosures for EU GDPR, UK DUAA, UAE PDPL, US CCPA/CPRA, and all 14 global laws.",
     features: [
-      "Full disclosure of statutory gaps across all 14+ global sovereign privacy frameworks",
+      "Full disclosure of statutory gaps across all 14 global sovereign privacy frameworks",
       "EU Standard Contractual Clauses (SCCs) & Cross-Border Transfer Assessment",
       "GDPR Article 13/14 privacy charter & 30-day Subject Access Request (SAR) templates",
       "UAE PDPL Data Office statutory notification protocols & US CCPA GPC listener",
@@ -108,12 +108,12 @@ const BILLING_TIERS: TierDetails[] = [
     popular: true,
     priceInr: "₹59,999",
     priceNum: 59999,
-    unlockSummary: "Both Full Code Patches AND All 14+ Sovereign Legal Solutions",
+    unlockSummary: "Both Full Code Patches AND All 14 Sovereign Legal Solutions",
     description:
       "Combined complete autonomous code patches + 14 sovereign legal draft packs + official client handover summary report.",
     features: [
       "Includes ALL Autonomous Remediation Code Patches (NGINX, Edge, CMP, Node, Grievance)",
-      "Includes ALL 14+ Global Privacy Law statutory legal solutions & non-compliance disclosures",
+      "Includes ALL 14 Global Privacy Law statutory legal solutions & non-compliance disclosures",
       "Tailored Statutory Privacy Notice Draft with 22-language provisions",
       "Designated Grievance Redressal Officer & DPO statutory charter with 48h SLA",
       "4-Phase Board-Ready Rectification Roadmap with executive milestones",
@@ -232,7 +232,7 @@ export function RemediationBillingModal({
         );
       } else {
         setProcessingStatus(
-          `Synthesizing Full Autonomous Code Patches & 14+ Sovereign Legal Packs for ${targetDomain}...`,
+          `Synthesizing Full Autonomous Code Patches & 14 Sovereign Legal Packs for ${targetDomain}...`,
         );
       }
     }, 1800);
@@ -410,7 +410,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                 {selectedTier === "dpdp-india" && "DPDP Act 2023 Statutory Legal Suite Unlocked"}
                 {selectedTier === "gdpr-global" && "GDPR & Multi-Sovereign Legal Pack Unlocked"}
                 {selectedTier === "full-bundle" &&
-                  "Full Code Patches & 14+ Sovereign Legal Suite Ready"}
+                  "Full Code Patches & 14 Sovereign Legal Suite Ready"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground max-w-xl">
                 {selectedTier === "patch-code" &&
@@ -418,9 +418,9 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                 {selectedTier === "dpdp-india" &&
                   `Itemized notice at collection, bilingual statutory templates, designated Grievance Redressal Officer charters, and non-compliance penalty disclosures under DPDP Act 2023 are unlocked for ${targetDomain}.`}
                 {selectedTier === "gdpr-global" &&
-                  `Complete statutory legal solutions, SCCs, SAR templates, and non-compliance disclosures across all 14+ global sovereign privacy frameworks are unlocked for ${targetDomain}.`}
+                  `Complete statutory legal solutions, SCCs, SAR templates, and non-compliance disclosures across all 14 global sovereign privacy frameworks are unlocked for ${targetDomain}.`}
                 {selectedTier === "full-bundle" &&
-                  `Full autonomous remediation code patches, all 14+ sovereign legal solution packs, signed audit certificates, and white-label client handover packs are permanently unlocked for ${targetDomain}.`}
+                  `Full autonomous remediation code patches, all 14 sovereign legal solution packs, signed audit certificates, and white-label client handover packs are permanently unlocked for ${targetDomain}.`}
               </p>
             </div>
 

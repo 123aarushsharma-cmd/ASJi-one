@@ -338,7 +338,7 @@ function Index() {
         >
           <div className="mb-4 inline-flex flex-col items-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold">
-              <ShieldCheck className="h-3.5 w-3.5" /> 20+ Sovereign Global Jurisdictions //
+              <ShieldCheck className="h-3.5 w-3.5" /> 14 Sovereign Global Jurisdictions //
               Remediation Patches &amp; Legal Solutions
             </span>
           </div>
@@ -347,12 +347,12 @@ function Index() {
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-muted-foreground font-mono">
             Inspect tracking cookies, consent mechanisms, and server security headers across{" "}
-            <strong>14+ sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
+            <strong>14 sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
             European Union (GDPR), United Kingdom (DUAA 2026), United States (CPRA/CCPA), UAE
             (PDPL), Saudi Arabia (PDPL), Singapore (PDPA), Brazil (LGPD), Canada (PIPEDA),
-            Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), and Nigeria (NDPA).
-            Pinpoint statutory non-compliance violations, estimate legal fine exposure, and unlock
-            both <strong>autonomous remediation code patches</strong> and{" "}
+            Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), and South Africa
+            (POPIA). Pinpoint statutory non-compliance violations, estimate legal fine exposure, and
+            unlock both <strong>autonomous remediation code patches</strong> and{" "}
             <strong>bespoke statutory legal solutions</strong>.
           </p>
 
@@ -538,7 +538,7 @@ function Index() {
             </div>
             <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
-                14+ Global Jurisdictions // Sovereign framework coverage.
+                14 Global Jurisdictions // Sovereign framework coverage.
               </p>
               <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
                 Cross-border statutory routing maps &amp; continuous regulatory sync.
@@ -1056,7 +1056,7 @@ function Index() {
                   How ASJi One Identifies Gaps &amp; Solves Compliance
                 </h2>
                 <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-mono">
-                  Controlled, deterministic, and non-disruptive inspection across 14+ sovereign
+                  Controlled, deterministic, and non-disruptive inspection across 14 sovereign
                   global privacy mandates.
                 </p>
               </div>
@@ -1068,7 +1068,7 @@ function Index() {
                   </div>
                   <h3 className="text-sm font-bold text-foreground">Target &amp; Law Selection</h3>
                   <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    Input your production domain and select from 14+ sovereign jurisdictions (India
+                    Input your production domain and select from 14 sovereign jurisdictions (India
                     DPDP 2023, EU GDPR, UK DUAA, US CPRA, UAE PDPL, etc.).
                   </p>
                 </div>
@@ -1099,7 +1099,7 @@ function Index() {
               </div>
             </section>
 
-            {/* Supported Sovereign Jurisdictions - 14+ Bento Cards with quick select */}
+            {/* Supported Sovereign Jurisdictions - 14 Bento Cards with quick select */}
             <section>
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
                 <div>
@@ -1107,7 +1107,7 @@ function Index() {
                     Cross-Border Statutory Coverage
                   </span>
                   <h2 className="font-display text-2xl font-bold text-gold-gradient">
-                    Supported Sovereign Privacy Mandates (14+ Global Jurisdictions)
+                    Supported Sovereign Privacy Mandates (14 Global Jurisdictions)
                   </h2>
                 </div>
                 <span className="text-xs font-mono text-muted-foreground">

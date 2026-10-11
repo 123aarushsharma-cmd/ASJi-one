@@ -67,7 +67,7 @@ export function WorldLawsAtlas() {
   const activeLaw = laws.find((l) => l.id === selectedLawId) || filteredLaws[0] || laws[0];
 
   const regions = [
-    { label: "All World Laws (14+)", value: "ALL" },
+    { label: "All World Laws (14)", value: "ALL" },
     { label: "Asia-Pacific", value: "Asia-Pacific" },
     { label: "Middle East", value: "Middle East" },
     { label: "Europe & UK", value: "Europe & UK" },
@@ -101,7 +101,7 @@ export function WorldLawsAtlas() {
             World Sovereign Data Protection Laws Atlas &amp; Repository
           </h2>
           <p className="mt-1.5 font-mono text-xs text-[#E5E5E5]/75 max-w-3xl">
-            Complete international statutory database across 14+ sovereign legal systems. Fully
+            Complete international statutory database across 14 sovereign legal systems. Fully
             integrated into Firebase Firestore for verified, zero-hallucination compliance queries.
           </p>
         </div>

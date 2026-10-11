@@ -453,7 +453,7 @@ export function ASJiLetterheadReport({
             </div>
           </div>
 
-          {/* 4. TOTAL 6 STATUTORY JURISDICTIONS EVALUATION TABLE */}
+          {/* 4. TOTAL 14 STATUTORY JURISDICTIONS EVALUATION TABLE */}
           <div
             className="overflow-x-auto rounded-lg border mb-2.5 print:overflow-visible"
             style={{
@@ -623,7 +623,7 @@ export function ASJiLetterheadReport({
                   </ul>
                 ) : (
                   <span className="text-[#34d399] text-[8.5px] font-bold">
-                    ✓ All 6 Global Jurisdictions Fully Compliant
+                    ✓ All 14 Global Jurisdictions Fully Compliant
                   </span>
                 )}
               </div>
