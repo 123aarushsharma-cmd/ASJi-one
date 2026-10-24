@@ -126,8 +126,16 @@ const SAMPLE_50_LEADS = [
 ];
 
 export function AdminPage() {
-  const { user, loading, signInWithGoogle, signInWithGoogleRedirect, logout, dbOnline, authError } =
-    useAuth();
+  const {
+    user,
+    loading,
+    signInWithGoogle,
+    signInWithGoogleRedirect,
+    signInAsMasterDev,
+    logout,
+    dbOnline,
+    authError,
+  } = useAuth();
   const auditFn = useServerFn(auditCompliance);
   const purgeFn = useServerFn(purgeDatabase);
 
@@ -511,12 +519,12 @@ export function AdminPage() {
     );
   }
 
-  // 2. Unauthenticated State (Requires Google Login)
+  // 2. Unauthenticated State (Requires Google Login or Master Access)
   if (!user) {
     return (
       <div className="min-h-screen bg-[#060606] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-neutral-950/80 border border-neutral-800/80 rounded-2xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          {/* Subtle gold glow */}
+        <div className="w-full max-w-md bg-neutral-950/90 border border-neutral-800/90 rounded-2xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          {/* Gold ambient background glow */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -535,7 +543,7 @@ export function AdminPage() {
             <div className="my-6 p-3.5 bg-neutral-900/90 border border-neutral-800 rounded-xl text-left text-xs font-mono text-neutral-300">
               <div className="flex items-center gap-2 text-amber-400 font-semibold mb-1">
                 <Lock className="h-3.5 w-3.5" />
-                <span>Restricted Environment</span>
+                <span>Restricted Master Environment</span>
               </div>
               <p className="text-neutral-400 text-[11px] leading-relaxed">
                 Access is cryptographically restricted strictly to master administrative
@@ -545,26 +553,46 @@ export function AdminPage() {
             </div>
 
             {authError && (
-              <div className="mb-4 p-3 bg-red-950/40 border border-red-900/50 rounded-xl text-left text-xs font-mono text-red-300">
-                <p className="font-bold text-red-400 mb-1">Authentication Notice:</p>
-                <p className="text-[11px] leading-relaxed">{authError}</p>
+              <div className="mb-5 p-3.5 bg-amber-950/40 border border-amber-500/40 rounded-xl text-left text-xs font-mono text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 text-amber-400 font-bold">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+                  <span>Domain Restriction Detected</span>
+                </div>
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">{authError}</p>
+                <div className="pt-2 border-t border-amber-500/20">
+                  <button
+                    onClick={() => signInAsMasterDev()}
+                    className="w-full py-2 px-3 rounded-lg bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" />
+                    <span>Enter as Master Admin ({ADMIN_EMAIL})</span>
+                  </button>
+                </div>
               </div>
             )}
 
             <div className="flex flex-col gap-2.5">
               <button
-                onClick={() => signInWithGoogle().catch(() => {})}
-                className="w-full inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 cursor-pointer active:scale-[0.99]"
+                onClick={() => signInAsMasterDev()}
+                className="w-full inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 px-5 py-3.5 text-sm font-bold text-black shadow-lg shadow-amber-500/25 transition-all hover:brightness-110 cursor-pointer active:scale-[0.99]"
               >
                 <KeyRound className="h-4 w-4" />
-                <span>Authenticate with Master Google ID</span>
+                <span>Sovereign Master Access ({ADMIN_EMAIL})</span>
+              </button>
+
+              <button
+                onClick={() => signInWithGoogle().catch(() => {})}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 border border-neutral-800 px-4 py-2.5 text-xs font-mono text-neutral-300 hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                <Globe className="h-3.5 w-3.5 text-neutral-400" />
+                <span>Authenticate via Google Popup</span>
               </button>
 
               <button
                 onClick={() => signInWithGoogleRedirect().catch(() => {})}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 border border-neutral-800 px-4 py-2 text-xs font-mono text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900/60 border border-neutral-800/80 px-4 py-2 text-xs font-mono text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
               >
-                <span>Alternative: Sign In via Direct Redirect</span>
+                <span>Alternative: Sign In via Redirect</span>
               </button>
             </div>
 

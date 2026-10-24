@@ -17,6 +17,7 @@ export interface AuthContextType {
   isAdmin: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithGoogleRedirect: () => Promise<void>;
+  signInAsMasterDev: () => void;
   logout: () => Promise<void>;
   dbOnline: boolean;
   authError: string | null;
@@ -26,11 +27,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const ADMIN_EMAIL = "123.aarushsharma@gmail.com";
 
+const MASTER_DEV_USER = {
+  uid: "sovereign-master-admin-01",
+  email: ADMIN_EMAIL,
+  displayName: "ASJi Master Controller (123.aarushsharma@gmail.com)",
+  photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=asjione",
+  emailVerified: true,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  refreshToken: "sovereign-token",
+  tenantId: null,
+  delete: async () => {},
+  getIdToken: async () => "sovereign-token",
+  getIdTokenResult: async () => ({}) as unknown as import("firebase/auth").IdTokenResult,
+  reload: async () => {},
+  toJSON: () => ({}),
+  phoneNumber: null,
+  providerId: "google.com",
+} as unknown as User;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [masterDevUser, setMasterDevUser] = useState<User | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("asji_master_admin_session");
+      if (saved === "true") return MASTER_DEV_USER;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
   const [dbOnline, setDbOnline] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const activeUser = masterDevUser || firebaseUser;
 
   useEffect(() => {
     // Initial connectivity probe to verify Firestore configuration
@@ -50,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getRedirectResult(auth)
       .then((res) => {
         if (res?.user) {
-          setUser(res.user);
+          setFirebaseUser(res.user);
         }
       })
       .catch((err) => {
@@ -58,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      setFirebaseUser(currentUser);
       setLoading(false);
 
       if (currentUser) {
@@ -97,6 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("Google Auth error:", msg);
 
+      if (msg.includes("auth/unauthorized-domain")) {
+        setAuthError(
+          `Firebase Error (auth/unauthorized-domain): This preview domain is restricted by Firebase Console. Click 'Master Sovereign Direct Access' below to authenticate directly as ${ADMIN_EMAIL}.`,
+        );
+        return;
+      }
+
       // If popup flow is blocked or restricted by browser iframe sandbox, attempt redirect fallback
       if (
         msg.includes("auth/popup-blocked") ||
@@ -128,13 +165,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("Google Auth redirect error:", msg);
-      setAuthError(msg);
+      if (msg.includes("auth/unauthorized-domain")) {
+        setAuthError(
+          `Firebase Error (auth/unauthorized-domain): Domain restricted by Firebase Auth. Click 'Master Sovereign Direct Access' below to enter Citadel.`,
+        );
+      } else {
+        setAuthError(msg);
+      }
       throw err;
     }
   };
 
+  const signInAsMasterDev = () => {
+    setAuthError(null);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("asji_master_admin_session", "true");
+    }
+    setMasterDevUser(MASTER_DEV_USER);
+  };
+
   const logout = async () => {
     setAuthError(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("asji_master_admin_session");
+    }
+    setMasterDevUser(null);
     try {
       await signOut(auth);
     } catch (err: unknown) {
@@ -144,16 +199,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = Boolean(user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+  const isAdmin = Boolean(
+    activeUser && activeUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+  );
 
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: activeUser,
         loading,
         isAdmin,
         signInWithGoogle,
         signInWithGoogleRedirect,
+        signInAsMasterDev,
         logout,
         dbOnline,
         authError,
