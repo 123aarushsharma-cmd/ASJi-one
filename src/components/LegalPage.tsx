@@ -26,7 +26,7 @@ export function LegalPage({
 }) {
   return (
     <div className="min-h-screen">
-      <header className="mx-auto flex max-w-4xl items-center justify-between px-5 py-6">
+      <header className="mobile-floating-header mx-auto flex max-w-4xl items-center justify-between px-5 py-6">
         <Link
           to="/"
           className="group flex items-center gap-3.5 transition-opacity hover:opacity-90"
@@ -55,7 +55,7 @@ export function LegalPage({
         </Link>
       </header>
 
-      <main className="mx-auto max-w-4xl px-5 pb-20">
+      <main className="mobile-header-spacing mx-auto max-w-4xl px-5 pb-20">
         <h1 className="font-display text-3xl text-gold-gradient sm:text-4xl">{title}</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{intro}</p>
         <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">

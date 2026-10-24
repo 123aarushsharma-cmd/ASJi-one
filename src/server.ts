@@ -46,9 +46,6 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 function attachSecurityHeaders(res: Response): Response {
   const newHeaders = new Headers(res.headers);
-  if (!newHeaders.has("X-Frame-Options")) {
-    newHeaders.set("X-Frame-Options", "SAMEORIGIN");
-  }
   if (!newHeaders.has("X-Content-Type-Options")) {
     newHeaders.set("X-Content-Type-Options", "nosniff");
   }
@@ -64,7 +61,7 @@ function attachSecurityHeaders(res: Response): Response {
   if (!newHeaders.has("Content-Security-Policy")) {
     newHeaders.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https:; frame-ancestors 'self' https:;",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com; frame-ancestors 'self' https:;",
     );
   }
   return new Response(res.body, {

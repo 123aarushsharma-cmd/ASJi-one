@@ -31,11 +31,14 @@ export async function downloadReportAsPdf(
     );
 
     // Convert the target element directly to a high-DPI PNG data URL using html-to-image
+    // Setting fontEmbedCSS: "" tells html-to-image to bypass iterating remote document.styleSheets
+    // and reading cross-origin cssRules, completely avoiding browser SecurityError.
     const imgData = await toPng(element, {
       quality: 0.98,
       pixelRatio: 2, // 2x DPI for ultra-sharp letterhead rendering
       backgroundColor: "#0d0c0b",
       cacheBust: true,
+      fontEmbedCSS: "",
       filter: (node: Node) => {
         // Exclude elements with print:hidden class if any
         if (node instanceof HTMLElement && node.classList.contains("print:hidden")) {

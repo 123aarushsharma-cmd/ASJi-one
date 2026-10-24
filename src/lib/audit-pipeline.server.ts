@@ -673,6 +673,27 @@ async function runAuditPipelineInternal(
     }
   }
 
+  // FAST-LITE MODE: High-speed automated deterministic audit directly from live network reconnaissance
+  // Bypasses LLM latency to enable instant multi-site / 50-lead bulk scanning with zero hallucination.
+  if (scanMode === "fast-lite" && liveEvidence) {
+    const fastReport = generateFallbackAuditFromEvidence(
+      liveEvidence,
+      rawInput,
+      startedAt,
+      checks,
+      sources,
+      limitations,
+    );
+    try {
+      const saved = await saveAuditToDb(fastReport, rawInput);
+      fastReport.dbRecordId = saved.id;
+      fastReport.dbSavedAt = saved.savedAt;
+    } catch {
+      /* ignore db save failure */
+    }
+    return fastReport;
+  }
+
   let reportContent = "";
   let modelUsed =
     scanMode === "fast-lite"
@@ -691,43 +712,27 @@ async function runAuditPipelineInternal(
     });
 
     const candidates = [
-      ...(scanMode === "deep-grounded"
-        ? [
-            {
-              id: "gemini-3.5-flash-grounded",
-              name: "gemini-3.5-flash",
-              grounding: true,
-              timeoutMs: 12000,
-            },
-            {
-              id: "gemini-3.8-flash-grounded",
-              name: "gemini-3.8-flash",
-              grounding: true,
-              timeoutMs: 10000,
-            },
-          ]
-        : []),
       {
-        id: "gemini-3.5-flash-plain",
-        name: "gemini-3.5-flash",
+        id: "gemini-2.5-flash-grounded",
+        name: "gemini-2.5-flash",
+        grounding: true,
+        timeoutMs: 10000,
+      },
+      {
+        id: "gemini-2.0-flash-grounded",
+        name: "gemini-2.0-flash",
+        grounding: true,
+        timeoutMs: 8000,
+      },
+      {
+        id: "gemini-2.5-flash-plain",
+        name: "gemini-2.5-flash",
         grounding: false,
         timeoutMs: 8000,
       },
       {
-        id: "gemini-3.8-flash-plain",
-        name: "gemini-3.8-flash",
-        grounding: false,
-        timeoutMs: 8000,
-      },
-      {
-        id: "gemini-3.1-flash-lite",
-        name: "gemini-3.1-flash-lite",
-        grounding: false,
-        timeoutMs: 7000,
-      },
-      {
-        id: "gemini-flash-latest",
-        name: "gemini-flash-latest",
+        id: "gemini-2.0-flash-plain",
+        name: "gemini-2.0-flash",
         grounding: false,
         timeoutMs: 7000,
       },

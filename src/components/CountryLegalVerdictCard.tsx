@@ -35,6 +35,12 @@ export function CountryLegalVerdictCard({
   const [filterMode, setFilterMode] = useState<"ALL" | "PASS" | "FAIL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  const toggleFlip = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setFlippedCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Single Source of Truth for Sovereign Verdicts across the entire application
   const unified = useMemo(() => getUnifiedJurisdictionVerdicts(report), [report]);
@@ -170,141 +176,248 @@ export function CountryLegalVerdictCard({
         </div>
       </div>
 
-      {/* Grid of Country Verdicts */}
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AnimatePresence>
+      {/* Grid of Country Verdicts with Stagger and 3D Flip */}
+      <motion.div
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.035, delayChildren: 0.02 },
+          },
+        }}
+        initial="hidden"
+        animate="show"
+        className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4 flip-card-container"
+      >
+        <AnimatePresence mode="popLayout">
           {filteredList.map((c) => {
-            const isSelected = selectedCountryId === c.id;
+            const isFlipped = !!flippedCards[c.id];
 
             return (
               <motion.div
                 key={c.id}
                 layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className={`rounded-2xl border p-4 sm:p-5 transition-all flex flex-col justify-between ${
+                variants={{
+                  hidden: { opacity: 0, y: 12 },
+                  show: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                  },
+                }}
+                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
+                className={`relative rounded-2xl border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between card-hover cursor-pointer ${
                   c.passed
-                    ? "border-emerald-500/30 bg-emerald-500/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.06]"
-                    : "border-rose-500/30 bg-rose-500/[0.03] hover:border-rose-500/50 hover:bg-rose-500/[0.06]"
+                    ? "border-emerald-500/40 bg-emerald-950/10 hover:border-emerald-500/70 glow-pass"
+                    : "border-rose-500/40 bg-rose-950/10 hover:border-rose-500/70 glow-fail"
                 }`}
+                onClick={() => toggleFlip(c.id)}
               >
-                <div>
-                  {/* Top Header: Flag + Country + Verdict Badge */}
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl" role="img" aria-label={c.country}>
-                        {c.flag}
-                      </span>
-                      <div>
-                        <h3 className="font-display font-bold text-base text-foreground flex items-center gap-1.5">
-                          {c.country}
-                          <span className="text-[10px] font-mono font-normal text-muted-foreground">
-                            ({c.region})
+                {/* 3D Animated Flip Container */}
+                <motion.div
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ transformStyle: "preserve-3d" }}
+                  className="w-full flex-1 flex flex-col justify-between"
+                >
+                  {!isFlipped ? (
+                    /* Front Face: Executive Statutory Verdict */
+                    <div style={{ backfaceVisibility: "hidden" }} className="w-full">
+                      {/* Top Header: Flag + Country + Verdict Badge */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl" role="img" aria-label={c.country}>
+                            {c.flag}
                           </span>
-                        </h3>
-                        <p className="text-[11px] font-mono text-primary/90 mt-0.5">
-                          {c.statuteName}
-                        </p>
+                          <div>
+                            <h3 className="font-display font-bold text-base text-foreground flex items-center gap-1.5">
+                              {c.country}
+                              <span className="text-[10px] font-mono font-normal text-muted-foreground">
+                                ({c.region})
+                              </span>
+                            </h3>
+                            <p className="text-[11px] font-mono text-primary/90 mt-0.5">
+                              {c.statuteName}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Statutory Verdict Badge */}
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                          <span
+                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1 ${
+                              c.passed
+                                ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-300"
+                                : "border-rose-500/60 bg-rose-500/20 text-rose-300"
+                            }`}
+                          >
+                            {c.passed ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : (
+                              <XCircle className="h-3 w-3" />
+                            )}
+                            <span className="hidden sm:inline">{c.verdictLabel}</span>
+                            <span className="sm:hidden">
+                              {c.passed ? "STATUTORY PASS" : "STATUTORY FAIL"}
+                            </span>
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFlip(c.id, e)}
+                            className="rounded-full border border-border/70 bg-black/50 p-1 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
+                            title="Flip card for statute citations"
+                          >
+                            ↺
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Primary Reason for Pass or Fail */}
+                      <div
+                        className={`mt-3.5 rounded-xl border p-3 text-xs leading-relaxed ${
+                          c.passed
+                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                            : "border-rose-500/20 bg-rose-500/10 text-rose-200"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {c.passed ? (
+                            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                          ) : (
+                            <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <strong className="block font-semibold mb-0.5">
+                              {c.passed
+                                ? "Why it Passes in this Country:"
+                                : "Why it Wholly Fails under National Law:"}
+                            </strong>
+                            <span className="text-[11.5px] opacity-90">
+                              {c.passed ? c.passJustification : c.primaryViolation}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Violated Articles (if failed) */}
+                      {!c.passed && c.violatedArticles && c.violatedArticles.length > 0 && (
+                        <div className="mt-3">
+                          <span className="text-[10px] font-mono text-rose-400 font-semibold block uppercase tracking-wider mb-1">
+                            Statutory Sections in Breach:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {c.violatedArticles.map((art, idx) => (
+                              <span
+                                key={idx}
+                                className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-mono text-rose-300"
+                              >
+                                {art}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Authority & Fine Cap */}
+                      <div className="mt-3.5 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">
+                            Statutory Framework:
+                          </span>
+                          <span className="font-semibold text-foreground">{c.statuteName}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">
+                            Max Statutory Liability:
+                          </span>
+                          <span
+                            className={`font-semibold ${c.passed ? "text-muted-foreground" : "text-amber-400"}`}
+                          >
+                            {c.maxPenalty}
+                          </span>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Statutory Verdict Badge */}
-                    <span
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1 self-start sm:self-auto ${
-                        c.passed
-                          ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-300"
-                          : "border-rose-500/60 bg-rose-500/20 text-rose-300"
-                      }`}
+                  ) : (
+                    /* Back Face: Legal Authority, Citation & Scope (Flipped) */
+                    <div
+                      style={{
+                        transform: "rotateY(180deg)",
+                        backfaceVisibility: "hidden",
+                      }}
+                      className="w-full flex flex-col justify-between py-1 font-mono text-xs"
                     >
-                      {c.passed ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <XCircle className="h-3 w-3" />
-                      )}
-                      <span className="hidden sm:inline">{c.verdictLabel}</span>
-                      <span className="sm:hidden">
-                        {c.passed ? "STATUTORY PASS" : "STATUTORY FAIL"}
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Primary Reason for Pass or Fail */}
-                  <div
-                    className={`mt-3.5 rounded-xl border p-3 text-xs leading-relaxed ${
-                      c.passed
-                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                        : "border-rose-500/20 bg-rose-500/10 text-rose-200"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {c.passed ? (
-                        <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                      ) : (
-                        <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
-                      )}
                       <div>
-                        <strong className="block font-semibold mb-0.5">
-                          {c.passed
-                            ? "Why it Passes in this Country:"
-                            : "Why it Wholly Fails under National Law:"}
-                        </strong>
-                        <span className="text-[11.5px] opacity-90">
-                          {c.passed ? c.passJustification : c.primaryViolation}
+                        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                          <span className="text-primary font-bold text-xs flex items-center gap-1.5">
+                            <Scale className="h-3.5 w-3.5" />
+                            {c.country} Statutory Dossier
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFlip(c.id, e)}
+                            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/60 bg-black/60"
+                          >
+                            Flip Back ↺
+                          </button>
+                        </div>
+
+                        <div className="mt-3 space-y-2.5 text-[11px]">
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase">
+                              Governing Regulatory Authority:
+                            </span>
+                            <span className="text-foreground font-bold">{c.governingBody}</span>
+                          </div>
+
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase">
+                              Territorial Extraterritoriality Scope:
+                            </span>
+                            <span className="text-foreground font-medium">
+                              Applies to all inbound digital services targeting {c.country}{" "}
+                              residents.
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase">
+                              Statutory Audit Classification:
+                            </span>
+                            <span
+                              className={`font-semibold ${c.passed ? "text-emerald-400" : "text-rose-400"}`}
+                            >
+                              {c.passed
+                                ? "Full Statutory Clearance Verified"
+                                : "Active Statutory Breach Detected"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground">Click to flip card back</span>
+                        <span className="text-primary font-semibold">
+                          ASJi Sovereign Intelligence
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Violated Articles (if failed) */}
-                  {!c.passed && c.violatedArticles && c.violatedArticles.length > 0 && (
-                    <div className="mt-3">
-                      <span className="text-[10px] font-mono text-rose-400 font-semibold block uppercase tracking-wider mb-1">
-                        Statutory Sections in Breach:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {c.violatedArticles.map((art, idx) => (
-                          <span
-                            key={idx}
-                            className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-mono text-rose-300"
-                          >
-                            {art}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
                   )}
-
-                  {/* Authority & Fine Cap */}
-                  <div className="mt-3.5 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
-                    <div>
-                      <span className="text-muted-foreground block text-[10px]">
-                        Statutory Framework:
-                      </span>
-                      <span className="font-semibold text-foreground">{c.statuteName}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[10px]">
-                        Max Statutory Liability:
-                      </span>
-                      <span
-                        className={`font-semibold ${c.passed ? "text-muted-foreground" : "text-amber-400"}`}
-                      >
-                        {c.maxPenalty}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                </motion.div>
 
                 {/* Bottom Action */}
                 {!c.passed && onOpenRemediationModal && (
-                  <div className="mt-4 pt-2 flex items-center justify-between">
+                  <div className="mt-4 pt-2 flex items-center justify-between border-t border-white/5">
                     <span className="text-[10.5px] text-muted-foreground">
                       Remediation available for {c.country}
                     </span>
                     <button
                       type="button"
-                      onClick={onOpenRemediationModal}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenRemediationModal();
+                      }}
                       className="text-[11px] font-mono text-primary hover:text-primary/80 font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       Unlock Legal Patch
@@ -316,7 +429,7 @@ export function CountryLegalVerdictCard({
             );
           })}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {filteredList.length === 0 && (
         <div className="text-center py-12 text-muted-foreground text-xs font-mono">

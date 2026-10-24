@@ -272,17 +272,16 @@ export function ASJiLetterheadReport({
 
               <div>
                 <h1 className="font-display text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>ASJi</span>
-                  <span style={{ color: "#E5C158" }}>WEB &amp; LEGAL</span>
+                  <span>ASJi One</span>
                 </h1>
                 <p
                   className="font-mono text-[8px] font-bold uppercase tracking-[0.22em]"
                   style={{ color: "#E5C158" }}
                 >
-                  SOLUTION —
+                  a product of ASJi Web &amp; Legal Solution
                 </p>
-                <p className="text-[9px] italic" style={{ color: "#a3a3a3" }}>
-                  Your Business. Our Expertise. Your Peace of Mind.
+                <p className="text-[9px] italic font-mono" style={{ color: "#a3a3a3" }}>
+                  www.asjione.com
                 </p>
               </div>
             </div>
@@ -344,7 +343,7 @@ export function ASJiLetterheadReport({
                 className="font-mono text-[8.5px] uppercase tracking-widest block font-bold"
                 style={{ color: "#E5C158" }}
               >
-                OFFICIAL TECHNICAL COMPLIANCE &amp; SOVEREIGN PRIVACY AUDIT REPORT
+                TECHNICAL PRIVACY COMPLIANCE SCAN REPORT
               </span>
               <span className="text-[9px] font-mono" style={{ color: "#a3a3a3" }}>
                 SERIAL: <strong className="text-white font-mono">{certNumber}</strong>
@@ -672,60 +671,77 @@ export function ASJiLetterheadReport({
 
             {/* Itemized Exceptions Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {statutoryExceptions.exceptionsList.map((exc) => {
-                const isQualified =
-                  exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
-                  exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
+              {statutoryExceptions.exceptionsList
+                .filter((exc) => {
+                  const checkedLawIds = new Set(lawsVerdictList.map((l) => l.id));
+                  if (exc.id.includes("ind-dpdp") && checkedLawIds.has("in-dpdp")) return true;
+                  if (exc.id.includes("eu-gdpr") && checkedLawIds.has("eu-gdpr")) return true;
+                  if (
+                    exc.id.includes("eprivacy") &&
+                    (checkedLawIds.has("eu-gdpr") || checkedLawIds.has("gb-ukgdpr"))
+                  )
+                    return true;
+                  if (exc.id.includes("ccpa") && checkedLawIds.has("us-ccpa")) return true;
+                  if (exc.id.includes("sg-pdpa") && checkedLawIds.has("sg-pdpa")) return true;
+                  if (exc.id.includes("au-privacy") && checkedLawIds.has("au-privacy")) return true;
+                  if (exc.id.includes("safe-harbor") || exc.id.includes("security-exception"))
+                    return true;
+                  return false;
+                })
+                .map((exc) => {
+                  const isQualified =
+                    exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
+                    exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
 
-                return (
-                  <div
-                    key={exc.id}
-                    className="rounded border p-2 flex flex-col justify-between"
-                    style={{
-                      backgroundColor: isQualified
-                        ? "rgba(16, 185, 129, 0.05)"
-                        : "rgba(0, 0, 0, 0.35)",
-                      borderColor: isQualified
-                        ? "rgba(16, 185, 129, 0.3)"
-                        : "rgba(255, 255, 255, 0.08)",
-                    }}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
-                          <span>{exc.flag}</span>
-                          <span className="truncate">{exc.exceptionTitle}</span>
-                        </span>
-                        <span
-                          className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
-                            exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  return (
+                    <div
+                      key={exc.id}
+                      className="rounded border p-2 flex flex-col justify-between"
+                      style={{
+                        backgroundColor: isQualified
+                          ? "rgba(16, 185, 129, 0.05)"
+                          : "rgba(0, 0, 0, 0.35)",
+                        borderColor: isQualified
+                          ? "rgba(16, 185, 129, 0.3)"
+                          : "rgba(255, 255, 255, 0.08)",
+                      }}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
+                            <span>{exc.flag}</span>
+                            <span className="truncate">{exc.exceptionTitle}</span>
+                          </span>
+                          <span
+                            className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
+                              exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  : "bg-white/5 text-gray-400 border border-white/10"
+                            }`}
+                          >
+                            {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                              ? "EXEMPT"
                               : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-white/5 text-gray-400 border border-white/10"
-                          }`}
-                        >
-                          {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                            ? "EXEMPT"
-                            : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                              ? "CONDITIONAL"
-                              : "NOT EXEMPT"}
-                        </span>
+                                ? "CONDITIONAL"
+                                : "NOT EXEMPT"}
+                          </span>
+                        </div>
+                        <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
+                          {exc.sectionOrArticle}
+                        </div>
+                        <p className="text-[7.5px] text-gray-300 leading-tight">
+                          {exc.auditRationale}
+                        </p>
                       </div>
-                      <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
-                        {exc.sectionOrArticle}
+                      <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
+                        <strong className="text-gray-200">Legal Effect: </strong>
+                        {exc.impactOnVerdict}
                       </div>
-                      <p className="text-[7.5px] text-gray-300 leading-tight">
-                        {exc.auditRationale}
-                      </p>
                     </div>
-                    <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
-                      <strong className="text-gray-200">Legal Effect: </strong>
-                      {exc.impactOnVerdict}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
 
@@ -753,49 +769,51 @@ export function ASJiLetterheadReport({
             </div>
 
             {/* Critical Leaks / Exposures Itemized */}
-            {report?.criticalLeaks && report.criticalLeaks.length > 0 ? (
+            {Array.isArray(report?.criticalLeaks) && report.criticalLeaks.length > 0 ? (
               <div className="space-y-1.5">
-                {report.criticalLeaks.map((leak, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded p-1.5 border"
-                    style={{
-                      backgroundColor: "rgba(0, 0, 0, 0.4)",
-                      borderColor:
-                        leak.severity === "critical" || leak.severity === "high"
-                          ? "rgba(244, 63, 94, 0.3)"
-                          : "rgba(245, 158, 11, 0.3)",
-                    }}
-                  >
-                    <div className="flex items-start gap-1.5">
-                      <span
-                        className="mt-0.5 rounded px-1 py-0.2 text-[7px] font-bold uppercase shrink-0"
-                        style={{
-                          backgroundColor:
-                            leak.severity === "critical" || leak.severity === "high"
-                              ? "rgba(244, 63, 94, 0.2)"
-                              : "rgba(245, 158, 11, 0.2)",
-                          color:
-                            leak.severity === "critical" || leak.severity === "high"
-                              ? "#fb7185"
-                              : "#fbbf24",
-                          border:
-                            leak.severity === "critical" || leak.severity === "high"
-                              ? "1px solid rgba(244, 63, 94, 0.4)"
-                              : "1px solid rgba(245, 158, 11, 0.4)",
-                        }}
-                      >
-                        {leak.severity}
-                      </span>
-                      <div>
-                        <span className="font-bold text-white block">{leak.title}</span>
-                        <span className="text-[8px] leading-tight block text-gray-300">
-                          {leak.detail}
+                {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : []).map(
+                  (leak, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded p-1.5 border"
+                      style={{
+                        backgroundColor: "rgba(0, 0, 0, 0.4)",
+                        borderColor:
+                          leak.severity === "critical" || leak.severity === "high"
+                            ? "rgba(244, 63, 94, 0.3)"
+                            : "rgba(245, 158, 11, 0.3)",
+                      }}
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <span
+                          className="mt-0.5 rounded px-1 py-0.2 text-[7px] font-bold uppercase shrink-0"
+                          style={{
+                            backgroundColor:
+                              leak.severity === "critical" || leak.severity === "high"
+                                ? "rgba(244, 63, 94, 0.2)"
+                                : "rgba(245, 158, 11, 0.2)",
+                            color:
+                              leak.severity === "critical" || leak.severity === "high"
+                                ? "#fb7185"
+                                : "#fbbf24",
+                            border:
+                              leak.severity === "critical" || leak.severity === "high"
+                                ? "1px solid rgba(244, 63, 94, 0.4)"
+                                : "1px solid rgba(245, 158, 11, 0.4)",
+                          }}
+                        >
+                          {leak.severity}
                         </span>
+                        <div>
+                          <span className="font-bold text-white block">{leak.title}</span>
+                          <span className="text-[8px] leading-tight block text-gray-300">
+                            {leak.detail}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             ) : (
               <div className="text-[#34d399] font-bold text-[8.5px] py-1">
@@ -804,27 +822,31 @@ export function ASJiLetterheadReport({
             )}
 
             {/* Evidence items summary */}
-            {report?.evidence && report.evidence.length > 0 && (
+            {Array.isArray(report?.evidence) && report.evidence.length > 0 && (
               <div
                 className="mt-2 pt-2 border-t text-[8px]"
                 style={{ borderTopColor: "rgba(255, 255, 255, 0.08)", color: "#a3a3a3" }}
               >
                 <span className="font-bold uppercase block mb-1" style={{ color: "#D4AF37" }}>
-                  VERIFIED AUDIT EVIDENCE SIGNALS ({report.evidence.length} Signals Captured):
+                  VERIFIED AUDIT EVIDENCE SIGNALS (
+                  {(Array.isArray(report.evidence) ? report.evidence : []).length} Signals
+                  Captured):
                 </span>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-gray-300">
-                  {report.evidence.slice(0, 6).map((item, idx) => (
-                    <li key={idx} className="truncate flex items-center gap-1">
-                      <span className="text-[#D4AF37]">•</span>
-                      <span className="truncate">{item}</span>
-                    </li>
-                  ))}
+                  {(Array.isArray(report.evidence) ? report.evidence : [])
+                    .slice(0, 6)
+                    .map((item, idx) => (
+                      <li key={idx} className="truncate flex items-center gap-1">
+                        <span className="text-[#D4AF37]">•</span>
+                        <span className="truncate">{item}</span>
+                      </li>
+                    ))}
                 </ul>
               </div>
             )}
           </div>
 
-          {/* 6. LEGAL SIGNATORY & CRYPTOGRAPHIC SEAL BOX */}
+          {/* 6. TECHNICAL SCANNER ATTESTATION BOX */}
           <div
             className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg border p-2.5 text-[8.5px] font-mono"
             style={{
@@ -835,12 +857,12 @@ export function ASJiLetterheadReport({
           >
             <div className="sm:col-span-2">
               <span className="font-bold block uppercase text-[9px]" style={{ color: "#E5C158" }}>
-                Statutory Technical Legal Notice:
+                Statutory Technical Assessment Notice:
               </span>
               <p className="mt-0.5 leading-tight" style={{ color: "#a3a3a3" }}>
                 By executing this scan, you authorize a passive, non-intrusive public transport
                 layer audit. Reports generate automated technical compliance logs evaluated strictly
-                against the 6 sovereign statutory data protection frameworks above.
+                against sovereign statutory data protection frameworks.
               </p>
             </div>
 
@@ -853,21 +875,21 @@ export function ASJiLetterheadReport({
                   className="text-[7.5px] uppercase tracking-wider block"
                   style={{ color: "#737373" }}
                 >
-                  AUTHORIZATION SIGNATURE
+                  SCANNER ATTESTATION
                 </span>
-                <span className="text-[9.5px] font-bold text-white block mt-0.5 font-serif italic">
-                  ASJi Sovereign Legal Operations
+                <span className="text-[9.5px] font-bold text-white block mt-0.5 font-mono">
+                  Generated by ASJi One automated scanner
                 </span>
-                <span className="text-[7.5px] block" style={{ color: "#888888" }}>
-                  Jaipur Headquarters // Directorate of RegTech
+                <span className="text-[7.5px] block font-mono" style={{ color: "#888888" }}>
+                  Report ID: {certNumber}
                 </span>
               </div>
               <div
                 className="flex items-center gap-1 text-[7.5px] font-bold mt-0.5"
                 style={{ color: "#34d399" }}
               >
-                <Lock className="h-2.5 w-2.5" />
-                <span>SHA-256 HASH VERIFIED</span>
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                <span>REAL-TIME AUDIT LOG VERIFIED</span>
               </div>
             </div>
           </div>
@@ -972,13 +994,14 @@ export function ASJiLetterheadReport({
                 </div>
                 <div className="truncate">
                   <a
-                    href="https://www.asji.online"
+                    href="https://www.asjione.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold hover:underline block truncate leading-tight"
                     style={{ color: "#E5C158" }}
+                    title="ASJi One Product Site (Agency: ASJi Web & Legal Solution at www.asji.online)"
                   >
-                    www.asji.online
+                    www.asjione.com
                   </a>
                 </div>
               </div>
@@ -1004,6 +1027,14 @@ export function ASJiLetterheadReport({
                   </a>
                 </div>
               </div>
+            </div>
+
+            {/* Disclaimer Footer Line */}
+            <div
+              className="border-t border-white/10 px-3 py-1.5 text-center bg-black/60 font-mono text-[8px]"
+              style={{ color: "#a3a3a3" }}
+            >
+              Automated technical assessment, not legal advice or certification.
             </div>
           </footer>
         </div>

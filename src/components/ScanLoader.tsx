@@ -132,14 +132,90 @@ export function ScanLoader({ progress, url }: { progress: number; url: string })
         </div>
       </div>
 
-      {/* Center Radar Scanner + Dial */}
+      {/* Live Scanning Progress Steps: Fetching site → Checking headers → Detecting trackers → Mapping laws */}
+      <div className="w-full rounded-2xl border border-primary/30 bg-black/75 p-3.5 sm:p-4 backdrop-blur-xl shadow-lg">
+        <div className="flex items-center justify-between mb-3 border-b border-border/40 pb-2">
+          <span className="text-[11px] font-mono font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+            <Activity className="h-3.5 w-3.5 animate-pulse text-primary" />
+            Live Forensic Pipeline
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            Stage{" "}
+            {displayedProgress >= 75
+              ? "4/4"
+              : displayedProgress >= 50
+                ? "3/4"
+                : displayedProgress >= 25
+                  ? "2/4"
+                  : "1/4"}{" "}
+            Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+          {[
+            { id: 1, label: "Fetching site", threshold: 0 },
+            { id: 2, label: "Checking headers", threshold: 25 },
+            { id: 3, label: "Detecting trackers", threshold: 50 },
+            { id: 4, label: "Mapping laws", threshold: 75 },
+          ].map((st, i) => {
+            const isCompleted = displayedProgress >= (i === 3 ? 100 : (i + 1) * 25);
+            const isCurrent = displayedProgress >= st.threshold && !isCompleted;
+            return (
+              <div
+                key={st.id}
+                className={`flex items-center gap-2 rounded-xl border p-2 sm:p-2.5 transition-all duration-300 ${
+                  isCurrent
+                    ? "border-primary bg-primary/15 text-primary shadow-sm shadow-primary/20 ring-1 ring-primary/40"
+                    : isCompleted
+                      ? "border-emerald-500/40 bg-emerald-950/20 text-emerald-400"
+                      : "border-border/40 bg-black/40 text-muted-foreground/60"
+                }`}
+              >
+                <div
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    isCurrent
+                      ? "bg-primary text-primary-foreground animate-pulse"
+                      : isCompleted
+                        ? "bg-emerald-500 text-black font-extrabold"
+                        : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {isCompleted ? "✓" : st.id}
+                </div>
+                <span className="text-[11px] font-semibold truncate leading-tight">{st.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Center Radar Scanner + Dial with 360° Radar Sweep */}
       <div className="relative flex h-60 w-60 items-center justify-center sm:h-72 sm:w-72 transform-gpu">
         {/* Soft Radial Ambient Glow */}
         <div className="absolute inset-2 rounded-full bg-primary/20 blur-3xl animate-pulse-glow transform-gpu" />
 
+        {/* Tactical Crosshairs & Radar Range Circles */}
+        <div className="absolute inset-4 rounded-full border border-primary/20 opacity-60 pointer-events-none" />
+        <div className="absolute inset-12 rounded-full border border-primary/15 opacity-40 pointer-events-none" />
+        <div className="absolute inset-20 rounded-full border border-primary/10 opacity-30 pointer-events-none" />
+        <div className="absolute inset-x-4 top-1/2 h-[1px] bg-primary/20 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute inset-y-4 left-1/2 w-[1px] bg-primary/20 -translate-x-1/2 pointer-events-none" />
+
+        {/* 360° Live Radar Sweep Beam */}
+        <div className="absolute inset-4 rounded-full overflow-hidden pointer-events-none">
+          <div
+            className="w-full h-full animate-radar-sweep origin-center"
+            style={{
+              background:
+                "conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(212, 175, 55, 0.12) 320deg, rgba(255, 242, 178, 0.45) 360deg)",
+            }}
+          />
+        </div>
+
         {/* Outer Spinning Dashed Orbit */}
         <svg
-          className="absolute inset-0 animate-spin-slow transform-gpu opacity-40"
+          className="absolute inset-0 animate-spin-slow transform-gpu opacity-40 pointer-events-none"
           viewBox="0 0 200 200"
           aria-hidden
         >

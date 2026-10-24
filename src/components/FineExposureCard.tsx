@@ -160,7 +160,7 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                   Maximum Statutory Penalty Cap
                 </p>
                 <p className="mt-1 font-display text-4xl font-extrabold tracking-tight text-amber-400 sm:text-5xl">
-                  Up to ₹{dpdpMapping.maxTotalCrores} Crores
+                  Up to ₹{dpdpMapping.maxTotalCrores} crore
                 </p>
               </div>
               <div className="text-right sm:self-end">
@@ -168,14 +168,15 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                   Approx. ${(dpdpMapping.maxTotalCrores * 1.2).toFixed(1)} Million USD
                 </p>
                 <p className="text-[10px] text-muted-foreground/80">
-                  Per violation instance under DPDP Schedule 1
+                  Statutory maximum, not a predicted penalty
                 </p>
               </div>
             </div>
 
             <p className="mt-3 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
-              Certain contraventions under applicable DPDP 2023 provisions may attract penalties of
-              up to ₹250 crore, subject to applicable statutory provisions and circumstances.
+              Certain contraventions under applicable DPDP provisions may attract penalties up to
+              ₹250 crore (failure to take reasonable security safeguards) [statutory maximum, not a
+              predicted penalty].
             </p>
           </div>
 
@@ -192,7 +193,7 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
             </div>
 
             <div className="grid gap-3.5">
-              {/* Rule 1: Security Safeguard Failure -> Up to ₹250 Crores */}
+              {/* Rule 1: Security Safeguard Failure -> Up to ₹250 crore (failure to take reasonable security safeguards) */}
               <div
                 className={`rounded-xl border p-4 transition-all ${
                   dpdpMapping.isUnencryptedOrLeak
@@ -217,15 +218,19 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                     </p>
                   </div>
                   <div className="shrink-0 sm:text-right">
-                    <p className="font-display text-lg font-extrabold text-amber-400">
-                      Up to ₹250 Crores
+                    <p className="font-display text-base font-extrabold text-amber-400">
+                      Up to ₹250 crore (failure to take reasonable security safeguards)
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">
+                      Statutory maximum, not a predicted penalty
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-2.5 rounded-lg border border-border/50 bg-black/60 p-2.5">
                   <p className="font-sans text-xs font-bold text-amber-300">
-                    Potential Penalty: Up to ₹250 Crores (Section 33(1))
+                    Potential Penalty: Up to ₹250 crore (failure to take reasonable security
+                    safeguards) [statutory maximum, not a predicted penalty]
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                     {dpdpMapping.isUnencryptedOrLeak

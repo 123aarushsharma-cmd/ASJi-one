@@ -4,16 +4,19 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsent } from "@/components/CookieConsent";
 import { SovereignInspectionGuard } from "@/components/SovereignInspectionGuard";
 import { AuthProvider } from "@/lib/auth-context";
+import { MobileFloatingNavbar } from "@/components/MobileFloatingNavbar";
 
 function NotFoundComponent() {
   return (
@@ -106,10 +109,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover",
       },
-      { title: "ASJi One" },
+      { title: "ASJi One – Global Data Privacy Compliance & Technical Scanner" },
       {
         name: "description",
-        content: "Global Data privacy Compliance fixer",
+        content:
+          "Inspect tracking cookies, consent mechanisms, and server security headers across 15 sovereign global jurisdictions with ASJi One.",
       },
       {
         name: "robots",
@@ -117,26 +121,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "author", content: "ASJi Law & Legal Engineering" },
       { property: "og:site_name", content: "ASJi One" },
-      { property: "og:title", content: "ASJi One" },
+      {
+        property: "og:title",
+        content: "ASJi One – Global Data Privacy Compliance & Technical Scanner",
+      },
       {
         property: "og:description",
-        content: "Global Data privacy Compliance fixer",
+        content:
+          "Inspect tracking cookies, consent mechanisms, and server security headers across 15 sovereign global jurisdictions with ASJi One.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://www.asjione.com/asji-logo.jpg" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@ASJiOne" },
-      { name: "twitter:title", content: "ASJi One" },
+      {
+        name: "twitter:title",
+        content: "ASJi One – Global Data Privacy Compliance & Technical Scanner",
+      },
       {
         name: "twitter:description",
-        content: "Global Data privacy Compliance fixer",
+        content:
+          "Inspect tracking cookies, consent mechanisms, and server security headers across 15 sovereign global jurisdictions with ASJi One.",
       },
+      { name: "twitter:image", content: "https://www.asjione.com/asji-logo.jpg" },
     ],
     links: [
+      { rel: "icon", href: "/favicon.ico" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap",
+        crossOrigin: "anonymous",
       },
       {
         rel: "stylesheet",
@@ -165,14 +181,41 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleAdminHash = () => {
+      if (typeof window !== "undefined") {
+        const hash = window.location.hash.toLowerCase();
+        if (hash === "#admin" || hash.startsWith("#admin/")) {
+          window.location.href = "/admin";
+        }
+      }
+    };
+    handleAdminHash();
+    window.addEventListener("hashchange", handleAdminHash);
+    return () => window.removeEventListener("hashchange", handleAdminHash);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
         <CookieConsent />
         <SovereignInspectionGuard />
+        <MobileFloatingNavbar />
       </AuthProvider>
     </QueryClientProvider>
   );

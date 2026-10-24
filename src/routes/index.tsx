@@ -293,7 +293,7 @@ function Index() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen flex flex-col justify-between">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-6">
+      <header className="mobile-floating-header mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -329,30 +329,43 @@ function Index() {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-24 flex-1">
+      <main className="mobile-header-spacing mx-auto w-full max-w-6xl px-4 sm:px-6 pb-24 flex-1">
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="pt-8 pb-16 text-center sm:pt-14"
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="relative pt-8 pb-16 text-center sm:pt-14 overflow-hidden"
         >
+          {/* Hero Cyber Grid & Ambient Radial Glow */}
+          <div className="absolute inset-0 -z-10 cyber-grid opacity-35 pointer-events-none rounded-3xl [mask-image:radial-gradient(ellipse_70%_65%_at_50%_35%,#000_65%,transparent_100%)]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-96 rounded-full bg-primary/10 blur-[90px] pointer-events-none animate-pulse-glow" />
+
           <div className="mb-4 inline-flex flex-col items-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold">
-              <ShieldCheck className="h-3.5 w-3.5" /> 14 Sovereign Global Jurisdictions //
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold shadow-sm shadow-primary/20">
+              <ShieldCheck className="h-3.5 w-3.5" /> 15 Sovereign Global Jurisdictions //
               Remediation Patches &amp; Legal Solutions
             </span>
           </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight sm:text-5xl lg:text-6xl text-gold-gradient max-w-4xl mx-auto font-extrabold tracking-tight">
+
+          {/* Glowing Typing-Styled Cyber Headline */}
+          <motion.h1
+            initial={{ opacity: 0, filter: "blur(6px)" }}
+            animate={{ opacity: 1, filter: "blur(0px)" }}
+            transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-2 font-display text-3xl leading-tight sm:text-5xl lg:text-6xl text-gold-gradient max-w-4xl mx-auto font-extrabold tracking-tight headline-glow"
+          >
             Audit Any Domain Against Global Privacy Laws.
-          </h1>
+          </motion.h1>
+
           <p className="mx-auto mt-4 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-muted-foreground font-mono">
             Inspect tracking cookies, consent mechanisms, and server security headers across{" "}
-            <strong>14 sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
-            European Union (GDPR), United Kingdom (DUAA 2026), United States (CPRA/CCPA), UAE
-            (PDPL), Saudi Arabia (PDPL), Singapore (PDPA), Brazil (LGPD), Canada (PIPEDA),
-            Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), and South Africa
-            (POPIA). Pinpoint statutory non-compliance violations, estimate legal fine exposure, and
-            unlock both <strong>autonomous remediation code patches</strong> and{" "}
+            <strong>15 sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
+            European Union (GDPR), United Kingdom (Data (Use and Access) Act 2025), United States
+            (CPRA/CCPA), UAE (PDPL), Saudi Arabia (PDPL), Singapore (PDPA), Brazil (LGPD), Canada
+            (PIPEDA), Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), Nigeria
+            (NDPA), and South Africa (POPIA). Pinpoint statutory non-compliance violations, estimate
+            legal fine exposure, and unlock both{" "}
+            <strong>autonomous remediation code patches</strong> and{" "}
             <strong>bespoke statutory legal solutions</strong>.
           </p>
 
@@ -520,7 +533,7 @@ function Index() {
 
           {/* REAL-TIME MULTI-REGION METRIC BADGES */}
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+            <div className="surface-panel card-hover p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
                 120+ Real-Time Checks // Automated interface stack evaluations.
               </p>
@@ -528,7 +541,7 @@ function Index() {
                 Deterministic security &amp; telemetry inspection.
               </p>
             </div>
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+            <div className="surface-panel card-hover p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
                 &lt; 30s Scan Performance // Rapid technical assessment.
               </p>
@@ -536,7 +549,7 @@ function Index() {
                 Headless browser verification &amp; transit trace.
               </p>
             </div>
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
+            <div className="surface-panel card-hover p-4 border border-primary/20 bg-black/60 rounded-2xl">
               <p className="font-mono text-xs font-bold text-gold-gradient">
                 14 Global Jurisdictions // Sovereign framework coverage.
               </p>
@@ -729,42 +742,45 @@ function Index() {
                     Key Compliance Exposures
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    {report.criticalLeaks.length} Actionable Vulnerabilities Detected
+                    {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : []).length}{" "}
+                    Actionable Vulnerabilities Detected
                   </span>
                 </div>
                 <div className="gold-rule my-4" />
                 <ul className="space-y-3.5">
-                  {report.criticalLeaks.slice(0, 3).map((leak) => (
-                    <li
-                      key={leak.title}
-                      className="rounded-xl border border-border/50 bg-secondary/15 p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground">{leak.title}</p>
-                        <span
-                          className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                            SEVERITY_STYLES[leak.severity] ?? SEVERITY_STYLES.low
-                          }`}
-                        >
-                          {leak.severity}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                        {leak.detail}
-                      </p>
-                    </li>
-                  ))}
+                  {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : [])
+                    .slice(0, 3)
+                    .map((leak) => (
+                      <li
+                        key={leak.title}
+                        className="rounded-xl border border-border/50 bg-secondary/15 p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-foreground">{leak.title}</p>
+                          <span
+                            className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                              SEVERITY_STYLES[leak.severity] ?? SEVERITY_STYLES.low
+                            }`}
+                          >
+                            {leak.severity}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                          {leak.detail}
+                        </p>
+                      </li>
+                    ))}
                 </ul>
               </motion.div>
             )}
 
             {/* Regulatory Framework Grid with Statutory Pass/Fail status */}
-            {report.frameworks?.length > 0 && (
+            {(Array.isArray(report.frameworks) ? report.frameworks : []).length > 0 && (
               <motion.div
                 variants={reportItemVariants}
                 className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {report.frameworks.map((f) => {
+                {(Array.isArray(report.frameworks) ? report.frameworks : []).map((f) => {
                   const isPass = f.score >= 70;
                   const isWarning = f.score >= 45 && f.score < 70;
                   const isFail = f.score < 45;
@@ -1003,14 +1019,14 @@ function Index() {
                   <GroundedSearchCard grounding={report.grounding} />
 
                   {/* Live Scan Evidence */}
-                  {report.evidence?.length > 0 && (
+                  {(Array.isArray(report.evidence) ? report.evidence : []).length > 0 && (
                     <div className="surface-panel p-6">
                       <h3 className="font-display text-xl text-gold-gradient">
                         {report.inputKind === "url" ? "Live scan evidence" : "Assessment basis"}
                       </h3>
                       <div className="gold-rule my-4" />
                       <ul className="space-y-2.5">
-                        {report.evidence.map((item, i) => (
+                        {(Array.isArray(report.evidence) ? report.evidence : []).map((item, i) => (
                           <li
                             key={i}
                             className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
@@ -1047,7 +1063,13 @@ function Index() {
         {!report && (
           <div className="mt-12 space-y-14">
             {/* 3-Step Work Focus Pipeline */}
-            <section className="rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/5 via-black/40 to-transparent p-6 sm:p-8">
+            <motion.section
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/5 via-black/40 to-transparent p-6 sm:p-8 backdrop-blur-sm"
+            >
               <div className="text-center max-w-2xl mx-auto">
                 <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
                   Streamlined Statutory Audit Pipeline
@@ -1062,7 +1084,7 @@ function Index() {
               </div>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                <div className="surface-panel card-hover rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold mb-3">
                     1
                   </div>
@@ -1073,7 +1095,7 @@ function Index() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                <div className="surface-panel card-hover rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 font-bold mb-3">
                     2
                   </div>
@@ -1084,7 +1106,7 @@ function Index() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
+                <div className="surface-panel card-hover rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold mb-3">
                     3
                   </div>
@@ -1097,17 +1119,22 @@ function Index() {
                   </p>
                 </div>
               </div>
-            </section>
+            </motion.section>
 
             {/* Supported Sovereign Jurisdictions - 14 Bento Cards with quick select */}
-            <section>
+            <motion.section
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.12 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            >
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
                 <div>
                   <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
                     Cross-Border Statutory Coverage
                   </span>
                   <h2 className="font-display text-2xl font-bold text-gold-gradient">
-                    Supported Sovereign Privacy Mandates (14 Global Jurisdictions)
+                    Supported Sovereign Privacy Mandates (15 Global Jurisdictions)
                   </h2>
                 </div>
                 <span className="text-xs font-mono text-muted-foreground">
@@ -1125,9 +1152,9 @@ function Index() {
                         setSelectedFramework(fw.id);
                         document.getElementById("scan")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className={`group cursor-pointer rounded-2xl border p-5 transition-all font-mono ${
+                      className={`group cursor-pointer rounded-2xl border p-5 transition-all font-mono card-hover ${
                         isSelected
-                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40"
+                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/20 ring-1 ring-primary/40 glow-pass"
                           : "border-border/80 bg-black/50 hover:border-primary/50 hover:bg-black/80"
                       }`}
                     >
@@ -1155,23 +1182,43 @@ function Index() {
                   );
                 })}
               </div>
-            </section>
+            </motion.section>
 
             {/* Direct World Laws Database Atlas & Sovereign Matrix */}
-            <div className="space-y-14">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-14"
+            >
               <WorldLawsAtlas />
               <SovereignLegalMatrix
                 onOpenRemediationModal={() => handleOpenUnlockModal("gdpr-global")}
                 isUnlocked={isLegalUnlocked}
               />
-            </div>
+            </motion.div>
           </div>
         )}
 
-        <StatutoryGrievanceNotice />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <StatutoryGrievanceNotice />
+        </motion.div>
 
-        <section id="capabilities" className="mt-20 scroll-mt-8">
-          <h2 className="text-center font-display text-3xl text-gold-gradient font-bold">
+        <motion.section
+          id="capabilities"
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-20 scroll-mt-8"
+        >
+          <h2 className="text-center font-display text-3xl text-gold-gradient font-bold headline-glow">
             Capabilities &amp; Core Architecture
           </h2>
           <div className="gold-rule mx-auto mt-5 max-w-xs" />
@@ -1213,7 +1260,7 @@ function Index() {
               </article>
             ))}
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <Footer />

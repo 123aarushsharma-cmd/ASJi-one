@@ -35,13 +35,16 @@ export interface UnifiedAuditSummary {
 }
 
 export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAuditSummary {
-  // Always derive from radarTerminal or recompute synchronously
   const radar: RadarTerminalData =
     report.radarTerminal || computeRadarTerminalLog(report.target || "domain.com", null, report);
 
   const radarMatrix = radar.verdictMatrix;
   const originCountry = report.originCountry || "";
   const evText = (report.evidence || []).map((e) => e.toLowerCase()).join(" ");
+  const firstEvidence =
+    report.evidence && report.evidence.length > 0
+      ? report.evidence[0]
+      : "Runtime audit telemetry check";
 
   const hasHttps = !evText.includes("unencrypted http") && !evText.includes("not enforce https");
   const hasPreConsentLeak =
@@ -55,21 +58,13 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
 
   const score = typeof report.score === "number" ? report.score : 50;
 
-  // 1. India DPDP Act 2023
   const indiaPassed = Boolean(radarMatrix.indiaDpdp2023.pass);
-  // 2. EU GDPR
   const euPassed = Boolean(radarMatrix.euGdprReforms.pass);
-  // 3. UK DUAA 2026 / UK GDPR
   const ukPassed = Boolean(radarMatrix.ukDuaa2026.pass);
-  // 4. UAE Decree-Law 45
   const uaePassed = Boolean(radarMatrix.uaeDecreeLaw45.pass);
-  // 5. Saudi Arabia PDPL
   const saudiPassed = Boolean(radarMatrix.saudiArabiaPdpl.pass);
-  // 6. Singapore PDPA
   const singaporePassed = Boolean(radarMatrix.singaporePdpa.pass);
 
-  // Additional 4 global sovereign jurisdictions:
-  // Evaluated consistently with radar principles: HTTPS, pre-consent integrity, privacy notice, score threshold
   const usPassed = hasPrivacyNotice && hasHttps && !hasPreConsentLeak && score >= 65;
   const brazilPassed = hasPrivacyNotice && hasHttps && !hasPreConsentLeak && score >= 65;
   const canadaPassed = hasPrivacyNotice && hasHttps && !hasPreConsentLeak && score >= 65;
@@ -92,16 +87,16 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Digital Personal Data Protection Act, 2023",
       statuteRef: "Sections 5(1), 6(1), 8(1), 9 & 13",
       governingBody: "Data Protection Board of India (DPBI)",
-      focusArea:
-        "Unconsented telemetry drift, pre-consent cookies, and Grievance Officer designation",
+      focusArea: "Unconsented telemetry drift and Grievance Officer designation",
       passed: indiaPassed,
       verdictLabel: indiaPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: indiaPassed ? "PASS" : "FAIL",
       badgeText: indiaPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Third-party telemetry scripts initialized prior to verifiable affirmative consent and absence of statutory Grievance Officer escalation portal under Section 13.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Third-party telemetry scripts initialized prior to verifiable affirmative consent.`
+        : `Absence of statutory Grievance Officer escalation portal under Section 13.`,
       passJustification:
         "Explicit affirmative consent gates active prior to non-essential script execution with visible grievance redressal mechanisms in place.",
       violatedArticles: [
@@ -109,7 +104,8 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
         "Section 8(1) Safeguards",
         "Section 13 Redressal",
       ],
-      maxPenalty: "Up to ₹250 Crores per violation",
+      maxPenalty:
+        "Up to ₹250 crore (failure to take reasonable security safeguards) [statutory maximum, not a predicted penalty]",
       severity: indiaPassed ? "COMPLIANT" : "CRITICAL",
       isOriginCountry: isOrigin(["in", "india"]),
     },
@@ -119,28 +115,24 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       countryCode: "EU",
       flag: "🇪🇺",
       region: "Europe",
-      statuteName: "General Data Protection Regulation (EU GDPR)",
+      statuteName: "General Data Protection Regulation (GDPR (EU) 2016/679)",
       statuteRef: "Articles 5(1)(a), 6, 7, 13 & 32",
       governingBody: "European Data Protection Board (EDPB)",
-      focusArea:
-        "Prior opt-in consent, transport layer TLS encryption, and EU Standard Contractual Clauses",
+      focusArea: "Prior opt-in consent and transport layer TLS encryption",
       passed: euPassed,
       verdictLabel: euPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: euPassed ? "PASS" : "FAIL",
       badgeText: euPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Lack of granular prior opt-in consent mechanism prior to cookie injection; telemetry payloads transferred across unapproved third-party jurisdictions under Chapter V.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Lack of granular prior opt-in consent mechanism prior to script injection.`
+        : `Non-compliant transparency notice or missing controller contact coordinates under Article 13.`,
       passJustification:
         "Strict affirmative cookie gating enforced; transport layer security and transparent legal notices conform to EDPB guidance.",
-      violatedArticles: [
-        "Article 7 Consent",
-        "Article 13 Notice",
-        "Article 32 Security",
-        "Chapter V Transfers",
-      ],
-      maxPenalty: "Up to €20M or 4% of Global Annual Turnover",
+      violatedArticles: ["Article 7 Consent", "Article 13 Notice", "Article 32 Security"],
+      maxPenalty:
+        "Up to €20M or 4% of Global Annual Turnover [statutory maximum, not a predicted penalty]",
       severity: euPassed ? "COMPLIANT" : "CRITICAL",
       isOriginCountry: isOrigin(["eu", "de", "fr", "nl", "ie", "it", "es"]),
     },
@@ -150,27 +142,28 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       countryCode: "GB",
       flag: "🇬🇧",
       region: "Europe & UK",
-      statuteName: "Data (Use & Access) Act 2026 & UK GDPR",
+      statuteName: "UK GDPR & Data (Use and Access) Act 2025",
       statuteRef: "UK GDPR & PECR Regulation 6",
       governingBody: "Information Commissioner's Office (ICO)",
-      focusArea:
-        "PECR terminal storage regulation, analytics telemetry boundaries, and lawful access",
+      focusArea: "PECR terminal storage regulation and analytics telemetry boundaries",
       passed: ukPassed,
       verdictLabel: ukPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: ukPassed ? "PASS" : "FAIL",
       badgeText: ukPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "PECR Regulation 6 terminal equipment access violation: analytics tokens stored prior to user consent without lawful analytics exemption.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. PECR Regulation 6 terminal equipment access violation: analytics tokens stored prior to user consent.`
+        : `Incomplete transparency disclosures under UK GDPR Article 13.`,
       passJustification:
-        "Terminal storage operations compliant with updated DUAA 2026 guidelines and PECR consent thresholds.",
+        "Terminal storage operations compliant with updated Data (Use and Access) Act 2025 guidelines and PECR consent thresholds.",
       violatedArticles: [
         "PECR Reg 6 Terminal Storage",
         "UK GDPR Art 5 Principles",
         "UK GDPR Art 13 Notice",
       ],
-      maxPenalty: "Up to £17.5M or 4% of Worldwide Turnover",
+      maxPenalty:
+        "Up to £17.5M or 4% of Worldwide Turnover [statutory maximum, not a predicted penalty]",
       severity: ukPassed ? "COMPLIANT" : "CRITICAL",
       isOriginCountry: isOrigin(["uk", "gb", "co.uk"]),
     },
@@ -183,16 +176,16 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Federal Decree-Law No. 45 of 2021 on Personal Data Protection",
       statuteRef: "Articles 5, 9 & 22",
       governingBody: "UAE Data Office",
-      focusArea:
-        "Cross-border sovereign transfer controls, explicit consent, and security safeguards",
+      focusArea: "Cross-border sovereign transfer controls and explicit consent",
       passed: uaePassed,
       verdictLabel: uaePassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: uaePassed ? "PASS" : "FAIL",
       badgeText: uaePassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Unapproved cross-border transfer of visitor telemetry outside UAE territory without adequate statutory safeguards or Data Office approval.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Unapproved cross-border transfer of visitor telemetry outside UAE territory without adequate statutory safeguards.`
+        : `Inadequate local data controller representation under UAE Data Office regulations.`,
       passJustification:
         "Local data subject telemetry handled with verified consent; transmission security aligned with UAE Data Office regulations.",
       violatedArticles: [
@@ -200,7 +193,8 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
         "Article 9 Security Measures",
         "Article 22 Cross-Border",
       ],
-      maxPenalty: "Administrative penalties and operational suspension",
+      maxPenalty:
+        "Administrative penalties and operational suspension [statutory maximum, not a predicted penalty]",
       severity: uaePassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["ae", "uae"]),
     },
@@ -213,16 +207,16 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Personal Data Protection Law (Royal Decree M/19)",
       statuteRef: "Articles 4, 19 & 29",
       governingBody: "Saudi Data and AI Authority (SDAIA)",
-      focusArea:
-        "Mandatory opt-in consent, cross-border transfer restrictions, and data controller registration",
+      focusArea: "Mandatory opt-in consent and cross-border transfer restrictions",
       passed: saudiPassed,
       verdictLabel: saudiPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: saudiPassed ? "PASS" : "FAIL",
       badgeText: saudiPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Absence of explicit consent mechanism for commercial marketing beacons; cross-border transfer requirements under SDAIA regulations unfulfilled.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Absence of explicit consent mechanism for commercial marketing beacons under SDAIA regulations.`
+        : `Missing data protection officer registration notice under Saudi PDPL.`,
       passJustification:
         "Proper opt-in consent records captured prior to telemetry dispatch; data transfer meets SDAIA compliance guidelines.",
       violatedArticles: [
@@ -230,7 +224,8 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
         "Article 19 Technical Safeguards",
         "Article 29 Cross-Border",
       ],
-      maxPenalty: "Up to SAR 5,000,000 and potential penal sanctions",
+      maxPenalty:
+        "Up to SAR 5,000,000 and potential penal sanctions [statutory maximum, not a predicted penalty]",
       severity: saudiPassed ? "COMPLIANT" : "CRITICAL",
       isOriginCountry: isOrigin(["sa", "saudi"]),
     },
@@ -243,15 +238,16 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Personal Data Protection Act 2012 (Revised 2020)",
       statuteRef: "Sections 13, 24 & 26",
       governingBody: "Personal Data Protection Commission (PDPC)",
-      focusArea: "Transfer Limitation Obligation, Protection Obligation, and Consent Obligation",
+      focusArea: "Transfer Limitation Obligation and Protection Obligation",
       passed: singaporePassed,
       verdictLabel: singaporePassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: singaporePassed ? "PASS" : "FAIL",
       badgeText: singaporePassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Breach of Section 26 Transfer Limitation Obligation due to telemetry routing without ensuring comparable standard of protection.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Breach of Section 26 Transfer Limitation Obligation due to unverified overseas telemetry routing.`
+        : `Incomplete purpose notification under Section 20.`,
       passJustification:
         "Robust protection mechanisms implemented and overseas recipient standards verified under Section 26.",
       violatedArticles: [
@@ -259,7 +255,8 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
         "Section 24 Protection Obligation",
         "Section 26 Transfer Limitation",
       ],
-      maxPenalty: "Up to SGD 1,000,000 or 10% of Singapore Annual Turnover",
+      maxPenalty:
+        "Up to SGD 1,000,000 or 10% of Singapore Annual Turnover [statutory maximum, not a predicted penalty]",
       severity: singaporePassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["sg", "singapore"]),
     },
@@ -272,24 +269,21 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "California Consumer Privacy Act (CCPA / CPRA)",
       statuteRef: "Cal. Civ. Code § 1798.100 et seq.",
       governingBody: "California Privacy Protection Agency (CPPA)",
-      focusArea:
-        "Do Not Sell or Share My Personal Info, transparent notice at collection, Global Privacy Control (GPC)",
+      focusArea: "Do Not Sell or Share My Personal Info and notice at collection",
       passed: usPassed,
       verdictLabel: usPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: usPassed ? "PASS" : "FAIL",
       badgeText: usPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Missing required Notice at Collection and absent opt-out mechanism for behavioral cross-context tracking (§ 1798.120).",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Missing required Notice at Collection and absent opt-out mechanism for behavioral tracking (§ 1798.120).`
+        : `Inadequate consumer rights submission intake link.`,
       passJustification:
         "Transparent notice at collection maintained with clear consumer privacy disclosures and secure transport safeguards.",
-      violatedArticles: [
-        "§ 1798.100 Notice at Collection",
-        "§ 1798.120 Opt-Out Rights",
-        "§ 1798.135 Alternative Opt-Out",
-      ],
-      maxPenalty: "Up to $7,500 per intentional violation",
+      violatedArticles: ["§ 1798.100 Notice at Collection", "§ 1798.120 Opt-Out Rights"],
+      maxPenalty:
+        "Up to $7,500 per intentional violation [statutory maximum, not a predicted penalty]",
       severity: usPassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["us", "usa", "com", "net", "org"]),
     },
@@ -302,15 +296,16 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Lei Geral de Proteção de Dados (LGPD - Law 13.709/2018)",
       statuteRef: "Articles 6, 7 & 46",
       governingBody: "Autoridade Nacional de Proteção de Dados (ANPD)",
-      focusArea: "Legal bases for processing, technical security measures, and DPO appointment",
+      focusArea: "Legal bases for processing and technical security measures",
       passed: brazilPassed,
       verdictLabel: brazilPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: brazilPassed ? "PASS" : "FAIL",
       badgeText: brazilPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Processing of tracking telemetry without valid legal basis under Article 7 and inadequate technical security measures under Article 46.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Processing of tracking telemetry without valid legal basis under Article 7.`
+        : `Incomplete DPO contact disclosures under Article 41.`,
       passJustification:
         "Legitimate bases established and appropriate technical security measures active under LGPD requirements.",
       violatedArticles: [
@@ -318,7 +313,8 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
         "Article 7 Legal Bases",
         "Article 46 Security Measures",
       ],
-      maxPenalty: "Up to 2% of Brazilian Revenue (capped at R$ 50,000,000)",
+      maxPenalty:
+        "Up to 2% of Brazilian Revenue (capped at R$ 50,000,000) [statutory maximum, not a predicted penalty]",
       severity: brazilPassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["br", "brazil", "com.br"]),
     },
@@ -331,23 +327,21 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Personal Information Protection and Electronic Documents Act (PIPEDA)",
       statuteRef: "Schedule 1 Principles 4.3 & 4.7",
       governingBody: "Office of the Privacy Commissioner of Canada (OPC)",
-      focusArea: "Meaningful consent, safeguard obligations, and accountability",
+      focusArea: "Meaningful consent and safeguard obligations",
       passed: canadaPassed,
       verdictLabel: canadaPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: canadaPassed ? "PASS" : "FAIL",
       badgeText: canadaPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Inadequate meaningful consent captured for cross-site behavioral analytics; missing transparent privacy policy disclosures.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Inadequate meaningful consent captured for cross-site behavioral analytics.`
+        : `Missing privacy accountability officer contact details.`,
       passJustification:
         "Transparent disclosures and meaningful user consent principles honored across digital touchpoints.",
-      violatedArticles: [
-        "Principle 4.3 Consent",
-        "Principle 4.7 Safeguards",
-        "Principle 4.8 Openness",
-      ],
-      maxPenalty: "Federal court statutory damages and compliance orders",
+      violatedArticles: ["Principle 4.3 Consent", "Principle 4.7 Safeguards"],
+      maxPenalty:
+        "Federal court statutory damages and compliance orders [statutory maximum, not a predicted penalty]",
       severity: canadaPassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["ca", "canada"]),
     },
@@ -360,25 +354,25 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
       statuteName: "Privacy Act 1988 & Australian Privacy Principles (APPs)",
       statuteRef: "APPs 1, 5, 8 & 11",
       governingBody: "Office of the Australian Information Commissioner (OAIC)",
-      focusArea:
-        "Open and transparent management, notification of collection, cross-border disclosure",
+      focusArea: "Open management and collection notification",
       passed: australiaPassed,
       verdictLabel: australiaPassed
         ? "ALIGNED WITH STATUTORY REQUIREMENTS"
         : "POTENTIAL REGULATORY MISALIGNMENT",
       statusText: australiaPassed ? "PASS" : "FAIL",
       badgeText: australiaPassed ? "STATUTORY PASS" : "STATUTORY FAIL",
-      primaryViolation:
-        "Inadequate notification of collection under APP 5 and unverified cross-border disclosure safeguards under APP 8.",
+      primaryViolation: hasPreConsentLeak
+        ? `Detected evidence: '${firstEvidence}'. Inadequate notification of collection under APP 5.`
+        : `Missing explicit cross-border disclosure disclosures under APP 8.`,
       passJustification:
         "APP 1 transparency standards satisfied; collection notifications and encryption controls maintained.",
       violatedArticles: [
         "APP 1 Open Management",
         "APP 5 Collection Notification",
-        "APP 8 Cross-Border",
         "APP 11 Security",
       ],
-      maxPenalty: "Up to AUD 50,000,000 or 30% of Turnover",
+      maxPenalty:
+        "Up to AUD 50,000,000 or 30% of Turnover [statutory maximum, not a predicted penalty]",
       severity: australiaPassed ? "COMPLIANT" : "HIGH",
       isOriginCountry: isOrigin(["au", "australia", "com.au"]),
     },
@@ -395,7 +389,6 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
   const failingCount = verdicts.filter((v) => !v.passed).length;
   const totalCount = verdicts.length;
 
-  // Overall pass requires zero statutory failures among the primary radar statutes
   const hasAnyRadarFailure =
     !indiaPassed || !euPassed || !ukPassed || !uaePassed || !saudiPassed || !singaporePassed;
   const overallPassed = !hasAnyRadarFailure && score >= 75;
@@ -414,9 +407,6 @@ export function getUnifiedJurisdictionVerdicts(report: AuditReport): UnifiedAudi
   };
 }
 
-/**
- * Helper to match any framework name (from report.frameworks) to its unified verdict.
- */
 export function matchFrameworkToVerdict(
   frameworkName: string,
   summary: UnifiedAuditSummary,
