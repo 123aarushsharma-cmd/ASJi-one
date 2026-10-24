@@ -95,5 +95,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "@tanstack/react-router": "$@tanstack/react-router"
   }
 }
