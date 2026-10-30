@@ -443,6 +443,135 @@ a[role="button"]:hover {
   transform: translateY(-1.5px);
 }
 
+/* High-End Admin Panel & Dashboard Smooth Keyframe Animations */
+@keyframes admin-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) translateZ(0);
+  }
+}
+
+@keyframes admin-fade-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes admin-scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+}
+
+@keyframes admin-slide-right {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes admin-slide-left {
+  0% {
+    opacity: 0;
+    transform: translateX(24px) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes gold-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px -3px rgba(212, 175, 55, 0.25);
+    border-color: rgba(212, 175, 55, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 30px 2px rgba(212, 175, 55, 0.5);
+    border-color: rgba(212, 175, 55, 0.7);
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% {
+    transform: translateY(0) translateZ(0);
+  }
+  50% {
+    transform: translateY(-5px) translateZ(0);
+  }
+}
+
+@utility animate-fade-up {
+  animation: admin-fade-up 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility animate-fade-down {
+  animation: admin-fade-down 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility animate-scale-in {
+  animation: admin-scale-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility animate-slide-right {
+  animation: admin-slide-right 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility animate-slide-left {
+  animation: admin-slide-left 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@utility animate-gold-pulse {
+  animation: gold-glow-pulse 3s ease-in-out infinite;
+}
+
+@utility animate-float {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+/* Stagger delay classes for grid items & dashboard rows */
+.delay-50 { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
 /* Respect user preferences for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

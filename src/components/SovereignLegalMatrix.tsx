@@ -65,6 +65,7 @@ export function SovereignLegalMatrix({
       case "ind-dpdp":
         return `Pursuant to Sections 5(1) & 13 of the Digital Personal Data Protection Act, 2023, data processing across this digital asset is restricted to verified legitimate uses with mandatory itemized notices. Shri/Smt. [Grievance Officer Name] is designated with a 48-hour resolution mandate and DPBI escalation protocols. Tracking or behavioral profiling of minors under 18 is strictly blocked.`;
       case "uae-pdpl":
+      case "ae-pdpl":
         return `Under Federal Decree-Law No. 45 of 2021 (UAE PDPL), personal data is processed strictly in accordance with cross-border transfer protections and Data Office supervisory mandates. Data Subjects maintain statutory rights to erasure, objection, and rectification under Articles 13–18.`;
       case "eu-gdpr":
         return `In compliance with Articles 13 & 14 of Regulation (EU) 2016/679 (GDPR), users are provided transparent notices regarding controller identity, lawful bases for processing, and 30-day SAR redressal. Unconsented cross-border data flows are restricted under EU Standard Contractual Clauses (SCCs).`;
@@ -73,7 +74,30 @@ export function SovereignLegalMatrix({
       case "sg-pdpa":
         return `Pursuant to Singapore's Personal Data Protection Act 2012 (No. 26 of 2012), data collection is limited to reasonable business purposes with mandatory PDPC 72-hour breach notification protocols and designated DPO accountability channels.`;
       case "brazil-lgpd":
+      case "br-lgpd":
         return `Under Brazilian General Data Protection Law (Lei 13.709/2018 - LGPD), all personal data handling conforms to ANPD statutory standards with active Encarregado (DPO) oversight and verifiable legitimate interest impact assessments.`;
+      case "uk-duaa":
+      case "gb-ukgdpr":
+        return `In strict accordance with the UK GDPR, Data Protection Act 2018, and Data (Use and Access) Act (DUAA 2026), telemetry processing adheres to PECR Regulation 6 standards, Senior Responsible Individual (SRI) governance, and ICO International Data Transfer Addendum (IDTA) safeguards.`;
+      case "canada-pipeda":
+      case "ca-pipeda":
+        return `Conforming to Schedule 1 of PIPEDA (SC 2000 c.5) and pending CPPA mandates, data processing satisfies the Ten Fair Information Principles: verified meaningful consent, designated Privacy Officer accountability, and mandatory Real Risk of Significant Harm (RROSH) breach reporting.`;
+      case "aus-privacy":
+      case "au-privacy":
+        return `Pursuant to the Privacy Act 1988 (Cth) and Australian Privacy Principles (APPs 1–13), collection notices strictly observe APP 5 disclosures, cross-border transfers satisfy APP 8 offshore recipient controls, and eligible breaches trigger 30-day NDB scheme notifications.`;
+      case "jp-appi":
+        return `Under Japan's Act on the Protection of Personal Information (APPI Act No. 57 of 2003), utilization purposes are explicitly defined, third-party and cross-border provisions require affirmative opt-in consent under Articles 27 & 28, and robust security safeguards are maintained.`;
+      case "kr-pipa":
+        return `Pursuant to South Korea's Personal Information Protection Act (PIPA Act No. 10465), consent acquisition is segregated under Article 22, designated Privacy Officer oversight is active under Article 31, and international transfers strictly adhere to Article 28-8 requirements.`;
+      case "ch-fadp":
+        return `Under the Swiss Federal Act on Data Protection (Revised FADP SR 235.1), systems maintain Privacy by Design and by Default under Article 7, transparent collection duties under Article 19, and immediate FDPIC security incident notifications under Article 24.`;
+      case "ksa-pdpl":
+      case "sa-pdpl":
+        return `Under Royal Decree No. M/19 and SDAIA regulations, personal data processing within Saudi Arabia requires verified statutory consent, national data sovereignty compliance under Article 29, and mandatory 72-hour regulatory breach disclosure.`;
+      case "za-popia":
+        return `In adherence to South Africa's Protection of Personal Information Act (POPIA Act 4 of 2013), processing is bound by the Eight Lawful Conditions (Sections 8–25), designated Information Officer registration under Section 55, and strict direct marketing bars under Section 69.`;
+      case "ng-ndpa":
+        return `Pursuant to the Nigeria Data Protection Act, 2023 (NDPA Act No. 43 of 2023), processing adheres to lawful principles under Section 24, affirmative consent under Section 25, designated Data Protection Officer oversight under Section 32, and mandatory 72-hour NDPC breach notification under Section 40.`;
       default:
         return activeDraft.executiveSummary;
     }
@@ -118,11 +142,12 @@ export function SovereignLegalMatrix({
   };
 
   const regions = [
-    { label: "All 6 Sovereign Regimes", value: "ALL" },
+    { label: "All 15 Sovereign Regimes", value: "ALL" },
     { label: "🇮🇳 India (DPDP)", value: "Asia-Pacific" },
-    { label: "🇦🇪 UAE (PDPL)", value: "Middle East" },
-    { label: "🇪🇺 Europe & UK (GDPR)", value: "Europe & UK" },
-    { label: "🌎 Americas (CPRA / LGPD)", value: "Americas" },
+    { label: "🇪🇺 Europe & UK (GDPR/DUAA)", value: "Europe & UK" },
+    { label: "🌎 Americas (CPRA / LGPD / PIPEDA)", value: "Americas" },
+    { label: "🇦🇪 Middle East (UAE / KSA)", value: "Middle East" },
+    { label: "🌍 Africa (NDPA / POPIA)", value: "Africa" },
   ];
 
   return (
@@ -145,21 +170,22 @@ export function SovereignLegalMatrix({
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3.5 py-1 font-mono text-[11px] font-semibold tracking-wider text-[#D4AF37] uppercase">
             <Shield className="h-3.5 w-3.5" />
-            <span>6 Sovereign Data Protection Regimes</span>
+            <span>15 Sovereign Data Protection Regimes</span>
           </div>
           <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-[#E5E5E5] sm:text-3xl">
             Sovereign Legal Drafting Sandbox &amp; Compliance Matrix
           </h2>
           <p className="mt-1 font-mono text-xs text-[#E5E5E5]/70">
-            Tailored 2-to-4 line statutory disclosures &amp; turnkey legal drafting templates for
-            India, UAE, Europe (GDPR), United States (CPRA), Singapore (PDPA), and Brazil (LGPD).
+            Tailored 2-to-4 line statutory disclosures &amp; turnkey legal drafting templates across
+            15 sovereign jurisdictions: India, UAE, Saudi Arabia, EU, UK, USA, Canada, Brazil,
+            Singapore, Japan, South Korea, Switzerland, Australia, South Africa, and Nigeria.
           </p>
         </div>
 
         {/* Console Signature Badge */}
         <div className="flex items-center gap-2 rounded-lg border border-[#D4AF37]/20 bg-black/60 px-3 py-1.5 font-mono text-[10px] text-[#D4AF37]/90 backdrop-blur-md">
           <Terminal className="h-3.5 w-3.5 animate-pulse text-[#D4AF37]" />
-          <span>ASJi LAW-TECH SUITE // 6 SOVEREIGN PROTOCOLS</span>
+          <span>ASJi LAW-TECH SUITE // 15 SOVEREIGN PROTOCOLS</span>
         </div>
       </div>
 
@@ -205,11 +231,11 @@ export function SovereignLegalMatrix({
 
       {/* Main Grid Partition */}
       <div className="relative z-10 mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: 6 Sovereign Law Selection Cards */}
+        {/* Left Column: 15 Sovereign Law Selection Cards */}
         <div className="flex flex-col gap-3 lg:col-span-4">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[11px] uppercase tracking-widest text-[#D4AF37]/80">
-              Select Statutory Framework ({filteredDrafts.length} of 6)
+              Select Statutory Framework ({filteredDrafts.length} of 15)
             </p>
             <span className="font-mono text-[10px] text-[#E5E5E5]/50">
               Official 2025/2026 Standards
@@ -520,7 +546,7 @@ export function SovereignLegalMatrix({
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3 font-mono text-[10px] text-[#E5E5E5]/50">
             <span className="flex items-center gap-1.5">
               <Globe className="h-3 w-3 text-[#D4AF37]" />
-              Cryptographically Verified Against 6 Sovereign International Regimes
+              Cryptographically Verified Against 15 Sovereign International Regimes
             </span>
             <span className="text-[#D4AF37]/70">
               ASJi SOVEREIGN LAW-TECH AUTOMATION // VERIFIED STATUTORY INSTRUMENTS

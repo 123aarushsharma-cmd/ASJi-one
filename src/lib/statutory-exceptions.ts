@@ -76,6 +76,41 @@ export function evaluateStatutoryExceptions(
     !evidenceText.includes("unencrypted http") &&
     !leaksText.includes("plaintext http transmission");
 
+  const hasHighSeverityViolation =
+    criticalLeaks.some((l) => l.severity === "critical" || l.severity === "high") || score < 70;
+
+  const indiaHighSeverity =
+    criticalLeaks.some(
+      (l) =>
+        (l.severity === "critical" || l.severity === "high") &&
+        (l.detail.toLowerCase().includes("dpdp") ||
+          l.title.toLowerCase().includes("dpdp") ||
+          l.detail.toLowerCase().includes("grievance")),
+    ) ||
+    score < 70 ||
+    !hasNoExternalTrackers;
+
+  const gdprHighSeverity =
+    criticalLeaks.some(
+      (l) =>
+        (l.severity === "critical" || l.severity === "high") &&
+        (l.detail.toLowerCase().includes("gdpr") ||
+          l.detail.toLowerCase().includes("eprivacy") ||
+          l.detail.toLowerCase().includes("cookie")),
+    ) ||
+    score < 70 ||
+    !hasNoPreConsentCookies ||
+    !hasNoExternalTrackers;
+
+  const usHighSeverity =
+    criticalLeaks.some(
+      (l) =>
+        (l.severity === "critical" || l.severity === "high") &&
+        (l.detail.toLowerCase().includes("ccpa") || l.detail.toLowerCase().includes("california")),
+    ) ||
+    score < 70 ||
+    !hasNoExternalTrackers;
+
   const exceptions: StatutoryExceptionRecord[] = [
     // 1. EU ePrivacy Directive 2002/58/EC (Art. 5(3)) & UK PECR Reg 6(4) - Strictly Necessary Exemption
     {
@@ -86,17 +121,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Directive 2002/58/EC Art. 5(3) & UK PECR Reg. 6(4)",
       exceptionTitle: "Strictly Necessary / Technical Storage Exemption",
       category: "cookies_eprivacy",
-      isQualified: hasNoPreConsentCookies && hasNoExternalTrackers,
+      isQualified: hasNoPreConsentCookies && hasNoExternalTrackers && !gdprHighSeverity,
       qualificationStatus:
-        hasNoPreConsentCookies && hasNoExternalTrackers ? "QUALIFIED_EXEMPTION" : "NOT_QUALIFIED",
+        hasNoPreConsentCookies && hasNoExternalTrackers && !gdprHighSeverity
+          ? "QUALIFIED_EXEMPTION"
+          : "NOT_QUALIFIED",
       statutoryConditions:
         "Storage of cookies or device access is strictly necessary for transmission or to provide an information society service explicitly requested by the user.",
       auditRationale:
-        hasNoPreConsentCookies && hasNoExternalTrackers
+        hasNoPreConsentCookies && hasNoExternalTrackers && !gdprHighSeverity
           ? "The domain does not set invasive third-party marketing or profiling cookies prior to consent. Any technical session cookies fall within the statutory strictly necessary exemption; cookie banner mandate is mitigated."
           : "The domain deploys third-party telemetry or pre-consent marketing tracking, forfeiting the strictly necessary statutory exemption.",
       impactOnVerdict:
-        hasNoPreConsentCookies && hasNoExternalTrackers
+        hasNoPreConsentCookies && hasNoExternalTrackers && !gdprHighSeverity
           ? "Exempt from prior affirmative cookie consent banner under Art. 5(3)."
           : "Full cookie consent banner required under EU & UK law.",
     },
@@ -110,16 +147,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Section 17(1)(b), 17(2)(b) & Section 1(2)",
       exceptionTitle: "Statutory Defense, Statistical & Non-Automated Scope Exceptions",
       category: "processing_scope",
-      isQualified: isStaticOrPureContent,
-      qualificationStatus: isStaticOrPureContent ? "QUALIFIED_EXEMPTION" : "PARTIALLY_EXEMPT",
+      isQualified: isStaticOrPureContent && !indiaHighSeverity,
+      qualificationStatus:
+        isStaticOrPureContent && !indiaHighSeverity ? "QUALIFIED_EXEMPTION" : "NOT_QUALIFIED",
       statutoryConditions:
         "Processing of personal data necessary for enforcement of legal rights, research, archiving, or purely non-personal/static display purposes where no personal data is collected for individual profiling.",
-      auditRationale: isStaticOrPureContent
-        ? "The public domain acts as a static content resource without user-facing personal data capture forms or third-party behavioral profiling, fulfilling minimal fiduciary exposure under Section 17."
-        : "The platform captures visitor identifiers, analytics tokens, or interactive input fields, requiring statutory Section 5 notices and Section 6 consent protocols.",
-      impactOnVerdict: isStaticOrPureContent
-        ? "Statutory exemption applicable for Section 6 consent notices on static operations."
-        : "Standard fiduciary obligations apply under Sections 5, 6, 8 and 13.",
+      auditRationale:
+        isStaticOrPureContent && !indiaHighSeverity
+          ? "The public domain acts as a static content resource without user-facing personal data capture forms or third-party behavioral profiling, fulfilling minimal fiduciary exposure under Section 17."
+          : "The platform captures visitor identifiers, analytics tokens, or interactive input fields, requiring statutory Section 5 notices and Section 6 consent protocols.",
+      impactOnVerdict:
+        isStaticOrPureContent && !indiaHighSeverity
+          ? "Statutory exemption applicable for Section 6 consent notices on static operations."
+          : "Standard fiduciary obligations apply under Sections 5, 6, 8 and 13.",
     },
 
     // 3. California CCPA / CPRA - Cal. Civ. Code § 1798.140 & § 1798.145 Statutory Thresholds
@@ -131,16 +171,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Cal. Civ. Code § 1798.140(d)(1) & § 1798.145",
       exceptionTitle: "Commercial Threshold & Non-Sale Exemption",
       category: "threshold",
-      isQualified: hasNoExternalTrackers && !isGovOrEdu,
-      qualificationStatus: hasNoExternalTrackers ? "CONDITIONAL_SAFE_HARBOR" : "NOT_QUALIFIED",
+      isQualified: hasNoExternalTrackers && !isGovOrEdu && !usHighSeverity,
+      qualificationStatus:
+        hasNoExternalTrackers && !usHighSeverity ? "CONDITIONAL_SAFE_HARBOR" : "NOT_QUALIFIED",
       statutoryConditions:
         "Entity does not exceed $25M gross annual revenue, does not buy/sell/share personal data of 100,000+ CA consumers, and does not derive 50%+ revenue from data sales.",
-      auditRationale: hasNoExternalTrackers
-        ? "No client-side ad-tech data sharing (Meta Pixel, Criteo, Google DoubleClick) detected. Small-to-medium businesses not crossing statutory revenue/volume thresholds are exempt from 'Do Not Sell/Share' mandates."
-        : "Cross-context behavioral advertising telemetry signals detected. If entity meets statutory revenue thresholds, Section 1798.120 opt-out link is legally mandatory.",
-      impactOnVerdict: hasNoExternalTrackers
-        ? "Qualifies for Small Business Threshold Exemption from formal CPRA opt-out requirements."
-        : "Statutory opt-out and GPC signal compliance required under 11 CCR § 7025.",
+      auditRationale:
+        hasNoExternalTrackers && !usHighSeverity
+          ? "No client-side ad-tech data sharing (Meta Pixel, Criteo, Google DoubleClick) detected. Small-to-medium businesses not crossing statutory revenue/volume thresholds are exempt from 'Do Not Sell/Share' mandates."
+          : "Cross-context behavioral advertising telemetry signals detected. If entity meets statutory revenue thresholds, Section 1798.120 opt-out link is legally mandatory.",
+      impactOnVerdict:
+        hasNoExternalTrackers && !usHighSeverity
+          ? "Qualifies for Small Business Threshold Exemption from formal CPRA opt-out requirements."
+          : "Statutory opt-out and GPC signal compliance required under 11 CCR § 7025.",
     },
 
     // 4. EU GDPR - Article 2(2) & Recital 18 / Art 6(1)(f) Legitimate Interest Security Exception
@@ -152,17 +195,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Article 2(2), Recital 49 & Article 6(1)(f)",
       exceptionTitle: "Network & Information Security Legitimate Interest Exception",
       category: "safe_harbor",
-      isQualified: hasHttps && hasNoExternalTrackers,
+      isQualified: hasHttps && hasNoExternalTrackers && !gdprHighSeverity,
       qualificationStatus:
-        hasHttps && hasNoExternalTrackers ? "QUALIFIED_EXEMPTION" : "NOT_QUALIFIED",
+        hasHttps && hasNoExternalTrackers && !gdprHighSeverity
+          ? "QUALIFIED_EXEMPTION"
+          : "NOT_QUALIFIED",
       statutoryConditions:
         "Processing of server logs, IP addresses, and session tokens strictly necessary for ensuring network and information security constitutes an overriding legitimate interest.",
       auditRationale:
-        hasHttps && hasNoExternalTrackers
+        hasHttps && hasNoExternalTrackers && !gdprHighSeverity
           ? "The domain utilizes encrypted transport (TLS) without unauthorized commercial telemetry leakage. Server-side diagnostic access logging qualifies as a recognized legitimate interest under Recital 49 without requiring prior consent."
           : "Telemetry scripts transmit data beyond internal server security parameters without demonstrated legitimate interest balance test.",
       impactOnVerdict:
-        hasHttps && hasNoExternalTrackers
+        hasHttps && hasNoExternalTrackers && !gdprHighSeverity
           ? "Legitimate interest defense accepted for security and technical operations."
           : "Prior opt-in consent mandatory under Article 6(1)(a) & Article 7.",
     },
@@ -176,17 +221,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Section 4(1), Section 4(4) & Second Schedule",
       exceptionTitle: "Business Contact Info & Legitimate Interests Exception",
       category: "safe_harbor",
-      isQualified: isStaticOrPureContent || isGovOrEdu,
+      isQualified: (isStaticOrPureContent || isGovOrEdu) && !hasHighSeverityViolation,
       qualificationStatus:
-        isStaticOrPureContent || isGovOrEdu ? "QUALIFIED_EXEMPTION" : "PARTIALLY_EXEMPT",
+        (isStaticOrPureContent || isGovOrEdu) && !hasHighSeverityViolation
+          ? "QUALIFIED_EXEMPTION"
+          : "NOT_QUALIFIED",
       statutoryConditions:
         "PDPA data protection provisions do not apply to business contact information, public agencies, or processing under recognized legitimate interest assessments.",
       auditRationale:
-        isStaticOrPureContent || isGovOrEdu
+        (isStaticOrPureContent || isGovOrEdu) && !hasHighSeverityViolation
           ? "Domain scope aligns with public information dissemination or standard business contact display, qualifying for Second Schedule exceptions."
           : "Interactive consumer telemetry initiated; requires standard Section 13 Purpose Limitation and Section 26 cross-border safeguards.",
       impactOnVerdict:
-        isStaticOrPureContent || isGovOrEdu
+        (isStaticOrPureContent || isGovOrEdu) && !hasHighSeverityViolation
           ? "Statutory exemption from individual consumer consent for public business contact data."
           : "Full Part IV & Part VIA statutory obligations apply.",
     },
@@ -200,16 +247,21 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "Section 6D (Small Business Exemption)",
       exceptionTitle: "Small Business Annual Turnover (AU$3M) Exemption",
       category: "threshold",
-      isQualified: !isGovOrEdu && hasNoExternalTrackers,
-      qualificationStatus: hasNoExternalTrackers ? "CONDITIONAL_SAFE_HARBOR" : "NOT_QUALIFIED",
+      isQualified: !isGovOrEdu && hasNoExternalTrackers && !hasHighSeverityViolation,
+      qualificationStatus:
+        hasNoExternalTrackers && !hasHighSeverityViolation
+          ? "CONDITIONAL_SAFE_HARBOR"
+          : "NOT_QUALIFIED",
       statutoryConditions:
         "Entities with an annual turnover of AU$3 Million or less are statutorily exempt from the 13 APPs unless operating in health services or trading personal information.",
-      auditRationale: hasNoExternalTrackers
-        ? "No commercial trading or third-party pixel monetisation of Australian consumer data observed. Small businesses operating under the threshold can invoke Section 6D statutory defense."
-        : "Third-party commercial ad network beacons identified; if trading user identifiers, small business exemption is legally forfeited.",
-      impactOnVerdict: hasNoExternalTrackers
-        ? "Eligible for Australian statutory small business safe harbor."
-        : "Standard APP compliance required if threshold exceeded.",
+      auditRationale:
+        hasNoExternalTrackers && !hasHighSeverityViolation
+          ? "No commercial trading or third-party pixel monetisation of Australian consumer data observed. Small businesses operating under the threshold can invoke Section 6D statutory defense."
+          : "Third-party commercial ad network beacons identified; if trading user identifiers, small business exemption is legally forfeited.",
+      impactOnVerdict:
+        hasNoExternalTrackers && !hasHighSeverityViolation
+          ? "Eligible for Australian statutory small business safe harbor."
+          : "Standard APP compliance required if threshold exceeded.",
     },
 
     // 7. Statutory Intermediary Safe Harbor (India IT Act § 79 / US § 230 / EU DSA Art. 6)
@@ -221,17 +273,19 @@ export function evaluateStatutoryExceptions(
       sectionOrArticle: "India IT Act § 79 · EU DSA Art. 6 · US § 230",
       exceptionTitle: "Passive Conduit & Intermediary Safe Harbor Exemption",
       category: "safe_harbor",
-      isQualified: score >= 75 && hasNoPreConsentCookies,
+      isQualified: score >= 75 && hasNoPreConsentCookies && !hasHighSeverityViolation,
       qualificationStatus:
-        score >= 75 && hasNoPreConsentCookies ? "QUALIFIED_EXEMPTION" : "NOT_QUALIFIED",
+        score >= 75 && hasNoPreConsentCookies && !hasHighSeverityViolation
+          ? "QUALIFIED_EXEMPTION"
+          : "NOT_QUALIFIED",
       statutoryConditions:
         "Entity acts as a passive network conduit, does not initiate or modify user content transmission, and observes statutory due diligence.",
       auditRationale:
-        score >= 75 && hasNoPreConsentCookies
+        score >= 75 && hasNoPreConsentCookies && !hasHighSeverityViolation
           ? "Target demonstrates compliant transport security and passive conduit behavior without unconsented third-party modification."
           : "Active pre-consent tracker injection or unencrypted payload transmission impairs the presumption of passive intermediary status.",
       impactOnVerdict:
-        score >= 75 && hasNoPreConsentCookies
+        score >= 75 && hasNoPreConsentCookies && !hasHighSeverityViolation
           ? "Statutory safe-harbor protections remain active under Section 79 / DSA Art. 6."
           : "Safe harbor status compromised; immediate due diligence remediation recommended.",
     },

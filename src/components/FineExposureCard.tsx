@@ -6,7 +6,7 @@ interface FineExposureCardProps {
   report: AuditReport;
 }
 
-type CurrencyRegion = "IN" | "USD" | "EUR";
+type CurrencyRegion = "IN" | "USD" | "EUR" | "NG";
 
 function detectIsIndiaTarget(target: string, originCountry?: string): boolean {
   if (!target) return false;
@@ -19,14 +19,30 @@ function detectIsIndiaTarget(target: string, originCountry?: string): boolean {
   return hasInDomain || isIndiaCountry;
 }
 
+function detectIsNigeriaTarget(target: string, originCountry?: string): boolean {
+  if (!target) return false;
+  const clean = target.toLowerCase().trim();
+  const hasNgDomain =
+    /\.(ng|com\.ng|gov\.ng|edu\.ng|org\.ng)($|\/|\?|:)/i.test(clean) ||
+    clean.endsWith(".ng") ||
+    clean.endsWith(".com.ng");
+  const isNigeriaCountry = originCountry ? /nigeria|\bng\b/i.test(originCountry) : false;
+  return hasNgDomain || isNigeriaCountry;
+}
+
 export function FineExposureCard({ report }: FineExposureCardProps) {
   const isAutoIndia = useMemo(
     () => detectIsIndiaTarget(report.target, report.originCountry),
     [report.target, report.originCountry],
   );
 
+  const isAutoNigeria = useMemo(
+    () => detectIsNigeriaTarget(report.target, report.originCountry),
+    [report.target, report.originCountry],
+  );
+
   const [selectedRegion, setSelectedRegion] = useState<CurrencyRegion>(() =>
-    isAutoIndia ? "IN" : "USD",
+    isAutoIndia ? "IN" : isAutoNigeria ? "NG" : "USD",
   );
 
   // Analyze leaks for DPDP 2023 statutory mapping
@@ -130,6 +146,7 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
               className="cursor-pointer appearance-none rounded-xl border border-primary/40 bg-black/80 px-3.5 py-2 pr-8 text-xs font-semibold text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="IN">🇮🇳 India — DPDP Act 2023 (₹ INR)</option>
+              <option value="NG">🇳🇬 Nigeria — NDPA 2023 (₦ NGN)</option>
               <option value="USD">🌐 Global / USA ($ USD)</option>
               <option value="EUR">🇪🇺 EU — GDPR (€ EUR)</option>
             </select>
@@ -160,7 +177,7 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                   Maximum Statutory Penalty Cap
                 </p>
                 <p className="mt-1 font-display text-4xl font-extrabold tracking-tight text-amber-400 sm:text-5xl">
-                  Up to ₹{dpdpMapping.maxTotalCrores} crore
+                  Up to ₹{dpdpMapping.maxTotalCrores} Crores
                 </p>
               </div>
               <div className="text-right sm:self-end">
@@ -168,15 +185,14 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                   Approx. ${(dpdpMapping.maxTotalCrores * 1.2).toFixed(1)} Million USD
                 </p>
                 <p className="text-[10px] text-muted-foreground/80">
-                  Statutory maximum, not a predicted penalty
+                  Per violation instance under DPDP Schedule 1
                 </p>
               </div>
             </div>
 
             <p className="mt-3 border-t border-border/50 pt-3 text-xs leading-relaxed text-muted-foreground">
-              Certain contraventions under applicable DPDP provisions may attract penalties up to
-              ₹250 crore (failure to take reasonable security safeguards) [statutory maximum, not a
-              predicted penalty].
+              Certain contraventions under applicable DPDP 2023 provisions may attract penalties of
+              up to ₹250 crore, subject to applicable statutory provisions and circumstances.
             </p>
           </div>
 
@@ -193,7 +209,7 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
             </div>
 
             <div className="grid gap-3.5">
-              {/* Rule 1: Security Safeguard Failure -> Up to ₹250 crore (failure to take reasonable security safeguards) */}
+              {/* Rule 1: Security Safeguard Failure -> Up to ₹250 Crores */}
               <div
                 className={`rounded-xl border p-4 transition-all ${
                   dpdpMapping.isUnencryptedOrLeak
@@ -218,19 +234,15 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
                     </p>
                   </div>
                   <div className="shrink-0 sm:text-right">
-                    <p className="font-display text-base font-extrabold text-amber-400">
-                      Up to ₹250 crore (failure to take reasonable security safeguards)
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">
-                      Statutory maximum, not a predicted penalty
+                    <p className="font-display text-lg font-extrabold text-amber-400">
+                      Up to ₹250 Crores
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-2.5 rounded-lg border border-border/50 bg-black/60 p-2.5">
                   <p className="font-sans text-xs font-bold text-amber-300">
-                    Potential Penalty: Up to ₹250 crore (failure to take reasonable security
-                    safeguards) [statutory maximum, not a predicted penalty]
+                    Potential Penalty: Up to ₹250 Crores (Section 33(1))
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                     {dpdpMapping.isUnencryptedOrLeak
@@ -340,6 +352,48 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
             </p>
           </div>
         </div>
+      ) : selectedRegion === "NG" ? (
+        /* NIGERIA NDPA 2023 MODE */
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                Estimated Maximum Exposure (Nigeria NDPA 2023)
+              </p>
+              <p className="mt-1 font-display text-3xl font-bold text-amber-400 sm:text-4xl">
+                ₦10,000,000 / 2% Revenue
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              NDPC Section 48: Greater of ₦10M or 2% of Annual Gross Revenue
+            </div>
+          </div>
+
+          <p className="rounded-xl border border-border bg-secondary/30 p-4 text-sm leading-relaxed text-muted-foreground">
+            Under the Nigeria Data Protection Act, 2023 (NDPA 2023), Data Controllers and Processors
+            of Major Importance (DCMI) face statutory penalties up to ₦10,000,000 or 2% of annual
+            gross revenue for unauthorized pre-consent data processing, failure to designate a
+            certified DPO, or failure to notify the Nigeria Data Protection Commission (NDPC) within
+            72 hours of a breach.
+          </p>
+
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-xs font-mono space-y-2">
+            <div className="font-bold text-amber-300">NDPA Statutory Sanctions Schedule:</div>
+            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+              <li>
+                Section 25: Unlawful processing or unconsented telemetry tracking (Higher Tier)
+              </li>
+              <li>Section 32: Unregistered Data Controller of Major Importance (DCMI) status</li>
+              <li>
+                Section 39: Inadequate organizational &amp; technical security measures
+                (TLS/Encryption)
+              </li>
+              <li>
+                Section 40: Breach reporting default (Strict 72-hour notification SLA to NDPC)
+              </li>
+            </ul>
+          </div>
+        </div>
       ) : (
         /* GLOBAL / USD / EUR MODE */
         <div className="space-y-4">
@@ -367,13 +421,21 @@ export function FineExposureCard({ report }: FineExposureCardProps) {
           </p>
 
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3.5 text-xs text-muted-foreground">
-            <span>Scanning a target operating in or serving residents of India?</span>
-            <button
-              onClick={() => setSelectedRegion("IN")}
-              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300 transition-colors hover:bg-amber-500/20"
-            >
-              View DPDP Act 2023 (₹ Crores)
-            </button>
+            <span>Scanning a target operating in or serving residents of India or Nigeria?</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedRegion("IN")}
+                className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300 transition-colors hover:bg-amber-500/20 cursor-pointer"
+              >
+                🇮🇳 DPDP (₹)
+              </button>
+              <button
+                onClick={() => setSelectedRegion("NG")}
+                className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300 transition-colors hover:bg-amber-500/20 cursor-pointer"
+              >
+                🇳🇬 NDPA (₦)
+              </button>
+            </div>
           </div>
         </div>
       )}

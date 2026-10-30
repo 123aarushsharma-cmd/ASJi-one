@@ -9,10 +9,10 @@ import {
   Sparkles,
   BookOpen,
   Award,
-  Terminal,
   Send,
-  Share2,
   FolderArchive,
+  Lock,
+  ChevronRight,
 } from "lucide-react";
 import type { AuditReport } from "@/lib/audit-types";
 import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
@@ -25,10 +25,18 @@ import { toast } from "sonner";
 
 interface RemediationViewerProps {
   report: AuditReport;
+  isUnlocked?: boolean;
+  onOpenUnlockModal?: (
+    preselectedTier?: "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle",
+  ) => void;
   onRescanRequested?: () => void;
 }
 
-export function RemediationViewer({ report }: RemediationViewerProps) {
+export function RemediationViewer({
+  report,
+  isUnlocked = false,
+  onOpenUnlockModal,
+}: RemediationViewerProps) {
   const [copiedPatchId, setCopiedPatchId] = useState<string | null>(null);
   const [copiedHandover, setCopiedHandover] = useState(false);
   const [activeTab, setActiveTab] = useState<
@@ -40,6 +48,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
   const currentPatch: GeneratedPatch = patches[selectedPatchIndex] || patches[0];
 
   const handleCopyPatch = (patch: GeneratedPatch) => {
+    if (!isUnlocked) {
+      toast.error("Remediation Code Patches Locked", {
+        description: "Please unlock the package (₹2,499/mo) to copy executable code patches.",
+      });
+      onOpenUnlockModal?.("patch-code");
+      return;
+    }
     navigator.clipboard.writeText(patch.code);
     setCopiedPatchId(patch.id);
     toast.success(`Copied ${patch.filename}`, {
@@ -49,6 +64,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
   };
 
   const handleCopyHandover = () => {
+    if (!isUnlocked) {
+      toast.error("Handover Pack Locked", {
+        description: "Please unlock the package (₹2,499/mo) to copy client handover documents.",
+      });
+      onOpenUnlockModal?.("patch-code");
+      return;
+    }
     const doc = generateClientHandoverDocument(report);
     navigator.clipboard.writeText(doc);
     setCopiedHandover(true);
@@ -59,6 +81,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
   };
 
   const handleDownloadSinglePatch = (patch: GeneratedPatch) => {
+    if (!isUnlocked) {
+      toast.error("Remediation Code Patches Locked", {
+        description: "Please unlock the package (₹2,499/mo) to download executable scripts.",
+      });
+      onOpenUnlockModal?.("patch-code");
+      return;
+    }
     const blob = new Blob([patch.code], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -70,6 +99,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
   };
 
   const handleDownloadAllPatchesBundle = () => {
+    if (!isUnlocked) {
+      toast.error("Remediation Bundle Locked", {
+        description: "Please unlock the package (₹2,499/mo) to export all code patches.",
+      });
+      onOpenUnlockModal?.("patch-code");
+      return;
+    }
     const doc = generateClientHandoverDocument(report);
     const blob = new Blob([doc], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -84,6 +120,11 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
     });
   };
 
+  // Get lines for preview
+  const patchLines = (currentPatch?.code || "").split("\n");
+  const previewLines = patchLines.slice(0, 5).join("\n");
+  const hiddenLines = patchLines.slice(5).join("\n") || "# [Additional lines concealed...]";
+
   return (
     <div className="surface-panel overflow-hidden p-4 sm:p-7 animate-in fade-in duration-300">
       {/* Header Banner */}
@@ -97,25 +138,41 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
               <h3 className="font-display text-xl font-bold text-gold-gradient">
                 Automated Remediation Code Patches
               </h3>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                <Sparkles className="h-3 w-3" /> Activated
-              </span>
+              {isUnlocked ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
+                  <Sparkles className="h-3 w-3" /> Activated
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
+                  <Lock className="h-3 w-3" /> Locked Preview (₹2,499/mo)
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Production-ready engineering scripts, edge middleware, and client delivery pack for{" "}
-              {report.target || "your domain"}
+              <strong className="text-foreground">{report.target || "your domain"}</strong>
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDownloadAllPatchesBundle}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 cursor-pointer shadow-sm"
-          >
-            <FolderArchive className="h-4 w-4" /> Download Complete Patch Bundle
-          </button>
+          {isUnlocked ? (
+            <button
+              type="button"
+              onClick={handleDownloadAllPatchesBundle}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 cursor-pointer shadow-sm"
+            >
+              <FolderArchive className="h-4 w-4" /> Download Complete Patch Bundle
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onOpenUnlockModal?.("patch-code")}
+              className="btn-gold rounded-xl px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-lg flex items-center gap-1.5"
+            >
+              <Lock className="h-3.5 w-3.5" /> Unlock Code Patches (₹2,499/mo)
+            </button>
+          )}
         </div>
       </div>
 
@@ -129,7 +186,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Code className="h-4 w-4" /> Automated Code Patches
+          <Code className="h-4 w-4" /> Automated Code Patches {!isUnlocked && "🔒"}
         </button>
         <button
           onClick={() => setActiveTab("handover")}
@@ -139,7 +196,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Send className="h-4 w-4" /> Client Handover Pack
+          <Send className="h-4 w-4" /> Client Handover Pack {!isUnlocked && "🔒"}
         </button>
         <button
           onClick={() => setActiveTab("letterhead")}
@@ -188,9 +245,12 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                     : "border-border/60 bg-secondary/20 text-muted-foreground hover:border-border hover:text-foreground"
                 }`}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
-                  {patch.category}
-                </span>
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
+                    {patch.category}
+                  </span>
+                  {!isUnlocked && <Lock className="h-3 w-3 text-amber-400" />}
+                </div>
                 <span className="mt-1 text-xs font-medium truncate w-full">{patch.filename}</span>
               </button>
             ))}
@@ -198,7 +258,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
 
           {/* Active Patch Display Card */}
           {currentPatch && (
-            <div className="rounded-2xl border border-primary/20 bg-background/80 p-4 sm:p-6 space-y-4">
+            <div className="rounded-2xl border border-primary/20 bg-background/80 p-4 sm:p-6 space-y-4 relative">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -223,7 +283,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                     ) : (
                       <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                    <span>{copiedPatchId === currentPatch.id ? "Copied" : "Copy Code"}</span>
+                    <span>
+                      {copiedPatchId === currentPatch.id
+                        ? "Copied"
+                        : isUnlocked
+                          ? "Copy Code"
+                          : "🔒 Unlock Code"}
+                    </span>
                   </button>
 
                   <button
@@ -232,16 +298,54 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-primary" />
-                    <span>Download</span>
+                    <span>{isUnlocked ? "Download" : "🔒 Download"}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Code Snippet Box with horizontal scroll */}
-              <div className="relative rounded-xl bg-black/90 border border-border p-4 overflow-x-auto">
+              {/* Code Snippet Box with Preview & Blur Lock Overlay */}
+              <div className="relative rounded-xl bg-black/95 border border-border p-4 overflow-hidden">
+                {/* Visible Preview Lines */}
                 <pre className="font-mono text-xs text-emerald-400 leading-relaxed">
-                  <code>{currentPatch.code}</code>
+                  <code>{previewLines}</code>
                 </pre>
+
+                {/* Blurred Concealed Lines */}
+                <div
+                  className={`relative mt-1 filter ${
+                    isUnlocked ? "blur-0" : "blur-[6px] opacity-25 select-none pointer-events-none"
+                  }`}
+                >
+                  <pre className="font-mono text-xs text-emerald-400/80 leading-relaxed">
+                    <code>{hiddenLines}</code>
+                  </pre>
+                </div>
+
+                {/* Glassmorphic Lock Overlay for Non-Unlocked State */}
+                {!isUnlocked && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/50 bg-primary/20 text-primary mb-3 shadow-xl">
+                      <Lock className="h-6 w-6" />
+                    </div>
+                    <h4 className="font-display text-lg sm:text-xl font-bold text-gold-gradient">
+                      Remediation Code Patches Locked (₹2,499/mo)
+                    </h4>
+                    <p className="mt-1.5 max-w-lg text-xs font-mono text-muted-foreground leading-relaxed">
+                      Full executable NGINX, Apache, Cloudflare Worker Edge Shields, and CMP scripts
+                      for <strong className="text-white">{report.target || "your domain"}</strong>{" "}
+                      are locked until subscription payment.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onOpenUnlockModal?.("patch-code")}
+                      className="btn-gold mt-4 rounded-xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-xl flex items-center gap-2 hover:scale-[1.02] transition-transform"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span>Unlock Code Patches (₹2,499/mo)</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border border-border/40 bg-secondary/20 p-3.5 text-xs text-muted-foreground">
@@ -257,7 +361,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
       {/* TAB 2: Client Handover Pack */}
       {activeTab === "handover" && (
         <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-background/80 p-5 space-y-4">
+          <div className="rounded-2xl border border-primary/20 bg-background/80 p-5 space-y-4 relative">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
               <div>
                 <h4 className="text-base font-semibold text-foreground">
@@ -280,23 +384,54 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
-                  <span>{copiedHandover ? "Copied Handover Pack" : "Copy Handover Pack"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadAllPatchesBundle}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3.5 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary cursor-pointer"
-                >
-                  <Download className="h-4 w-4 text-primary" />
-                  <span>Download .txt</span>
+                  <span>
+                    {copiedHandover
+                      ? "Copied Handover Pack"
+                      : isUnlocked
+                        ? "Copy Handover Pack"
+                        : "🔒 Unlock Handover Pack"}
+                  </span>
                 </button>
               </div>
             </div>
 
-            <div className="rounded-xl bg-black/90 border border-border p-4 max-h-96 overflow-y-auto overflow-x-auto">
+            <div className="relative rounded-xl bg-black/95 border border-border p-4 max-h-96 overflow-hidden">
               <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {generateClientHandoverDocument(report)}
+                {generateClientHandoverDocument(report).slice(0, 300)}
               </pre>
+
+              <div
+                className={`relative mt-2 filter ${
+                  isUnlocked ? "blur-0" : "blur-[6px] opacity-25 select-none pointer-events-none"
+                }`}
+              >
+                <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {generateClientHandoverDocument(report).slice(300)}
+                </pre>
+              </div>
+
+              {!isUnlocked && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/50 bg-primary/20 text-primary mb-3 shadow-xl">
+                    <Lock className="h-6 w-6" />
+                  </div>
+                  <h4 className="font-display text-lg sm:text-xl font-bold text-gold-gradient">
+                    Client Handover Deliverable Pack Locked
+                  </h4>
+                  <p className="mt-1.5 max-w-lg text-xs font-mono text-muted-foreground leading-relaxed">
+                    Full white-label client handover documents and turnkey delivery packages are
+                    unlocked upon purchasing the Code Patches (₹2,499/mo) or Enterprise Bundle.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onOpenUnlockModal?.("patch-code")}
+                    className="btn-gold mt-4 rounded-xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-xl flex items-center gap-2 hover:scale-[1.02] transition-transform"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Unlock Handover Pack (₹2,499/mo)</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -377,6 +512,13 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
               <button
                 type="button"
                 onClick={() => {
+                  if (!isUnlocked) {
+                    toast.error("DPA Clauses Locked", {
+                      description: "Please unlock package to copy statutory DPA clauses.",
+                    });
+                    onOpenUnlockModal?.("full-bundle");
+                    return;
+                  }
                   navigator.clipboard.writeText(
                     "Data Fiduciary and Processor agree to adhere strictly to statutory security standards under GDPR Art 28 and DPDP Act 2023 Sec 8...",
                   );
@@ -384,7 +526,7 @@ export function RemediationViewer({ report }: RemediationViewerProps) {
                 }}
                 className="inline-flex items-center gap-1.5 rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary font-medium hover:bg-primary/20 cursor-pointer"
               >
-                <Copy className="h-3.5 w-3.5" /> Copy Clause
+                <Copy className="h-3.5 w-3.5" /> {isUnlocked ? "Copy Clause" : "🔒 Unlock Clause"}
               </button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground bg-black/60 p-3.5 rounded-lg border border-border leading-relaxed font-sans">

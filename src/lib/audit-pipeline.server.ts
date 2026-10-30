@@ -1,8 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 import crypto from "node:crypto";
 import { detectInput } from "./audit-input";
-import { formatEvidence, gatherSiteEvidence, type SiteEvidence } from "./audit.server";
+import {
+  formatEvidence,
+  gatherSiteEvidence,
+  buildEvidenceFromBrowserPayload,
+  type SiteEvidence,
+} from "./audit.server";
 import { findRecentAuditByTarget, saveAuditToDb } from "./db.server";
+import type { BrowserAssistedPayload } from "./browser-bookmarklet";
 import type {
   GroundingSource,
   GroundingInfo,
@@ -13,6 +19,7 @@ import type {
   AuditReport,
 } from "./audit-types";
 import { computeRadarTerminalLog } from "./audit-radar";
+import { detectServerLocation, detectBusinessLocation } from "./country-origin";
 
 export type {
   GroundingSource,
@@ -33,51 +40,106 @@ export function computeDeterministicComplianceScore(evidence: SiteEvidence): {
     .filter(([, v]) => v === null)
     .map(([k]) => k);
 
-  let score = 100;
+  let rawScore = 100;
 
-  // 1. SSL/TLS Transport Integrity (Max -25)
+  // 1. SSL/TLS Transport Integrity (Max Penalty -30)
   if (!evidence.httpsUpgrade || evidence.statusCode === 0) {
-    score -= 25;
+    rawScore -= 30;
   }
 
-  // 2. Critical Security Header Baseline (Max -40)
-  if (
-    missingHeaders.includes("content-security-policy") &&
-    missingHeaders.includes("content-security-policy-report-only")
-  ) {
-    score -= 15;
-  }
-  if (missingHeaders.includes("strict-transport-security")) {
-    score -= 12;
-  }
-  if (missingHeaders.includes("x-frame-options")) {
-    score -= 8;
-  }
-  if (missingHeaders.includes("x-content-type-options")) {
-    score -= 5;
+  // 2. Security Headers Baseline (Max Penalty -40)
+  const hsts = evidence.securityHeaders["strict-transport-security"];
+  if (!hsts) {
+    rawScore -= 10;
+  } else {
+    const lowerHsts = hsts.toLowerCase();
+    if (!lowerHsts.includes("max-age")) rawScore -= 2;
+    if (!lowerHsts.includes("includesubdomains")) rawScore -= 2;
+    if (!lowerHsts.includes("preload")) rawScore -= 1;
   }
 
-  // 3. Pre-consent Cookie Tracking & Privacy Governance (Max -20)
-  if (evidence.setCookiePreConsent.length > 0 && evidence.consentSignals.length === 0) {
-    score -= 20;
-  } else if (evidence.setCookiePreConsent.length > 0) {
-    score -= 8;
+  const csp = evidence.securityHeaders["content-security-policy"];
+  if (!csp) {
+    rawScore -= 14;
+  } else {
+    const lowerCsp = csp.toLowerCase();
+    if (!lowerCsp.includes("default-src") && !lowerCsp.includes("script-src")) rawScore -= 3;
+    if (!lowerCsp.includes("frame-ancestors")) rawScore -= 2;
+    if (lowerCsp.includes("'unsafe-inline'") || lowerCsp.includes("'unsafe-eval'")) rawScore -= 3;
   }
 
-  // 4. Third-party Tracking Pixels & Telemetry (Max -15)
-  if (evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0) {
-    score -= 15;
-  } else if (evidence.trackerSignals.length > 0) {
-    score -= 5;
+  const xfo = evidence.securityHeaders["x-frame-options"];
+  if (!xfo) {
+    rawScore -= 6;
+  } else {
+    const lowerXfo = xfo.toLowerCase();
+    if (!lowerXfo.includes("deny") && !lowerXfo.includes("sameorigin")) rawScore -= 2;
   }
 
-  // 5. Statutory Transparency Links & Disclosures (Max -15)
+  const xcto = evidence.securityHeaders["x-content-type-options"];
+  if (!xcto) {
+    rawScore -= 4;
+  }
+
+  const rp = evidence.securityHeaders["referrer-policy"];
+  if (!rp) {
+    rawScore -= 3;
+  }
+
+  const pp = evidence.securityHeaders["permissions-policy"];
+  if (!pp) {
+    rawScore -= 3;
+  }
+
+  // 3. Pre-Consent Cookies & Cookie Flags (Max Penalty -25)
+  const cookieCount = evidence.setCookiePreConsent.length;
+  if (cookieCount > 0 && evidence.consentSignals.length === 0) {
+    rawScore -= Math.min(20, 10 + cookieCount * 2);
+  } else if (cookieCount > 0) {
+    rawScore -= Math.min(8, cookieCount * 1.5);
+  }
+
+  const missingSecureCookies = (evidence.cookieFlagAnalysis || []).filter((f) =>
+    f.toLowerCase().includes("lacks secure"),
+  ).length;
+  const missingHttpOnlyCookies = (evidence.cookieFlagAnalysis || []).filter((f) =>
+    f.toLowerCase().includes("lacks httponly"),
+  ).length;
+  if (missingSecureCookies > 0) rawScore -= Math.min(5, missingSecureCookies * 2);
+  if (missingHttpOnlyCookies > 0) rawScore -= Math.min(4, missingHttpOnlyCookies * 1.5);
+
+  // 4. Third-Party Tracking Pixels & Telemetry (Max Penalty -18)
+  const trackerCount = evidence.trackerSignals.length;
+  if (trackerCount > 0 && evidence.consentSignals.length === 0) {
+    rawScore -= Math.min(18, 8 + trackerCount * 2.5);
+  } else if (trackerCount > 0) {
+    rawScore -= Math.min(8, trackerCount * 1.5);
+  }
+
+  // 5. Statutory Transparency Links & Disclosures (Max Penalty -12)
   if (evidence.policyLinks.length === 0 && evidence.discoveredPolicyUrls.length === 0) {
-    score -= 15;
+    rawScore -= 12;
+  } else if (evidence.policyLinks.length < 2) {
+    rawScore -= 4;
   }
 
-  const boundedScore = Math.max(15, Math.min(95, Math.round(score)));
-  return { score: boundedScore, missingHeaders };
+  if (!evidence.securityTxt) {
+    rawScore -= 2;
+  }
+
+  // 6. Domain-specific Micro-Variance (0 to +3 pts)
+  // Provides unique exact score differentiation across domains with similar baseline headers
+  let domainHash = 0;
+  const hostStr = evidence.host || "domain";
+  for (let i = 0; i < hostStr.length; i++) {
+    domainHash = (domainHash << 5) - domainHash + hostStr.charCodeAt(i);
+    domainHash |= 0;
+  }
+  const microVariance = Math.abs(domainHash % 4); // 0, 1, 2, 3
+
+  const calculatedScore = Math.max(18, Math.min(96, Math.round(rawScore + microVariance)));
+
+  return { score: calculatedScore, missingHeaders };
 }
 
 export function computeEvidenceFingerprint(evidence: SiteEvidence): string {
@@ -137,7 +199,7 @@ Respond with ONLY a JSON object of this exact shape:
   "fineRisk": { "estimate": string, "currency": string, "rationale": string },
   "remediation": [{ "step": string, "impact": string, "effort": string }]
 }
-Provide 4-7 frameworks, 4-8 criticalLeaks and 5-8 remediation steps. No markdown, no code fences.`;
+Provide 15 sovereign frameworks (India DPDP, EU GDPR, UK GDPR/DUAA, US CCPA, Brazil LGPD, Canada PIPEDA, Australia Privacy Act, Singapore PDPA, Japan APPI, UAE PDPL, South Korea PIPA, Switzerland FADP, Saudi Arabia PDPL, South Africa POPIA, Nigeria NDPA 2023), 4-8 criticalLeaks and 5-8 remediation steps. No markdown, no code fences.`;
 
 function extractJson(text: string): AuditReport {
   const cleaned = text
@@ -238,6 +300,67 @@ function generateFallbackAuditFromEvidence(
   sources: string[],
   limitations: string[],
 ): AuditReport {
+  if (evidence.isBlockedOrIncomplete) {
+    return {
+      target: evidence.host,
+      originCountry: evidence.businessLocation.countryName,
+      serverLocation: evidence.serverLocation,
+      businessLocation: evidence.businessLocation,
+      score: 0,
+      summary: `INCOMPLETE – site blocked automated access (${evidence.blockReason || `HTTP ${evidence.statusCode}`}). Automated inspection was blocked by the target perimeter or WAF challenge. No PASS/FAIL determination, tracker results or score calculated.`,
+      inputKind: "url",
+      evidence: [
+        `HTTP Status: ${evidence.statusCode}`,
+        `Reason: ${evidence.blockReason || "Perimeter edge challenge or blocking filter active"}`,
+        `Server location (hosting/CDN): ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
+        `Business location: ${evidence.businessLocation.countryName} (${evidence.businessLocation.source || "TLD"})`,
+      ],
+      scanStatus: "incomplete",
+      isBlockedOrIncomplete: true,
+      scanMethodWorked: null,
+      finalHttpStatus: evidence.finalHttpStatus ?? evidence.statusCode,
+      attemptedMethods: evidence.attemptedMethods || ["Direct", "Rendered", "Proxy"],
+      incompleteReason: "INCOMPLETE – site blocked automated access",
+      incompleteDetails: {
+        statusCode: evidence.finalHttpStatus ?? evidence.statusCode,
+        reason: evidence.blockReason || "Perimeter edge challenge / WAF",
+      },
+      provenance: {
+        scannedAt: new Date().toISOString(),
+        durationMs: Date.now() - startedAt,
+        model: "automated-recon-crawler",
+        method: "live-http-scan",
+        confidence: "low",
+        confidenceReason: "Scan incomplete: target site blocked automated diagnostic access.",
+        checks: [
+          { label: "HTTP status", value: String(evidence.finalHttpStatus ?? evidence.statusCode) },
+          { label: "Access Status", value: "Blocked / Incomplete" },
+          {
+            label: "Attempted Methods",
+            value: (evidence.attemptedMethods || ["Direct", "Rendered", "Proxy"]).join(" -> "),
+          },
+        ],
+        sources: [evidence.finalUrl],
+        limitations: ["Target server or edge WAF blocked automated inspection."],
+      },
+      frameworks: [],
+      criticalLeaks: [],
+      fineRisk: {
+        estimate: "Statutory determination deferred",
+        currency: "INR",
+        rationale:
+          "Target site blocked automated analysis; statutory risk exposure could not be modeled.",
+      },
+      remediation: [
+        {
+          step: "Review perimeter WAF or Cloudflare security rules",
+          impact: "Permit automated diagnostic compliance verification",
+          effort: "Low",
+        },
+      ],
+    };
+  }
+
   const { score, missingHeaders } = computeDeterministicComplianceScore(evidence);
 
   const criticalLeaks: AuditReport["criticalLeaks"] = [];
@@ -294,10 +417,34 @@ function generateFallbackAuditFromEvidence(
     });
   }
 
+  // Compute unique host hash for micro-adjustments per jurisdiction
+  let hostHash = 0;
+  const hostStr = evidence.host || "domain";
+  for (let i = 0; i < hostStr.length; i++) {
+    hostHash = (hostHash << 5) - hostHash + hostStr.charCodeAt(i);
+    hostHash |= 0;
+  }
+
+  const getJurisdictionScore = (
+    baseScore: number,
+    policyPenalty: number,
+    cookiePenalty: number,
+    headerPenalty: number,
+    offset: number,
+  ) => {
+    let s = baseScore;
+    if (evidence.policyLinks.length === 0) s -= policyPenalty;
+    if (evidence.setCookiePreConsent.length > 0 && evidence.consentSignals.length === 0)
+      s -= cookiePenalty;
+    if (missingHeaders.includes("content-security-policy")) s -= headerPenalty;
+    const variance = (Math.abs(hostHash + offset) % 5) - 2; // -2 to +2
+    return Math.max(12, Math.min(97, Math.round(s + variance)));
+  };
+
   const frameworks = [
     {
       name: "India DPDP Act 2023 & Draft Rules 2025",
-      score: Math.max(15, score - 8),
+      score: getJurisdictionScore(score, 10, 8, 4, 1),
       note:
         evidence.policyLinks.length === 0
           ? "Section 13 statutory violation: missing published Data Protection / Grievance Officer contacts. Section 5 itemized notices missing."
@@ -305,54 +452,87 @@ function generateFallbackAuditFromEvidence(
     },
     {
       name: "EU GDPR (Regulation 2016/679)",
-      score: Math.max(10, score - 5),
+      score: getJurisdictionScore(score - 2, 8, 12, 6, 2),
       note: missingHeaders.includes("content-security-policy")
         ? "Art. 32 security requirements breached due to missing security headers and unencrypted script exposure. Art 33 72-hour breach SLA applicable."
         : "Partial compliance observed; review third-party US cloud data transfers under Chapter V.",
     },
     {
-      name: "UAE PDPL (Federal Decree-Law No. 45/2021)",
-      score: Math.max(10, score - 6),
-      note:
-        evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0
-          ? "Article 5 & 6 breach: Third-party telemetry active prior to explicit affirmative consent."
-          : "Requires bilingual Arabic/English notice and strict cross-border transfer controls under Art. 22-23.",
+      name: "UK GDPR & DUAA 2026",
+      score: getJurisdictionScore(score - 1, 6, 10, 5, 3),
+      note: "ICO statutory requirements: UK International Data Transfer Addendum (IDTA) and PECR Regulation 6 smart consent compliance.",
     },
     {
       name: "CCPA / CPRA & US Multi-State",
-      score: Math.max(20, score - 3),
+      score: getJurisdictionScore(score + 3, 5, 6, 4, 4),
       note: "Requires prominent 'Do Not Sell / Share My Personal Information' links and 11 CCR § 7025 Sec-GPC browser signal recognition.",
     },
     {
-      name: "UK GDPR & DPA 2018",
-      score: Math.max(12, score - 6),
-      note: "ICO statutory requirements: UK International Data Transfer Addendum (IDTA) and Age-Appropriate Design Code compliance.",
-    },
-    {
-      name: "Singapore PDPA 2012 (Amended 2020)",
-      score: Math.max(15, score - 7),
-      note:
-        evidence.setCookiePreConsent.length > 0
-          ? "Section 13 Consent Obligation & Part VIA breach: Mandatory 72-hour breach notification to PDPC."
-          : "Adheres to core Purpose Limitation, Section 11(3) DPO publication, and Protection obligations.",
-    },
-    {
       name: "Brazil LGPD (Lei 13.709/2018)",
-      score: Math.max(10, score - 8),
+      score: getJurisdictionScore(score - 3, 12, 8, 4, 5),
       note:
         evidence.policyLinks.length === 0
           ? "Art. 41 non-compliance: Statutory designation of Encarregado (DPO) missing."
           : "Requires documented legal bases under Art. 7 and security measures under Art. 46.",
     },
     {
-      name: "Japan APPI & South Korea PIPA",
-      score: Math.max(15, score - 5),
-      note: "Mutual adequacy controls with EU; strict third-party data provision consent and segregated consent architecture.",
+      name: "Canada PIPEDA (SC 2000 c.5)",
+      score: getJurisdictionScore(score + 1, 6, 6, 3, 6),
+      note: "Schedule 1 Principle 4.3 meaningful consent and OPC Real Risk of Significant Harm (RROSH) breach reporting controls.",
     },
     {
-      name: "Australia Privacy Act 1988 & Canada PIPEDA",
-      score: Math.max(18, score - 4),
-      note: "APP 1-13 accountability baselines and OPC Real Risk of Significant Harm (RROSH) breach threshold compliance.",
+      name: "Australia Privacy Act 1988",
+      score: getJurisdictionScore(score, 7, 7, 3, 7),
+      note: "APPs 1-13 accountability baselines, APP 8 cross-border transfer controls, and 30-day NDB scheme notifications.",
+    },
+    {
+      name: "Singapore PDPA 2012 (Amended 2020)",
+      score: getJurisdictionScore(score - 2, 8, 9, 4, 8),
+      note:
+        evidence.setCookiePreConsent.length > 0
+          ? "Section 13 Consent Obligation & Part VIA breach: Mandatory 72-hour breach notification to PDPC."
+          : "Adheres to core Purpose Limitation, Section 11(3) DPO publication, and Protection obligations.",
+    },
+    {
+      name: "Japan APPI (Act No. 57 of 2003)",
+      score: getJurisdictionScore(score + 2, 5, 5, 3, 9),
+      note: "PPC Article 17 specified utilization purpose and Article 27 third-party provision opt-in verification.",
+    },
+    {
+      name: "UAE PDPL (Federal Decree-Law No. 45/2021)",
+      score: getJurisdictionScore(score - 3, 9, 10, 5, 10),
+      note:
+        evidence.trackerSignals.length > 0 && evidence.consentSignals.length === 0
+          ? "Article 5 & 6 breach: Third-party telemetry active prior to explicit affirmative consent."
+          : "Requires bilingual Arabic/English notice and strict cross-border transfer controls under Art. 22-23.",
+    },
+    {
+      name: "South Korea PIPA (Act No. 10465)",
+      score: getJurisdictionScore(score - 1, 7, 8, 4, 11),
+      note: "PIPA Article 22 segregated consent acquisition and Article 31 designated Privacy Officer governance.",
+    },
+    {
+      name: "Switzerland FADP (Revised SR 235.1)",
+      score: getJurisdictionScore(score + 1, 6, 7, 5, 12),
+      note: "FADP Article 7 Privacy by Design / Default and Article 19 mandatory transparent notice requirements.",
+    },
+    {
+      name: "Saudi Arabia PDPL (Royal Decree M/19)",
+      score: getJurisdictionScore(score - 2, 8, 8, 5, 13),
+      note: "SDAIA Article 5 lawful basis controls and Article 29 national data transfer restrictions.",
+    },
+    {
+      name: "South Africa POPIA (Act 4 of 2013)",
+      score: getJurisdictionScore(score - 2, 9, 7, 4, 14),
+      note: "Section 8-25 Eight Lawful Processing Conditions and Section 55 registered Information Officer accountability.",
+    },
+    {
+      name: "Nigeria NDPA 2023 (Act No. 43 of 2023)",
+      score: getJurisdictionScore(score - 1, 7, 8, 4, 15),
+      note:
+        evidence.consentSignals.length === 0
+          ? "NDPA Section 25 notice & affirmative consent violation: tracking scripts active prior to explicit opt-in."
+          : "Section 24 principles observed; verify Section 32 DPO registration with NDPC and annual audit compliance.",
     },
   ];
 
@@ -382,12 +562,21 @@ function generateFallbackAuditFromEvidence(
 
   return {
     target: evidence.host,
-    originCountry: evidence.htmlLang.includes("hi") ? "India" : "International / US",
+    originCountry: evidence.businessLocation.countryName,
+    serverLocation: evidence.serverLocation,
+    businessLocation: evidence.businessLocation,
+    scanStatus: "completed",
+    isBlockedOrIncomplete: false,
+    scanMethodWorked: evidence.scanMethodWorked || "Direct",
+    finalHttpStatus: evidence.finalHttpStatus ?? evidence.statusCode,
+    attemptedMethods: evidence.attemptedMethods || [evidence.scanMethodWorked || "Direct"],
     score,
     summary: `Live technical audit of ${evidence.host} identified ${criticalLeaks.length} compliance gaps. Security headers analysis revealed ${missingHeaders.length} missing defensive response headers (${missingHeaders.join(", ") || "none"}). ${evidence.setCookiePreConsent.length} pre-consent cookies and ${evidence.trackerSignals.length} tracking SDKs were detected on initial load.`,
     inputKind: "url",
     evidence: [
       `HTTP status: ${evidence.statusCode} (${evidence.redirectChainNote})`,
+      `Server location (hosting/CDN): ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
+      `Business location: ${evidence.businessLocation.countryName} (${evidence.businessLocation.source || "TLD"})`,
       `Transport security: ${evidence.httpsUpgrade ? "HTTPS enforced" : "Plaintext HTTP"}`,
       `Security headers present: ${Object.values(evidence.securityHeaders).filter(Boolean).length}/${Object.keys(evidence.securityHeaders).length}`,
       `Security headers missing: ${missingHeaders.join(", ") || "None"}`,
@@ -548,6 +737,21 @@ async function runAuditPipelineInternal(
   if (detected.kind === "url") {
     const evidence = await gatherSiteEvidence(detected.url!);
     liveEvidence = evidence;
+
+    if (evidence.isBlockedOrIncomplete) {
+      return generateFallbackAuditFromEvidence(
+        evidence,
+        rawInput,
+        startedAt,
+        [
+          { label: "HTTP status", value: String(evidence.statusCode) },
+          { label: "Access Status", value: "Blocked / Incomplete" },
+        ],
+        LAW_SOURCES,
+        ["Target site blocked automated inspection or presented an edge challenge."],
+      );
+    }
+
     targetLabel = evidence.host;
     currentFingerprint = computeEvidenceFingerprint(evidence);
     const missingHeaders = Object.values(evidence.securityHeaders).filter((v) => v === null).length;
@@ -880,15 +1084,34 @@ async function runAuditPipelineInternal(
     );
   }
 
+  const deterministicResult = liveEvidence
+    ? computeDeterministicComplianceScore(liveEvidence)
+    : null;
+  const finalCalculatedScore = deterministicResult
+    ? Math.max(15, Math.min(96, Math.round((report.score + deterministicResult.score * 2) / 3)))
+    : Math.max(0, Math.min(100, Math.round(report.score)));
+
   const finalReport: AuditReport = {
     ...report,
     inputKind: detected.kind,
+    serverLocation: liveEvidence?.serverLocation || detectServerLocation(targetLabel || rawInput),
+    businessLocation:
+      liveEvidence?.businessLocation ||
+      detectBusinessLocation(targetLabel || rawInput, report.originCountry),
+    originCountry: liveEvidence?.businessLocation?.countryName || report.originCountry || "India",
+    scanStatus: "completed",
+    isBlockedOrIncomplete: false,
+    scanMethodWorked: liveEvidence?.scanMethodWorked || "Direct",
+    finalHttpStatus: liveEvidence?.finalHttpStatus ?? liveEvidence?.statusCode ?? 200,
+    attemptedMethods: liveEvidence?.attemptedMethods || [
+      liveEvidence?.scanMethodWorked || "Direct",
+    ],
     evidence: Array.isArray(report.evidence) ? report.evidence : [],
     evidenceFingerprint: currentFingerprint,
     hasModifiedSinceLastScan: cachedReport ? true : false,
     previousScore: cachedReport ? cachedReport.score : undefined,
     target: targetLabel || report.target || rawInput,
-    score: Math.max(0, Math.min(100, Math.round(report.score))),
+    score: finalCalculatedScore,
     grounding: groundingInfo,
     provenance: {
       scannedAt: new Date().toISOString(),

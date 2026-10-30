@@ -236,7 +236,7 @@ export function CookieConsent() {
   return (
     <>
       {/* ============================================================ */}
-      {/* 1. RESPONSIVE NON-INTRUSIVE BOTTOM BANNER (Mobile/Tablet/Desktop) */}
+      {/* 1. RESPONSIVE FLOATING CONSENT BANNER (Mobile/Tablet/Desktop) */}
       {/* ============================================================ */}
       {showBanner && !showManageModal && (
         <aside
@@ -245,77 +245,85 @@ export function CookieConsent() {
           aria-label="Privacy and Cookie Consent Notice"
           style={{
             position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: "max(12px, env(safe-area-inset-bottom, 12px))",
+            left: "max(12px, env(safe-area-inset-left, 12px))",
+            right: "max(12px, env(safe-area-inset-right, 12px))",
             zIndex: 50,
-            paddingBottom: "max(12px, env(safe-area-inset-bottom, 12px))",
-            paddingLeft: "max(12px, env(safe-area-inset-left, 12px))",
-            paddingRight: "max(12px, env(safe-area-inset-right, 12px))",
             touchAction: "manipulation",
           }}
-          className="mobile-cookie-banner-floating max-h-[85vh] overflow-y-auto border-t border-[#D4AF37]/35 bg-[#0c0a09]/45 px-3 py-2.5 shadow-[0_-8px_32px_rgba(0,0,0,0.85)] backdrop-blur-3xl transition-all sm:px-6 sm:py-4"
+          className="mx-auto max-w-5xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[#D4AF37]/45 bg-[#0c0a09]/95 px-4 py-3.5 shadow-[0_16px_48px_rgba(0,0,0,0.95)] backdrop-blur-2xl transition-all sm:px-6 sm:py-4"
         >
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto flex max-w-6xl flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
             {/* Title, Badge & Statutory Notice */}
-            <div className="flex items-start gap-2.5 sm:gap-3">
+            <div className="flex items-start gap-3">
               <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]">
                 <Shield className="h-4.5 w-4.5" />
               </div>
-              <div className="space-y-0.5 sm:space-y-1">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <h3 className="font-serif text-xs font-bold tracking-tight text-foreground sm:text-base">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-serif text-sm font-bold tracking-tight text-foreground sm:text-base">
                     Privacy &amp; Cookie Consent
                   </h3>
-                  <span className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-1.5 py-0.2 text-[9px] font-semibold text-[#D4AF37] sm:text-[10px] sm:px-2 sm:py-0.5">
-                    DPDP · GDPR · CPRA
+                  <span className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-2 py-0.5 text-[10px] font-semibold text-[#D4AF37]">
+                    DPDP · GDPR · NDPA · CPRA Compliant
                   </span>
                 </div>
-                <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground sm:line-clamp-none sm:text-[13px] sm:leading-relaxed md:max-w-2xl lg:max-w-3xl">
-                  We require your consent before deploying optional analytics or marketing cookies.
-                  Strictly necessary cookies are active by default. Review our{" "}
+                <p className="text-xs leading-relaxed text-muted-foreground sm:text-[13px] md:max-w-2xl lg:max-w-3xl">
+                  We require your prior affirmative consent before deploying non-essential telemetry
+                  or cookies. Strictly necessary cookies for cryptographic verification and security
+                  are active by default. You can accept all, reject optional cookies, or customize
+                  your preferences. Review our{" "}
                   <Link
                     to="/legal/privacy"
                     className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
                   >
                     Privacy Notice
-                  </Link>{" "}
-                  and{" "}
+                  </Link>
+                  ,{" "}
                   <Link
                     to="/legal/cookies"
                     className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
                   >
                     Cookie Policy
                   </Link>
+                  , and{" "}
+                  <Link
+                    to="/legal/security"
+                    className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
+                  >
+                    Security Safeguards
+                  </Link>
                   .
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons: Ultra-Compact Single Row on Mobile */}
-            <div className="flex flex-row items-center gap-1.5 pt-0.5 sm:pt-0 shrink-0">
+            {/* Action Buttons: Responsive for Mobile Touch (<640px), Tablets (640px-1024px), & Desktop */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5 sm:pt-0 shrink-0">
               <button
                 type="button"
                 onClick={() => handleChoice("Accepted")}
-                className="flex-1 sm:flex-initial inline-flex min-h-[36px] sm:min-h-[38px] items-center justify-center rounded-lg bg-[#D4AF37] px-2.5 sm:px-4 py-1.5 text-xs font-bold text-black shadow-md transition-all hover:bg-[#c49f2f] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
+                className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center rounded-lg bg-[#D4AF37] px-4 py-2 text-xs font-bold text-black shadow-md transition-all hover:bg-[#c49f2f] hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
               >
-                Accept
+                Accept All
               </button>
-              <button
-                type="button"
-                onClick={() => handleChoice("Rejected")}
-                className="flex-1 sm:flex-initial inline-flex min-h-[36px] sm:min-h-[38px] items-center justify-center rounded-lg border border-border/80 bg-black/30 backdrop-blur-md px-2 sm:px-3.5 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-secondary active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60 cursor-pointer"
-              >
-                Reject
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChoice("Managed")}
-                className="flex-1 sm:flex-initial inline-flex min-h-[36px] sm:min-h-[38px] items-center justify-center gap-1 rounded-lg border border-[#D4AF37]/40 bg-black/20 backdrop-blur-md px-2 sm:px-3.5 py-1.5 text-xs font-semibold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/10 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
-              >
-                <Settings2 className="h-3.5 w-3.5 shrink-0" />
-                <span>Options</span>
-              </button>
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleChoice("Rejected")}
+                  className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center rounded-lg border border-border/80 bg-secondary/80 px-3.5 py-2 text-xs font-semibold text-foreground transition-all hover:bg-secondary active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60 cursor-pointer"
+                >
+                  Reject Optional
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChoice("Managed")}
+                  className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center gap-1.5 rounded-lg border border-[#D4AF37]/40 bg-transparent px-3.5 py-2 text-xs font-semibold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/10 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
+                >
+                  <Settings2 className="h-3.5 w-3.5 shrink-0" />
+                  <span>Preferences</span>
+                </button>
+              </div>
             </div>
           </div>
         </aside>

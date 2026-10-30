@@ -302,7 +302,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                   <code className="text-primary font-mono text-[11px]">
                     ai-studio-asjioneasjiweble-94ea65e4-c46e-4b43-b7d9-ef269ec313a5
                   </code>
-                  ). You can synchronize the complete 14-jurisdiction World Sovereign Laws Database
+                  ). You can synchronize the complete 15-jurisdiction World Sovereign Laws Database
                   directly to your Firestore instance for high-speed, verifiable lookup.
                 </p>
                 <div className="pt-2">
@@ -314,7 +314,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                     <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
                     {isSyncing
                       ? "Synchronizing to Cloud..."
-                      : "Sync 20 Sovereign Laws to Firestore"}
+                      : "Sync 15 Sovereign Laws to Firestore"}
                   </button>
                 </div>
               </div>

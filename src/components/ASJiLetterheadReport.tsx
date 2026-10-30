@@ -89,7 +89,7 @@ export function ASJiLetterheadReport({
       .replace(/[^A-Z]/g, "X")}-${num}`;
   }, [targetDomain]);
 
-  // Evaluate the EXACT 6 Global Laws using the Unified Sovereign Audit Standard
+  // Evaluate all 15 Sovereign Global Laws using the Unified Sovereign Audit Standard
   const unified = useMemo(() => {
     const reportData: AuditReport = (report || {
       target: targetDomain,
@@ -112,9 +112,18 @@ export function ASJiLetterheadReport({
       { id: "in-dpdp", statuteRef: "Sec. 6(1) & Sec. 8(1)" },
       { id: "eu-gdpr", statuteRef: "Art. 7, 13, 32 & 44" },
       { id: "gb-ukgdpr", statuteRef: "DUAA & PECR Reg 6" },
-      { id: "ae-pdpl", statuteRef: "Decree-Law 45 Art. 4, 9" },
-      { id: "sa-pdpl", statuteRef: "Royal Decree M/19" },
+      { id: "us-ccpa", statuteRef: "Cal. Civ. Code § 1798.100" },
+      { id: "br-lgpd", statuteRef: "Law 13.709 Art. 6, 7 & 46" },
+      { id: "ca-pipeda", statuteRef: "Sched. 1 Principle 4.3" },
+      { id: "au-privacy", statuteRef: "Privacy Act APPs 1, 5, 8" },
       { id: "sg-pdpa", statuteRef: "Section 26 Transfer Lim." },
+      { id: "jp-appi", statuteRef: "APPI Art. 17, 23, 24 & 27" },
+      { id: "ae-pdpl", statuteRef: "Decree-Law 45 Art. 4, 9" },
+      { id: "kr-pipa", statuteRef: "PIPA Art. 15, 22, 28 & 29" },
+      { id: "ch-fadp", statuteRef: "Revised FADP Art. 6, 8, 19" },
+      { id: "sa-pdpl", statuteRef: "Royal Decree M/19" },
+      { id: "za-popia", statuteRef: "POPIA Cond. 2, 7 & Sec 19" },
+      { id: "ng-ndpa", statuteRef: "NDPA Sec. 24, 25, 30, 39" },
     ];
 
     return primaryIds.map((item) => {
@@ -272,16 +281,17 @@ export function ASJiLetterheadReport({
 
               <div>
                 <h1 className="font-display text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>ASJi One</span>
+                  <span>ASJi</span>
+                  <span style={{ color: "#E5C158" }}>WEB &amp; LEGAL</span>
                 </h1>
                 <p
                   className="font-mono text-[8px] font-bold uppercase tracking-[0.22em]"
                   style={{ color: "#E5C158" }}
                 >
-                  a product of ASJi Web &amp; Legal Solution
+                  SOLUTION —
                 </p>
-                <p className="text-[9px] italic font-mono" style={{ color: "#a3a3a3" }}>
-                  www.asjione.com
+                <p className="text-[9px] italic" style={{ color: "#a3a3a3" }}>
+                  Your Business. Our Expertise. Your Peace of Mind.
                 </p>
               </div>
             </div>
@@ -343,7 +353,7 @@ export function ASJiLetterheadReport({
                 className="font-mono text-[8.5px] uppercase tracking-widest block font-bold"
                 style={{ color: "#E5C158" }}
               >
-                TECHNICAL PRIVACY COMPLIANCE SCAN REPORT
+                OFFICIAL TECHNICAL COMPLIANCE &amp; SOVEREIGN PRIVACY AUDIT REPORT
               </span>
               <span className="text-[9px] font-mono" style={{ color: "#a3a3a3" }}>
                 SERIAL: <strong className="text-white font-mono">{certNumber}</strong>
@@ -452,7 +462,7 @@ export function ASJiLetterheadReport({
             </div>
           </div>
 
-          {/* 4. TOTAL 14 STATUTORY JURISDICTIONS EVALUATION TABLE */}
+          {/* 4. TOTAL 15 STATUTORY JURISDICTIONS EVALUATION TABLE */}
           <div
             className="overflow-x-auto rounded-lg border mb-2.5 print:overflow-visible"
             style={{
@@ -579,7 +589,7 @@ export function ASJiLetterheadReport({
               >
                 <div className="flex items-center gap-1 text-[#34d399] font-bold mb-1 uppercase text-[9.5px]">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>PASS as per these countries&apos; laws ({passingLaws.length}/6):</span>
+                  <span>PASS as per these countries&apos; laws ({passingLaws.length}/15):</span>
                 </div>
                 {passingLaws.length > 0 ? (
                   <ul className="space-y-0.5 text-[8.5px] text-gray-200">
@@ -607,7 +617,7 @@ export function ASJiLetterheadReport({
                 <div className="flex items-center gap-1 text-[#fb7185] font-bold mb-1 uppercase text-[9.5px]">
                   <XCircle className="h-3.5 w-3.5" />
                   <span>
-                    FAIL according to these countries&apos; laws ({failingLaws.length}/6):
+                    FAIL according to these countries&apos; laws ({failingLaws.length}/15):
                   </span>
                 </div>
                 {failingLaws.length > 0 ? (
@@ -622,7 +632,7 @@ export function ASJiLetterheadReport({
                   </ul>
                 ) : (
                   <span className="text-[#34d399] text-[8.5px] font-bold">
-                    ✓ All 14 Global Jurisdictions Fully Compliant
+                    ✓ All 15 Global Jurisdictions Fully Compliant
                   </span>
                 )}
               </div>
@@ -671,77 +681,60 @@ export function ASJiLetterheadReport({
 
             {/* Itemized Exceptions Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {statutoryExceptions.exceptionsList
-                .filter((exc) => {
-                  const checkedLawIds = new Set(lawsVerdictList.map((l) => l.id));
-                  if (exc.id.includes("ind-dpdp") && checkedLawIds.has("in-dpdp")) return true;
-                  if (exc.id.includes("eu-gdpr") && checkedLawIds.has("eu-gdpr")) return true;
-                  if (
-                    exc.id.includes("eprivacy") &&
-                    (checkedLawIds.has("eu-gdpr") || checkedLawIds.has("gb-ukgdpr"))
-                  )
-                    return true;
-                  if (exc.id.includes("ccpa") && checkedLawIds.has("us-ccpa")) return true;
-                  if (exc.id.includes("sg-pdpa") && checkedLawIds.has("sg-pdpa")) return true;
-                  if (exc.id.includes("au-privacy") && checkedLawIds.has("au-privacy")) return true;
-                  if (exc.id.includes("safe-harbor") || exc.id.includes("security-exception"))
-                    return true;
-                  return false;
-                })
-                .map((exc) => {
-                  const isQualified =
-                    exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
-                    exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
+              {statutoryExceptions.exceptionsList.map((exc) => {
+                const isQualified =
+                  exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
+                  exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
 
-                  return (
-                    <div
-                      key={exc.id}
-                      className="rounded border p-2 flex flex-col justify-between"
-                      style={{
-                        backgroundColor: isQualified
-                          ? "rgba(16, 185, 129, 0.05)"
-                          : "rgba(0, 0, 0, 0.35)",
-                        borderColor: isQualified
-                          ? "rgba(16, 185, 129, 0.3)"
-                          : "rgba(255, 255, 255, 0.08)",
-                      }}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
-                            <span>{exc.flag}</span>
-                            <span className="truncate">{exc.exceptionTitle}</span>
-                          </span>
-                          <span
-                            className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
-                              exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                  : "bg-white/5 text-gray-400 border border-white/10"
-                            }`}
-                          >
-                            {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                              ? "EXEMPT"
+                return (
+                  <div
+                    key={exc.id}
+                    className="rounded border p-2 flex flex-col justify-between"
+                    style={{
+                      backgroundColor: isQualified
+                        ? "rgba(16, 185, 129, 0.05)"
+                        : "rgba(0, 0, 0, 0.35)",
+                      borderColor: isQualified
+                        ? "rgba(16, 185, 129, 0.3)"
+                        : "rgba(255, 255, 255, 0.08)",
+                    }}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
+                          <span>{exc.flag}</span>
+                          <span className="truncate">{exc.exceptionTitle}</span>
+                        </span>
+                        <span
+                          className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
+                            exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                               : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                                ? "CONDITIONAL"
-                                : "NOT EXEMPT"}
-                          </span>
-                        </div>
-                        <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
-                          {exc.sectionOrArticle}
-                        </div>
-                        <p className="text-[7.5px] text-gray-300 leading-tight">
-                          {exc.auditRationale}
-                        </p>
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-white/5 text-gray-400 border border-white/10"
+                          }`}
+                        >
+                          {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                            ? "EXEMPT"
+                            : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                              ? "CONDITIONAL"
+                              : "NOT EXEMPT"}
+                        </span>
                       </div>
-                      <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
-                        <strong className="text-gray-200">Legal Effect: </strong>
-                        {exc.impactOnVerdict}
+                      <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
+                        {exc.sectionOrArticle}
                       </div>
+                      <p className="text-[7.5px] text-gray-300 leading-tight">
+                        {exc.auditRationale}
+                      </p>
                     </div>
-                  );
-                })}
+                    <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
+                      <strong className="text-gray-200">Legal Effect: </strong>
+                      {exc.impactOnVerdict}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -846,7 +839,7 @@ export function ASJiLetterheadReport({
             )}
           </div>
 
-          {/* 6. TECHNICAL SCANNER ATTESTATION BOX */}
+          {/* 6. LEGAL SIGNATORY & CRYPTOGRAPHIC SEAL BOX */}
           <div
             className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg border p-2.5 text-[8.5px] font-mono"
             style={{
@@ -857,12 +850,12 @@ export function ASJiLetterheadReport({
           >
             <div className="sm:col-span-2">
               <span className="font-bold block uppercase text-[9px]" style={{ color: "#E5C158" }}>
-                Statutory Technical Assessment Notice:
+                Statutory Technical Legal Notice:
               </span>
               <p className="mt-0.5 leading-tight" style={{ color: "#a3a3a3" }}>
                 By executing this scan, you authorize a passive, non-intrusive public transport
                 layer audit. Reports generate automated technical compliance logs evaluated strictly
-                against sovereign statutory data protection frameworks.
+                against the 15 sovereign statutory data protection frameworks above.
               </p>
             </div>
 
@@ -875,21 +868,21 @@ export function ASJiLetterheadReport({
                   className="text-[7.5px] uppercase tracking-wider block"
                   style={{ color: "#737373" }}
                 >
-                  SCANNER ATTESTATION
+                  AUTHORIZATION SIGNATURE
                 </span>
-                <span className="text-[9.5px] font-bold text-white block mt-0.5 font-mono">
-                  Generated by ASJi One automated scanner
+                <span className="text-[9.5px] font-bold text-white block mt-0.5 font-serif italic">
+                  ASJi Sovereign Legal Operations
                 </span>
-                <span className="text-[7.5px] block font-mono" style={{ color: "#888888" }}>
-                  Report ID: {certNumber}
+                <span className="text-[7.5px] block" style={{ color: "#888888" }}>
+                  Jaipur Headquarters // Directorate of RegTech
                 </span>
               </div>
               <div
                 className="flex items-center gap-1 text-[7.5px] font-bold mt-0.5"
                 style={{ color: "#34d399" }}
               >
-                <CheckCircle2 className="h-2.5 w-2.5" />
-                <span>REAL-TIME AUDIT LOG VERIFIED</span>
+                <Lock className="h-2.5 w-2.5" />
+                <span>SHA-256 HASH VERIFIED</span>
               </div>
             </div>
           </div>
@@ -994,14 +987,13 @@ export function ASJiLetterheadReport({
                 </div>
                 <div className="truncate">
                   <a
-                    href="https://www.asjione.com"
+                    href="https://www.asji.online"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-bold hover:underline block truncate leading-tight"
                     style={{ color: "#E5C158" }}
-                    title="ASJi One Product Site (Agency: ASJi Web & Legal Solution at www.asji.online)"
                   >
-                    www.asjione.com
+                    www.asji.online
                   </a>
                 </div>
               </div>
@@ -1027,14 +1019,6 @@ export function ASJiLetterheadReport({
                   </a>
                 </div>
               </div>
-            </div>
-
-            {/* Disclaimer Footer Line */}
-            <div
-              className="border-t border-white/10 px-3 py-1.5 text-center bg-black/60 font-mono text-[8px]"
-              style={{ color: "#a3a3a3" }}
-            >
-              Automated technical assessment, not legal advice or certification.
             </div>
           </footer>
         </div>

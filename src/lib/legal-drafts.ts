@@ -9,7 +9,7 @@ export type LegalDraft = {
   tag: string;
   flag: string;
   jurisdiction: string;
-  region: "Asia-Pacific" | "Middle East" | "Europe & UK" | "Americas";
+  region: "Asia-Pacific" | "Middle East" | "Europe & UK" | "Americas" | "Africa";
   governingBody: string;
   statutoryReference: string;
   statutoryPenalty: string;
@@ -664,5 +664,565 @@ Em estrito cumprimento ao Artigo 41 da LGPD, o Encarregado pelo Tratamento de Da
 
 SANÇÕES ADMINISTRATIVAS (ARTIGO 52):
 As infrações às normas da LGPD sujeitam os agentes de tratamento a advertências, bloqueio e eliminação dos dados pessoais, e multas de até 2% (dois por cento) do faturamento da empresa ou grupo no Brasil no seu último exercício, limitada a R$ 50.000.000,00 (cinquenta milhões de reais) por infração.`,
+  },
+  // 7. UNITED KINGDOM - UK GDPR & DUAA 2026
+  {
+    id: "uk-duaa",
+    tag: "UK-GDPR",
+    flag: "🇬🇧",
+    jurisdiction: "United Kingdom (UK GDPR & DUAA 2026)",
+    region: "Europe & UK",
+    governingBody: "Information Commissioner's Office (ICO)",
+    statutoryReference:
+      "Data Protection Act 2018, UK GDPR, PECR 2003 & Data (Use and Access) Bill (DUAA)",
+    statutoryPenalty: "Up to £17.5M or 4% of total worldwide annual turnover, whichever is higher",
+    badge: "PECR & DUAA Smart Consent",
+    titleHeader:
+      "Statutory UK Data Protection & PECR Telemetry Compliance Protocol // Information Commissioner's Office (ICO)",
+    executiveSummary:
+      "UK GDPR and Data (Use and Access) Act statutory framework establishing streamlined cookie consent under updated PECR regulations, mandatory Senior Responsible Individual (SRI) designation, UK International Data Transfer Addendum (IDTA) safeguards, and 72-hour ICO incident reporting.",
+    keyArticles: [
+      {
+        title: "PECR Regulation 6 & DUAA Smart Consent",
+        ref: "PECR 2003 Reg 6 & DUAA 2026",
+        desc: "Permits low-risk analytics under streamlined statutory exemptions while strictly requiring opt-in consent for cross-site tracking and ad profiling.",
+      },
+      {
+        title: "Senior Responsible Individual (SRI)",
+        ref: "Data Protection Act 2018 (as amended)",
+        desc: "Requires statutory appointment of a Senior Responsible Individual tasked with internal compliance and direct interface with the ICO.",
+      },
+      {
+        title: "International Transfers (UK IDTA)",
+        ref: "UK GDPR Chapter V & ICO IDTA",
+        desc: "Mandates UK Addendum to EU Standard Contractual Clauses or approved UK International Data Transfer Agreement for data exports.",
+      },
+      {
+        title: "Age-Appropriate Design Code",
+        ref: "DPA 2018 s. 123 (Children's Code)",
+        desc: "Enforces 15 statutory design standards to safeguard minors online, including high privacy default settings and disabled geolocation tracking.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY UK DATA PROTECTION & DUAA STATUTORY NOTICE
+PURSUANT TO THE DATA PROTECTION ACT 2018, UK GDPR & DATA (USE AND ACCESS) ACT
+================================================================================
+
+JURISDICTION: United Kingdom
+GOVERNING AUTHORITY: Information Commissioner's Office (ICO)
+STATUTORY CLASSIFICATION: UK GDPR Controller Notice & PECR Telemetry Instrument
+
+1. LAWFUL BASIS FOR PROCESSING (UK GDPR ARTICLE 6)
+Personal data across this domain is processed under UK GDPR Art. 6(1)(a) (Consent) or Art. 6(1)(f) (Legitimate Interests with documented balancing test). Cookies and browser storage strictly adhere to PECR Regulation 6, disallowing non-essential profiling scripts prior to affirmative consent.
+
+2. SENIOR RESPONSIBLE INDIVIDUAL (SRI) & DPO MANDATE
+Designated Senior Responsible Individual:
+- Office: Corporate Data Governance & Privacy Directorate (UK)
+- Official Inquiries: ico-dpo@asji.legal / privacy@asji.one
+- Resolution SLA: 30 statutory days for Data Subject Access Requests (DSARs).
+
+3. INTERNATIONAL DATA TRANSFERS (UK IDTA & CHAPTER V)
+Where digital signals traverse outside the United Kingdom, transfers rely on UK Adequacy Regulations, the UK International Data Transfer Addendum (IDTA), or UK Binding Corporate Rules.
+
+4. STATUTORY PENALTIES:
+Breaches of UK GDPR and PECR obligations are subject to ICO enforcement notices and statutory monetary penalties up to £17,500,000 or 4% of total worldwide annual turnover.`,
+  },
+  // 8. CANADA - PIPEDA
+  {
+    id: "canada-pipeda",
+    tag: "CA-PIPEDA",
+    flag: "🇨🇦",
+    jurisdiction: "Canada (PIPEDA SC 2000 c.5 & Bill C-27 CPPA)",
+    region: "Americas",
+    governingBody: "Office of the Privacy Commissioner of Canada (OPC)",
+    statutoryReference:
+      "Personal Information Protection and Electronic Documents Act (SC 2000 c.5)",
+    statutoryPenalty: "Fines up to CAD $100,000 to CAD $25,000,000 under pending CPPA reforms",
+    badge: "Schedule 1 10 Fair Info Principles",
+    titleHeader:
+      "Canadian Statutory Privacy Standard & Schedule 1 Compliance Instrument // Office of the Privacy Commissioner (OPC)",
+    executiveSummary:
+      "Statutory compliance under Canada's PIPEDA adhering to Schedule 1 Ten Fair Information Principles: meaningful consent, purpose limitation, designated Privacy Officer, and mandatory Real Risk of Significant Harm (RROSH) breach reporting to the OPC.",
+    keyArticles: [
+      {
+        title: "Accountability & Privacy Officer",
+        ref: "PIPEDA Schedule 1 Principle 4.1",
+        desc: "Organization remains responsible for personal information in its custody and must designate a Privacy Officer accountable for statutory compliance.",
+      },
+      {
+        title: "Meaningful Consent",
+        ref: "PIPEDA Schedule 1 Principle 4.3",
+        desc: "Consent is valid only if it is reasonable to expect that the individual understands the nature, purpose, and consequences of data collection.",
+      },
+      {
+        title: "Limiting Collection & Use",
+        ref: "PIPEDA Schedule 1 Principles 4.4 & 4.5",
+        desc: "Personal information collected must be limited to identified legitimate business purposes and retained only as long as necessary.",
+      },
+      {
+        title: "Breach Notification (RROSH)",
+        ref: "PIPEDA Section 10.1",
+        desc: "Mandatory reporting to the OPC and affected individuals as soon as feasible upon identifying any breach posing a Real Risk of Significant Harm.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY PRIVACY COMPLIANCE NOTICE // CANADA PIPEDA
+PURSUANT TO THE PERSONAL INFORMATION PROTECTION AND ELECTRONIC DOCUMENTS ACT
+================================================================================
+
+JURISDICTION: Canada (Federal Commercial Activity)
+SUPERVISORY BODY: Office of the Privacy Commissioner of Canada (OPC)
+STATUTORY COMPLIANCE STANDARD: Schedule 1 Fair Information Principles
+
+1. PURPOSE IDENTIFICATION & MEANINGFUL CONSENT
+Personal information is gathered only for specified, reasonable commercial purposes in accordance with PIPEDA Principle 4.2. Clear, understandable notice is provided at or before collection.
+
+2. DESIGNATED PRIVACY OFFICER:
+- Contact: Office of the Chief Privacy Officer (Canada Division)
+- Electronic Mail: opc-privacy@asji.legal
+- Individual Access & Correction: Canadian residents retain statutory rights to examine and challenge the accuracy and completeness of their personal information under Principle 4.9.
+
+3. SAFEGUARDS (PRINCIPLE 4.7):
+Technical controls (TLS 1.3, strict CSP, HSTS, role-based encryption) protect personal information against loss, theft, unauthorized access, disclosure, copying, or modification.
+
+4. STATUTORY BREACH REPORTING:
+Any security incident creating a real risk of significant harm (RROSH) is immediately documented and reported to the OPC and affected individuals under PIPEDA s. 10.1.`,
+  },
+  // 9. AUSTRALIA - PRIVACY ACT 1988
+  {
+    id: "aus-privacy",
+    tag: "AU-PRIVACY",
+    flag: "🇦🇺",
+    jurisdiction: "Australia (Privacy Act 1988 & 2024–2026 Reforms)",
+    region: "Asia-Pacific",
+    governingBody: "Office of the Australian Information Commissioner (OAIC)",
+    statutoryReference: "Privacy Act 1988 (Cth) & Australian Privacy Principles (APPs 1–13)",
+    statutoryPenalty: "Up to AUD $50,000,000 or 30% of adjusted turnover (Treasury Laws Amendment)",
+    badge: "APP 1–13 Transparent Data Handling",
+    titleHeader:
+      "Australian Privacy Principles (APP) Statutory Instrument // Office of the Australian Information Commissioner",
+    executiveSummary:
+      "Australian Privacy Act 1988 compliance protocol implementing APPs 1 through 13: open and transparent management of personal information, cross-border disclosure restrictions under APP 8, and mandatory Notifiable Data Breaches (NDB) scheme execution.",
+    keyArticles: [
+      {
+        title: "Open and Transparent Management",
+        ref: "APP 1 (Privacy Act Schedule 1)",
+        desc: "Entities must take reasonable steps to implement practices, procedures, and systems to ensure compliance with the APPs and maintain an up-to-date policy.",
+      },
+      {
+        title: "Cross-Border Disclosure Safeguards",
+        ref: "APP 8 (Privacy Act Schedule 1)",
+        desc: "Before disclosing personal information overseas, the entity must take reasonable steps to ensure the overseas recipient complies with the APPs.",
+      },
+      {
+        title: "Direct Marketing & Telemetry Bar",
+        ref: "APP 7 (Privacy Act Schedule 1)",
+        desc: "Prohibits using personal information for direct marketing or behavioral profiling without clear consent and an uncomplicated opt-out mechanism.",
+      },
+      {
+        title: "Notifiable Data Breaches (NDB)",
+        ref: "Part IIIC Privacy Act 1988",
+        desc: "Statutory mandate to notify the OAIC and affected individuals within 30 days of assessing an eligible data breach likely to result in serious harm.",
+      },
+    ],
+    bodyText: `================================================================================
+AUSTRALIAN PRIVACY PRINCIPLES (APP) COMPLIANCE POLICY
+PURSUANT TO THE PRIVACY ACT 1988 (COMMONWEALTH OF AUSTRALIA)
+================================================================================
+
+JURISDICTION: Commonwealth of Australia
+GOVERNING AUTHORITY: Office of the Australian Information Commissioner (OAIC)
+FRAMEWORK: Australian Privacy Principles (APPs 1–13) & Notifiable Data Breaches (NDB)
+
+1. STATUTORY COLLECTION NOTICE (APP 5)
+When collecting personal information, the entity notifies individuals regarding the purpose of collection, consequences if information is not provided, and cross-border disclosures under APP 8.
+
+2. OAIC COMPLAINT & INQUIRY CONTACT:
+- Officer: Privacy Officer & Legal Counsel (Australia Operations)
+- Inquiries: oaic-compliance@asji.legal
+- External Escalation: Data subjects may escalate unresolved complaints directly to the OAIC under s. 36 of the Privacy Act.
+
+3. CROSS-BORDER DATA FLOWS (APP 8):
+Data transferred to third-party overseas service providers is bound by enforceable contractual clauses guaranteeing equivalent protection under the APPs.
+
+4. STATUTORY PENALTY EXPOSURE:
+Under the Treasury Laws Amendment, severe or repeated interferences with privacy carry civil penalties up to AUD $50,000,000 or 30% of adjusted turnover.`,
+  },
+  // 10. JAPAN - APPI
+  {
+    id: "jp-appi",
+    tag: "JP-APPI",
+    flag: "🇯🇵",
+    jurisdiction: "Japan (Act on the Protection of Personal Information - APPI)",
+    region: "Asia-Pacific",
+    governingBody: "Personal Information Protection Commission (PPC)",
+    statutoryReference: "Act No. 57 of 2003 as amended (APPI)",
+    statutoryPenalty: "Corporate penalties up to ¥100,000,000 and penal sanctions on individuals",
+    badge: "PPC Cross-Border & Extraterritorial Controls",
+    titleHeader:
+      "Statutory Personal Information Handling Instrument // Japan Personal Information Protection Commission (PPC)",
+    executiveSummary:
+      "Japanese APPI data handling charter governing Business Operators Handling Personal Information, requiring specified purpose of utilization, affirmative opt-in consent for third-party provision (Art. 27), strict controls on Pseudonymously Processed Information, and mandatory PPC incident reporting.",
+    keyArticles: [
+      {
+        title: "Specification of Utilization Purpose",
+        ref: "APPI Articles 17 & 18",
+        desc: "Must specify the purpose of utilization as explicitly as possible and notify the principal promptly upon acquisition.",
+      },
+      {
+        title: "Restriction on Third-Party Provision",
+        ref: "APPI Article 27",
+        desc: "Personal data shall not be provided to any third party without obtaining prior consent of the principal, subject to statutory exceptions.",
+      },
+      {
+        title: "Cross-Border Provision Notice",
+        ref: "APPI Article 28",
+        desc: "Requires providing the principal with information regarding the foreign recipient's legal regime and data protection safeguards.",
+      },
+      {
+        title: "Security Control Measures",
+        ref: "APPI Article 23",
+        desc: "Mandates organizational, personnel, physical, and technical measures to prevent leakage, loss, or damage of personal data.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY PERSONAL INFORMATION HANDLING POLICY // JAPAN APPI
+PURSUANT TO THE ACT ON THE PROTECTION OF PERSONAL INFORMATION (ACT NO. 57 OF 2003)
+================================================================================
+
+JURISDICTION: Japan (日本)
+REGULATORY BODY: Personal Information Protection Commission (個人情報保護委員会 - PPC)
+
+1. 利用目的の特定 (PURPOSE OF UTILIZATION - ARTICLE 17)
+個人情報は、適法かつ公正な手段によってのみ取得され、利用目的をできる限り特定し、本人の同意なくその範囲を超えて取り扱われることはありません。
+
+2. 第三者提供の制限 (RESTRICTION ON THIRD-PARTY PROVISION - ARTICLE 27/28)
+本人の事前同意を得ることなく、第三者へ個人データを提供することはありません。外国にある第三者への提供に際しては、当該外国の法制度および講じている安全管理措置に関する情報を明示します。
+
+3. 個人情報保護管理者 (PERSONAL DATA INQUIRY POINT):
+- 担当窓口: 個人情報管理責任者 (Japan Data Protection Directorate)
+- 連絡先: appi-japan@asji.legal
+- 保有個人データの開示・訂正・利用停止: 法第33条〜第35条の規定に基づき、本人からの請求に遅滞なく対応します。
+
+4. 安全管理措置 (SECURITY SAFEGUARDS - ARTICLE 23):
+TLS暗号化通信、アクセス制御、マルウェア対策、および従業員に対する定期的教育を通じて個人データの漏えい防止を徹底しています。`,
+  },
+  // 11. SOUTH KOREA - PIPA
+  {
+    id: "kr-pipa",
+    tag: "KR-PIPA",
+    flag: "🇰🇷",
+    jurisdiction: "South Korea (Personal Information Protection Act - PIPA)",
+    region: "Asia-Pacific",
+    governingBody: "Personal Information Protection Commission (PIPC)",
+    statutoryReference: "PIPA Act No. 10465 as amended (2023/2024 Reforms)",
+    statutoryPenalty: "Fines up to 3% of total annual revenue and statutory compensation claims",
+    badge: "PIPC Segregated Consent & Transfer Rules",
+    titleHeader:
+      "South Korean Statutory Data Governance Standard // Personal Information Protection Commission (PIPC)",
+    executiveSummary:
+      "South Korea's PIPA compliance policy enforcing segregated consent mechanisms (Art. 22), designated Privacy Officer (Art. 31), explicit overseas transfer consent (Art. 28-8), and stringent 72-hour breach reporting to the PIPC.",
+    keyArticles: [
+      {
+        title: "Segregated Consent Acquisition",
+        ref: "PIPA Article 22",
+        desc: "Personal information controllers must separate consent items for optional vs. mandatory processing and obtain distinct consent for marketing and profiling.",
+      },
+      {
+        title: "Designation of Privacy Officer",
+        ref: "PIPA Article 31",
+        desc: "Controllers must designate a Privacy Officer to oversee personal information management and handle data subject inquiries and complaints.",
+      },
+      {
+        title: "Cross-Border Transfer Restrictions",
+        ref: "PIPA Article 28-8",
+        desc: "Outbound data transfers require separate consent, mutual adequacy certifications, or standard contracts approved by the PIPC.",
+      },
+      {
+        title: "Notification of Breaches",
+        ref: "PIPA Article 34",
+        desc: "Mandatory notification to affected data subjects and reporting to the PIPC within 72 hours of discovering any data loss or breach.",
+      },
+    ],
+    bodyText: `================================================================================
+개인정보 처리방침 (STATUTORY PRIVACY POLICY // SOUTH KOREA PIPA)
+PURSUANT TO THE PERSONAL INFORMATION PROTECTION ACT (ACT NO. 10465)
+================================================================================
+
+JURISDICTION: Republic of Korea (대한민국)
+REGULATORY BODY: Personal Information Protection Commission (개인정보보호위원회 - PIPC)
+
+1. 개인정보의 수집 및 이용 목적 (PURPOSES OF PROCESSING - ARTICLE 15/22)
+정보주체의 개인정보는 동의받은 목적(시스템 보안, 정당한 계약 이행, 서비스 제공) 범위 내에서만 처리되며, 선택항목 및 마케팅 목적 처리는 법 제22조에 따라 구분하여 개별 동의를 받습니다.
+
+2. 개인정보 보호책임자 (PRIVACY OFFICER - ARTICLE 31):
+- 소속/성명: 개인정보보호 전담부서 (Data Privacy Officer)
+- 문의처: pipa-kr@asji.legal
+- 정보주체의 권리 행사: 정보주체는 개인정보의 열람, 정정, 삭제, 처리정지를 요구할 수 있으며 10일 이내에 조치 결과를 통지합니다.
+
+3. 개인정보의 국외 이전 (CROSS-BORDER TRANSFERS - ARTICLE 28-8):
+국외 서버로의 데이터 전송 시 이전받는 자, 이전 목적, 국가, 항목, 보유기간을 고지하고 법정 요건을 철저히 준수합니다.
+
+4. 과징금 및 벌칙:
+개인정보보호법 위반 시 전체 매출액의 3% 이하에 상당하는 과징금이 부과될 수 있습니다.`,
+  },
+  // 12. SWITZERLAND - FADP
+  {
+    id: "ch-fadp",
+    tag: "CH-FADP",
+    flag: "🇨🇭",
+    jurisdiction: "Switzerland (Federal Act on Data Protection - FADP)",
+    region: "Europe & UK",
+    governingBody: "Federal Data Protection and Information Commissioner (FDPIC)",
+    statutoryReference: "Federal Act on Data Protection (FADP SR 235.1)",
+    statutoryPenalty: "Criminal fines up to CHF 250,000 on responsible natural persons",
+    badge: "Privacy by Design & Default (Art. 7)",
+    titleHeader:
+      "Swiss Federal Data Protection Statutory Charter // Federal Data Protection and Information Commissioner (FDPIC)",
+    executiveSummary:
+      "Swiss Revised FADP compliance charter implementing Privacy by Design and Default (Art. 7), active Record of Processing Activities (RoPA Art. 12), duty to provide transparent information upon data collection (Art. 19), and direct notification to the FDPIC upon serious data security breaches (Art. 24).",
+    keyArticles: [
+      {
+        title: "Privacy by Design & by Default",
+        ref: "FADP Article 7",
+        desc: "Data processing systems must be designed from inception to limit processing to the statutory minimum necessary and implement strong default privacy safeguards.",
+      },
+      {
+        title: "Duty to Inform Data Subjects",
+        ref: "FADP Article 19",
+        desc: "Controllers must inform individuals of the controller identity, purpose of processing, and recipients before collecting personal data.",
+      },
+      {
+        title: "Cross-Border Transfer Controls",
+        ref: "FADP Articles 16 & 17",
+        desc: "Data may only be disclosed abroad if the receiving country ensures adequate protection or if specific safeguards (Standard Contractual Clauses) are in place.",
+      },
+      {
+        title: "Data Security & Breach Notice",
+        ref: "FADP Articles 8 & 24",
+        desc: "Controllers must ensure adequate data security and notify the FDPIC as quickly as possible if a security breach entails a high risk for data subjects.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY SWISS DATA PROTECTION INSTRUMENT // REVISED FADP
+PURSUANT TO THE FEDERAL ACT ON DATA PROTECTION (SR 235.1)
+================================================================================
+
+JURISDICTION: Swiss Confederation (Confoederatio Helvetica)
+SUPERVISORY BODY: Federal Data Protection and Information Commissioner (FDPIC / EDÖB)
+
+1. DATENSCHUTZGRUNDSÄTZE (PROCESSING PRINCIPLES - ARTICLE 6)
+Personal data is processed lawfully, in good faith, and proportionately. Data is collected solely for explicit purposes recognizable to the data subject and deleted or anonymized when no longer necessary.
+
+2. DATA PROTECTION ADVISOR & SWISS REPRESENTATIVE (ARTICLE 10/14):
+- Swiss Compliance Office: Data Protection Directorate
+- Inquiries & SAR Requests: fdpic-swiss@asji.legal
+- Right to Information: Data subjects have the right to receive confirmation within 30 days of whether personal data concerning them is being processed (Art. 25).
+
+3. INTERNATIONAL DATA FLOWS (ARTICLE 16):
+Cross-border data flows are restricted to countries on the Federal Council adequacy list or governed by Swiss-adapted EU Standard Contractual Clauses.
+
+4. CRIMINAL LIABILITY & PENALTIES (ARTICLE 60 ET SEQ.):
+Violations of the duty to inform, transfer rules, or confidentiality obligations carry criminal fines up to CHF 250,000 imposed on the responsible corporate officers.`,
+  },
+  // 13. SAUDI ARABIA - KSA PDPL
+  {
+    id: "ksa-pdpl",
+    tag: "SA-PDPL",
+    flag: "🇸🇦",
+    jurisdiction: "Saudi Arabia (Personal Data Protection Law - PDPL)",
+    region: "Middle East",
+    governingBody: "Saudi Data & AI Authority (SDAIA)",
+    statutoryReference: "Royal Decree No. M/19 and Implementing Regulations",
+    statutoryPenalty:
+      "Fines up to SAR 5,000,000 and criminal imprisonment up to 2 years for sensitive data leaks",
+    badge: "SDAIA National Data Registry & Consent",
+    titleHeader:
+      "Kingdom of Saudi Arabia Statutory Personal Data Protection Instrument // Saudi Data & AI Authority (SDAIA)",
+    executiveSummary:
+      "Statutory compliance instrument under the Saudi PDPL (Royal Decree M/19) enforced by SDAIA: strict consent controls, national data registration requirements, cross-border transfer limitations, and 72-hour regulatory breach disclosure.",
+    keyArticles: [
+      {
+        title: "Lawful Basis & Consent Mandate",
+        ref: "PDPL Articles 5 & 6",
+        desc: "Personal data may not be processed without obtaining the explicit consent of the data owner, except where specific statutory exceptions apply.",
+      },
+      {
+        title: "Rights of the Data Subject",
+        ref: "PDPL Article 4",
+        desc: "Guarantees rights to know, access, request destruction, and obtain a copy of personal data in a readable and clear format.",
+      },
+      {
+        title: "Cross-Border Data Transfers",
+        ref: "PDPL Article 29 & Regulations",
+        desc: "Strictly controls data transfers outside the Kingdom, requiring equivalent protection levels and preservation of national sovereignty and security.",
+      },
+      {
+        title: "Breach Reporting to SDAIA",
+        ref: "PDPL Article 24",
+        desc: "Controllers must notify SDAIA within 72 hours of becoming aware of any personal data leakage or breach posing harm to data subjects.",
+      },
+    ],
+    bodyText: `================================================================================
+نظام حماية البيانات الشخصية (STATUTORY KSA PDPL INSTRUMENT)
+PURSUANT TO ROYAL DECREE NO. M/19 & SDAIA EXECUTIVE REGULATIONS
+================================================================================
+
+JURISDICTION: Kingdom of Saudi Arabia (المملكة العربية السعودية)
+SUPERVISORY BODY: Saudi Data & AI Authority (سدايا - SDAIA)
+
+1. الالتزام بالنظام والأساس النظامي (STATUTORY APPLICABILITY - ARTICLE 2/5)
+This instrument governs the processing of personal data within the Kingdom or relating to individuals residing in the Kingdom. Processing is conducted strictly upon explicit consent or valid statutory basis under SDAIA regulations.
+
+2. مسؤول حماية البيانات الشخصية (DATA PROTECTION OFFICER):
+- Contact: SDAIA Compliance & Regulatory Office
+- Direct Communications: sdaia-compliance@asji.legal
+- Redressal: Requests for access, correction, or destruction under Article 4 are addressed within 30 days.
+
+3. نقل البيانات خارج المملكة (CROSS-BORDER TRANSFERS - ARTICLE 29):
+Personal data is retained and processed within the Kingdom of Saudi Arabia unless transferred under approved SDAIA standard contractual clauses and adequacy exemptions.
+
+4. العقوبات والغرامات (PENALTIES):
+Penalties include statutory fines up to SAR 5,000,000 (which may be doubled for repeat violations) and criminal imprisonment for unauthorized disclosure of sensitive data.`,
+  },
+  // 14. SOUTH AFRICA - POPIA
+  {
+    id: "za-popia",
+    tag: "ZA-POPIA",
+    flag: "🇿🇦",
+    jurisdiction: "South Africa (Protection of Personal Information Act - POPIA)",
+    region: "Africa",
+    governingBody: "Information Regulator of South Africa",
+    statutoryReference: "Protection of Personal Information Act 4 of 2013 (POPIA)",
+    statutoryPenalty: "Fines up to ZAR 10,000,000 or imprisonment up to 10 years",
+    badge: "8 Lawful Processing Conditions (Sec 8–25)",
+    titleHeader:
+      "South African Statutory Information Protection Standard // Information Regulator (South Africa)",
+    executiveSummary:
+      "Mandatory POPIA compliance protocol under South African law enforcing the Eight Conditions for Lawful Processing: accountability, processing limitation, purpose specification, information quality, open communication, security safeguards, and registered Information Officer governance.",
+    keyArticles: [
+      {
+        title: "Accountability & Information Officer",
+        ref: "POPIA Section 8 & Section 55",
+        desc: "Responsible parties must appoint and register an Information Officer with the Information Regulator prior to processing operations.",
+      },
+      {
+        title: "Processing Limitation & Consent",
+        ref: "POPIA Sections 9, 10 & 11",
+        desc: "Personal information must be processed lawfully and minimally with the explicit consent of the data subject or legitimate contractual necessity.",
+      },
+      {
+        title: "Security Safeguards & Breach Notice",
+        ref: "POPIA Sections 19 & 22",
+        desc: "Mandates integrity and confidentiality safeguards and immediate notification to the Information Regulator and affected data subjects upon security compromise.",
+      },
+      {
+        title: "Transborder Information Flows",
+        ref: "POPIA Section 72",
+        desc: "Restricts offshore data transfers unless the foreign jurisdiction has substantially similar data protection laws or binding corporate agreements.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY INFORMATION PROTECTION MANUAL // SOUTH AFRICA POPIA
+PURSUANT TO THE PROTECTION OF PERSONAL INFORMATION ACT (ACT NO. 4 OF 2013)
+================================================================================
+
+JURISDICTION: Republic of South Africa
+GOVERNING AUTHORITY: Information Regulator of South Africa
+STATUTORY MANDATE: Eight Conditions for Lawful Processing of Personal Information
+
+1. LAWFUL PROCESSING CONDITIONS (SECTIONS 8–25)
+All personal information collected by the responsible party adheres strictly to:
+Condition 1: Accountability (Sec 8)
+Condition 2: Processing Limitation (Sec 9–12)
+Condition 3: Purpose Specification (Sec 13–14)
+Condition 4: Further Processing Limitation (Sec 15)
+Condition 5: Information Quality (Sec 16)
+Condition 6: Openness (Sec 17–18)
+Condition 7: Security Safeguards (Sec 19–22)
+Condition 8: Data Subject Participation (Sec 23–25)
+
+2. REGISTERED INFORMATION OFFICER (SECTION 55):
+- Office: Group Information Officer & Regulatory Liaison
+- Official Dispatch: popia-officer@asji.legal
+- Statutory Registration: Formally registered with the Information Regulator of South Africa.
+
+3. DIRECT MARKETING & COOKIES (SECTION 69):
+Processing personal information for direct marketing via unsolicited electronic communications is prohibited without opt-in consent.
+
+4. STATUTORY FINES & PENALTIES (SECTION 107):
+Non-compliance carries administrative fines up to ZAR 10,000,000 or penal imprisonment up to 10 years for willful obstruction or failure to adhere to enforcement notices.`,
+  },
+  // 15. NIGERIA - NDPA 2023
+  {
+    id: "ng-ndpa",
+    tag: "NG-NDPA",
+    flag: "🇳🇬",
+    jurisdiction: "Nigeria (Nigeria Data Protection Act, 2023 - NDPA)",
+    region: "Africa",
+    governingBody: "Nigeria Data Protection Commission (NDPC)",
+    statutoryReference: "Nigeria Data Protection Act, 2023 (NDPA Act No. 43 of 2023)",
+    statutoryPenalty:
+      "Higher of ₦10,000,000 or 2% of annual gross revenue (Major Data Controllers)",
+    badge: "NDPC Annual Audit & Lawful Consent (Sec 24/25)",
+    titleHeader:
+      "Statutory Data Processing & NDPC Compliance Instrument // Nigeria Data Protection Commission (NDPC)",
+    executiveSummary:
+      "Statutory governance under Nigeria's NDPA 2023 establishing explicit principles of lawful processing (Sec. 24), affirmative consent requirements (Sec. 25), mandatory Data Protection Officer (DPO) designation (Sec. 32), Data Protection Compliance Organization (DPCO) annual audit filings, and 72-hour NDPC incident reporting (Sec. 40).",
+    keyArticles: [
+      {
+        title: "Principles of Personal Data Processing",
+        ref: "NDPA Section 24",
+        desc: "Personal data must be processed lawfully, fairly, and transparently; collected for specified, explicit, and legitimate purposes; and limited to what is adequate, relevant, and necessary.",
+      },
+      {
+        title: "Consent & Duty to Inform",
+        ref: "NDPA Sections 25 & 27",
+        desc: "Consent must be freely given, specific, informed, and unambiguous. Data subjects must be provided clear notice of processing identity, purposes, and rights.",
+      },
+      {
+        title: "Data Protection Officer & Annual Audit",
+        ref: "NDPA Sections 32 & 48",
+        desc: "Data Controllers of Major Importance must designate a DPO and conduct annual statutory data protection compliance audits filed with the NDPC.",
+      },
+      {
+        title: "Security Measures & 72-hr Breach Notice",
+        ref: "NDPA Sections 39 & 40",
+        desc: "Requires appropriate technical and organizational measures (encryption, pseudonymization) and notification to the NDPC within 72 hours of becoming aware of a data breach.",
+      },
+    ],
+    bodyText: `================================================================================
+STATUTORY DATA PROTECTION NOTICE & COMPLIANCE INSTRUMENT
+PURSUANT TO THE NIGERIA DATA PROTECTION ACT, 2023 (ACT NO. 43 OF 2023)
+================================================================================
+
+JURISDICTION: Federal Republic of Nigeria
+REGULATORY AUTHORITY: Nigeria Data Protection Commission (NDPC)
+STATUTORY STATUS: Data Controller Compliance Framework & Data Subject Rights Instrument
+
+1. STATUTORY PRINCIPLES OF PROCESSING (SECTION 24)
+In accordance with Section 24 of the Nigeria Data Protection Act 2023 (NDPA), all personal data collected through this digital interface is processed in strict compliance with the core statutory principles of lawfulness, fairness, purpose limitation, data minimization, storage limitation, accuracy, integrity, and confidentiality.
+
+2. LAWFUL BASES & CONSENT MECHANISMS (SECTION 25)
+Data processing relies exclusively on:
+(a) Affirmative Consent: Freely given, specific, informed, and unambiguous consent obtained prior to non-essential cookie injection or third-party telemetry.
+(b) Contractual Performance: Strictly necessary processing to perform requested services.
+(c) Legal Obligation: Compliance with Federal Government of Nigeria statutes.
+
+3. DESIGNATION OF DATA PROTECTION OFFICER (SECTION 32):
+Pursuant to Section 32 of the NDPA, the designated Data Protection Officer (DPO) is:
+- Office: National Privacy Directorate & NDPC Liaison
+- Address: 12 Plot 1084, Diplomatic Zone, Central Business District, Abuja, FCT, Nigeria
+- Regulatory Inquiries: ndpa-dpo@asji.legal / dpo-nigeria@asji.one
+- Resolution Mandate: Inquiries and Data Subject Rights under Sections 34–38 will receive an itemized response within 21 statutory business days.
+
+4. CROSS-BORDER DATA TRANSFERS (SECTION 41–43):
+Data is not transferred outside Nigeria unless the destination country offers an adequate level of protection approved by the NDPC or under binding Standard Contractual Clauses with verifiable security controls.
+
+5. SECURITY SAFEGUARDS & BREACH NOTIFICATION (SECTIONS 39 & 40):
+The entity deploys TLS 1.3 transport encryption, Content Security Policies, and HSTS response headers. In the event of a security compromise likely to result in risk to data subjects, the NDPC will be notified within 72 hours under Section 40.
+
+6. STATUTORY SANCTIONS (SECTION 48):
+Violations of the NDPA subject Data Controllers of Major Importance to enforcement orders and penalties of up to ₦10,000,000 or 2% of total annual gross revenue, whichever is greater.`,
   },
 ];

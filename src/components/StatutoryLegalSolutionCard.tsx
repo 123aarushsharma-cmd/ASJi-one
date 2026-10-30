@@ -614,7 +614,7 @@ ${solution.sampleRectificationRoadmap}
                     onClick={() => onOpenUnlockModal("full-bundle")}
                     className="rounded-xl border border-primary/50 bg-primary/10 px-5 py-3 text-xs font-mono font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-md"
                   >
-                    Get Full Bundle (Code + All 14 Laws: ₹59,999)
+                    Get Full Bundle (Code + All 15 Laws: ₹59,999)
                   </button>
                 </div>
               )}

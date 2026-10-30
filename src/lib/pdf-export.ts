@@ -2,19 +2,22 @@ import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 
 /**
- * Robust, repeatable high-fidelity single-page PDF generator for ASJi Compliance Certificates.
- * Uses html-to-image (SVG ForeignObject) to completely avoid html2canvas OKLCH color parser bugs,
- * rendering crisp vector typography and gold foil graphics directly into a single-page A4 PDF.
+ * Robust, repeatable high-fidelity multi-page PDF generator for ASJi Compliance Certificates & Reports.
+ * Automatically checks for `.pdf-page` blocks to output crisp multi-page A4 PDFs with custom letterheads on each page,
+ * using html-to-image (SVG ForeignObject) to avoid canvas color parser bugs.
  */
 export async function downloadReportAsPdf(
   element: HTMLElement,
   domain: string = "website",
+  customFilename?: string,
 ): Promise<boolean> {
   if (typeof window === "undefined" || !element) return false;
 
   try {
     const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const filename = `ASJi_Compliance_Certificate_${cleanDomain}_${Date.now().toString().slice(-6)}.pdf`;
+    const filename =
+      customFilename ||
+      `ASJi_Sovereign_Report_${cleanDomain}_${Date.now().toString().slice(-6)}.pdf`;
 
     // Ensure all images are loaded
     const images = element.querySelectorAll("img");
@@ -30,17 +33,54 @@ export async function downloadReportAsPdf(
       }),
     );
 
-    // Convert the target element directly to a high-DPI PNG data URL using html-to-image
-    // Setting fontEmbedCSS: "" tells html-to-image to bypass iterating remote document.styleSheets
-    // and reading cross-origin cssRules, completely avoiding browser SecurityError.
+    // Check if the container has explicit multi-page blocks (.pdf-page)
+    const pageElements = Array.from(element.querySelectorAll<HTMLElement>(".pdf-page"));
+
+    if (pageElements.length > 0) {
+      // Multi-Page A4 PDF Generation
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      for (let i = 0; i < pageElements.length; i++) {
+        const pageEl = pageElements[i];
+        const pageImgData = await toPng(pageEl, {
+          quality: 0.98,
+          pixelRatio: 2, // 2x DPI for ultra-sharp typography
+          backgroundColor: "#0d0c0b",
+          cacheBust: true,
+          fontEmbedCSS: "",
+          filter: (node: Node) => {
+            if (node instanceof HTMLElement && node.classList.contains("print:hidden")) {
+              return false;
+            }
+            return true;
+          },
+        });
+
+        if (i > 0) {
+          pdf.addPage("a4", "p");
+        }
+
+        // Exact A4 dimension fit: 210mm x 297mm
+        pdf.addImage(pageImgData, "PNG", 0, 0, 210, 297, undefined, "FAST");
+      }
+
+      pdf.save(filename);
+      return true;
+    }
+
+    // Single-Page Capture Fallback
     const imgData = await toPng(element, {
       quality: 0.98,
-      pixelRatio: 2, // 2x DPI for ultra-sharp letterhead rendering
+      pixelRatio: 2,
       backgroundColor: "#0d0c0b",
       cacheBust: true,
       fontEmbedCSS: "",
       filter: (node: Node) => {
-        // Exclude elements with print:hidden class if any
         if (node instanceof HTMLElement && node.classList.contains("print:hidden")) {
           return false;
         }
@@ -52,7 +92,6 @@ export async function downloadReportAsPdf(
       throw new Error("Failed to capture image data URL from element");
     }
 
-    // Load image into HTMLImageElement to obtain exact intrinsic dimensions
     const img = new Image();
     img.src = imgData;
     await new Promise((resolve, reject) => {
@@ -60,8 +99,6 @@ export async function downloadReportAsPdf(
       img.onerror = (e) => reject(e);
     });
 
-    // Initialize fresh jsPDF document for A4 portrait
-    // A4 dimensions: 210mm x 297mm
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -71,15 +108,14 @@ export async function downloadReportAsPdf(
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 8; // 8mm margin
-    const contentWidth = pageWidth - margin * 2; // 194mm
-    const maxPageContentHeight = pageHeight - margin * 2; // 281mm
+    const margin = 8;
+    const contentWidth = pageWidth - margin * 2;
+    const maxPageContentHeight = pageHeight - margin * 2;
 
     const imgAspect = img.width / img.height;
     const totalPdfHeight = contentWidth / imgAspect;
 
     if (totalPdfHeight <= maxPageContentHeight) {
-      // Fits within 1 single A4 page
       const yOffset = margin + (maxPageContentHeight - totalPdfHeight) / 2;
       pdf.addImage(
         imgData,
@@ -92,27 +128,25 @@ export async function downloadReportAsPdf(
         "FAST",
       );
     } else {
-      // Dynamic multi-page support for comprehensive statutory dossiers
-      let heightLeft = totalPdfHeight;
-      let yPos = margin;
-
-      pdf.addImage(imgData, "PNG", margin, yPos, contentWidth, totalPdfHeight, undefined, "FAST");
-      heightLeft -= maxPageContentHeight;
-
-      while (heightLeft > 0) {
-        yPos -= pageHeight - margin * 2;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, yPos, contentWidth, totalPdfHeight, undefined, "FAST");
-        heightLeft -= maxPageContentHeight;
-      }
+      const scaleFactor = maxPageContentHeight / totalPdfHeight;
+      const scaledWidth = contentWidth * scaleFactor;
+      const xOffset = margin + (contentWidth - scaledWidth) / 2;
+      pdf.addImage(
+        imgData,
+        "PNG",
+        xOffset,
+        margin,
+        scaledWidth,
+        maxPageContentHeight,
+        undefined,
+        "FAST",
+      );
     }
 
     pdf.save(filename);
-
     return true;
   } catch (err) {
     console.error("Direct PDF generation error:", err);
-    // Fallback to standalone print window
     openStandalonePrintWindow(element, domain);
     return false;
   }

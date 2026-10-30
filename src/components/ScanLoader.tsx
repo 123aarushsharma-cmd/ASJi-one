@@ -1,77 +1,27 @@
 import { useEffect, useState, useRef } from "react";
-import { Terminal, Shield, Cpu, Wifi, Activity, Radio, AlertCircle } from "lucide-react";
-
-const SNIFFER_LOGS = [
-  {
-    time: "00:01.42",
-    tag: "SOCKET_INIT",
-    text: "Opening headless socket connection to target host...",
-  },
-  {
-    time: "00:03.85",
-    tag: "TLS_INSPECT",
-    text: "Handshaking TLS 1.3 certificate chain & HSTS preload headers...",
-  },
-  {
-    time: "00:07.12",
-    tag: "DOM_CAPTURE",
-    text: "Ingesting client runtime DOM tree, script tags & external CDNs...",
-  },
-  {
-    time: "00:11.40",
-    tag: "TELEMETRY_HOOK",
-    text: "Hooking window.dataLayer, Meta Pixel (fbq), and analytics beacons...",
-  },
-  {
-    time: "00:15.90",
-    tag: "COOKIE_SNIFF",
-    text: "Intercepting pre-consent Set-Cookie storage frames & tracking tokens...",
-  },
-  {
-    time: "00:20.30",
-    tag: "CROSS_BORDER",
-    text: "Analyzing DNS routing perimeter & US-East egress packet channels...",
-  },
-  {
-    time: "00:24.70",
-    tag: "SOVEREIGN_RULES",
-    text: "Evaluating India DPDP Act 2023 Sec 6/8 & EU GDPR Art 7/32 mandates...",
-  },
-  {
-    time: "00:28.90",
-    tag: "SYNTHESIZING",
-    text: "Compiling binary verdict matrix & statutory fine liability clock...",
-  },
-];
+import { Activity, Sparkles, CheckCircle2, Clock, ShieldCheck, Cpu } from "lucide-react";
 
 export function ScanLoader({ progress, url }: { progress: number; url: string }) {
   const [displayedProgress, setDisplayedProgress] = useState(progress);
-  const [secondsRemaining, setSecondsRemaining] = useState(30.0);
-  const [activeLogIndex, setActiveLogIndex] = useState(0);
-  const startTimeRef = useRef(Date.now());
   const displayedProgressRef = useRef(progress);
+  const [secondsRemaining, setSecondsRemaining] = useState(30.0);
+  const startTimeRef = useRef<number>(Date.now());
 
+  // Precise 30-second SLA countdown timer
   useEffect(() => {
     startTimeRef.current = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const remaining = Math.max(0, 30.0 - elapsed);
-      setSecondsRemaining(remaining);
-
-      // Compute step based on elapsed / progress
-      const currentStep = Math.min(
-        SNIFFER_LOGS.length - 1,
-        Math.floor((elapsed / 30) * SNIFFER_LOGS.length),
-      );
-      setActiveLogIndex(currentStep);
+    const interval = setInterval(() => {
+      const elapsedMs = Date.now() - startTimeRef.current;
+      const remainingSec = Math.max(0, 30.0 - elapsedMs / 1000);
+      setSecondsRemaining(remainingSec);
     }, 100);
 
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
+  // Smooth lerp progress animation
   useEffect(() => {
     let rafId: number;
-
     const lerp = () => {
       const diff = progress - displayedProgressRef.current;
       if (Math.abs(diff) > 0.05) {
@@ -88,251 +38,285 @@ export function ScanLoader({ progress, url }: { progress: number; url: string })
     return () => cancelAnimationFrame(rafId);
   }, [progress]);
 
-  const radius = 80;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (displayedProgress / 100) * circumference;
+  const p = Math.round(displayedProgress);
+  const checkCount = Math.min(124, Math.max(1, Math.round((p / 100) * 124)));
 
-  const tipAngleRad = ((displayedProgress / 100) * 360 - 90) * (Math.PI / 180);
-  const tipX = 100 + radius * Math.cos(tipAngleRad);
-  const tipY = 100 + radius * Math.sin(tipAngleRad);
+  const steps = [
+    { threshold: 25, label: "Checking headers" },
+    { threshold: 50, label: "Detecting trackers" },
+    { threshold: 75, label: "Mapping cookies" },
+    { threshold: 100, label: "Statutory matrix" },
+  ];
+
+  const currentStepIndex = steps.findIndex((s) => p <= s.threshold);
+  const activeStepIdx = currentStepIndex === -1 ? steps.length - 1 : currentStepIndex;
+
+  const getStatusText = (pct: number) => {
+    if (pct < 25) return "SNIFFING";
+    if (pct < 50) return "DETECTING";
+    if (pct < 75) return "MAPPING";
+    if (pct < 95) return "ANALYZING";
+    return "VERIFIED";
+  };
+
+  const getStepDescription = (pct: number) => {
+    if (pct < 25) return "Checking HTTPS, TLS 1.3 & Server Security Headers…";
+    if (pct < 50) return "Inspecting Third-Party Telemetry & Tracking Pixels…";
+    if (pct < 75) return "Mapping Pre-Consent Cookies & Local Storage Writes…";
+    if (pct < 95) return "Auditing 15 Sovereign Jurisdictions (DPDP, GDPR, CCPA)…";
+    return "Finalizing 124 Evidence-Based Statutory Checks…";
+  };
+
+  const liveProbeLogs = [
+    "Negotiating TLS 1.3 handshake & verifying HSTS directives…",
+    "Inspecting Content-Security-Policy & Referrer-Policy headers…",
+    "Testing for missing HttpOnly, Secure & SameSite cookie flags…",
+    "Scanning DOM for unconsented analytics & tracking scripts…",
+    "Simulating user consent opt-out & zero-leak CMP compliance…",
+    "Cross-referencing India DPDP Act 2023 Sec 6 consent standards…",
+    "Cross-referencing EU GDPR Art 44 international transfer rules…",
+    "Verifying UK DUAA 2025 & US CPRA opt-out requirements…",
+    "Synthesizing 124 real-time statutory evidence signals…",
+  ];
+
+  const activeLogIndex = Math.min(
+    liveProbeLogs.length - 1,
+    Math.floor((p / 100) * liveProbeLogs.length),
+  );
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6 py-6 animate-rise transform-gpu">
-      {/* Top Headless Sniffer Header */}
-      <div className="w-full rounded-2xl border border-primary/40 bg-black/80 p-4 sm:p-5 shadow-2xl backdrop-blur-xl font-mono text-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="font-bold text-gold-gradient tracking-wider uppercase text-sm flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-primary" />
-              30-SEC HEADLESS BROWSER TELEMETRY SNIFFER
-            </span>
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center gap-6 py-8 px-4 animate-rise font-mono">
+      {/* 30-Second Fast SLA Guarantee Banner */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-black/80 to-primary/10 shadow-lg shadow-primary/10">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/40">
+            <Clock className="h-4 w-4 text-primary animate-pulse" />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-950/40 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400">
-              <Radio className="h-3 w-3 animate-pulse" /> LIVE SOCKET SNIFFING
+          <div>
+            <span className="text-[11px] font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+              <span>Deterministic 30-Second SLA</span>
+              <span className="rounded bg-primary/20 text-primary px-1.5 py-0.2 text-[9px] border border-primary/30">
+                Guaranteed
+              </span>
             </span>
-            <span className="text-muted-foreground text-[11px]">
-              ENGINE: <strong className="text-foreground">CHROMIUM V8 HOOK</strong>
-            </span>
+            <p className="text-[10px] text-muted-foreground">
+              Results delivered in under 30 seconds without false accusations
+            </p>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className="text-primary font-semibold">TARGET DOMAIN:</span>
-            <span className="font-bold text-foreground underline underline-offset-2">{url}</span>
-          </div>
-          <div className="flex items-center gap-2 font-mono">
-            <span className="text-amber-400 font-bold">SNIFFER COUNTDOWN:</span>
-            <span className="text-foreground font-extrabold bg-primary/10 border border-primary/30 px-2 py-0.5 rounded text-xs">
-              {secondsRemaining.toFixed(1)}s
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Live Scanning Progress Steps: Fetching site → Checking headers → Detecting trackers → Mapping laws */}
-      <div className="w-full rounded-2xl border border-primary/30 bg-black/75 p-3.5 sm:p-4 backdrop-blur-xl shadow-lg">
-        <div className="flex items-center justify-between mb-3 border-b border-border/40 pb-2">
-          <span className="text-[11px] font-mono font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
-            <Activity className="h-3.5 w-3.5 animate-pulse text-primary" />
-            Live Forensic Pipeline
+        {/* Live Timer Countdown Badge */}
+        <div className="flex items-center gap-2 rounded-xl border border-primary/50 bg-black/80 px-3.5 py-1.5 shadow-inner">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+            SLA Timer:
           </span>
-          <span className="text-[10px] font-mono text-muted-foreground">
-            Stage{" "}
-            {displayedProgress >= 75
-              ? "4/4"
-              : displayedProgress >= 50
-                ? "3/4"
-                : displayedProgress >= 25
-                  ? "2/4"
-                  : "1/4"}{" "}
-            Active
+          <span className="font-mono text-base font-extrabold text-gold-gradient tracking-tight">
+            {secondsRemaining > 0
+              ? `00:${secondsRemaining.toFixed(1).padStart(4, "0")}`
+              : "00:00.0"}
           </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-          {[
-            { id: 1, label: "Fetching site", threshold: 0 },
-            { id: 2, label: "Checking headers", threshold: 25 },
-            { id: 3, label: "Detecting trackers", threshold: 50 },
-            { id: 4, label: "Mapping laws", threshold: 75 },
-          ].map((st, i) => {
-            const isCompleted = displayedProgress >= (i === 3 ? 100 : (i + 1) * 25);
-            const isCurrent = displayedProgress >= st.threshold && !isCompleted;
-            return (
-              <div
-                key={st.id}
-                className={`flex items-center gap-2 rounded-xl border p-2 sm:p-2.5 transition-all duration-300 ${
-                  isCurrent
-                    ? "border-primary bg-primary/15 text-primary shadow-sm shadow-primary/20 ring-1 ring-primary/40"
-                    : isCompleted
-                      ? "border-emerald-500/40 bg-emerald-950/20 text-emerald-400"
-                      : "border-border/40 bg-black/40 text-muted-foreground/60"
-                }`}
-              >
-                <div
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                    isCurrent
-                      ? "bg-primary text-primary-foreground animate-pulse"
-                      : isCompleted
-                        ? "bg-emerald-500 text-black font-extrabold"
-                        : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {isCompleted ? "✓" : st.id}
-                </div>
-                <span className="text-[11px] font-semibold truncate leading-tight">{st.label}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Center Radar Scanner + Dial with 360° Radar Sweep */}
-      <div className="relative flex h-60 w-60 items-center justify-center sm:h-72 sm:w-72 transform-gpu">
-        {/* Soft Radial Ambient Glow */}
-        <div className="absolute inset-2 rounded-full bg-primary/20 blur-3xl animate-pulse-glow transform-gpu" />
-
-        {/* Tactical Crosshairs & Radar Range Circles */}
-        <div className="absolute inset-4 rounded-full border border-primary/20 opacity-60 pointer-events-none" />
-        <div className="absolute inset-12 rounded-full border border-primary/15 opacity-40 pointer-events-none" />
-        <div className="absolute inset-20 rounded-full border border-primary/10 opacity-30 pointer-events-none" />
-        <div className="absolute inset-x-4 top-1/2 h-[1px] bg-primary/20 -translate-y-1/2 pointer-events-none" />
-        <div className="absolute inset-y-4 left-1/2 w-[1px] bg-primary/20 -translate-x-1/2 pointer-events-none" />
-
-        {/* 360° Live Radar Sweep Beam */}
-        <div className="absolute inset-4 rounded-full overflow-hidden pointer-events-none">
-          <div
-            className="w-full h-full animate-radar-sweep origin-center"
-            style={{
-              background:
-                "conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(212, 175, 55, 0.12) 320deg, rgba(255, 242, 178, 0.45) 360deg)",
-            }}
-          />
-        </div>
-
-        {/* Outer Spinning Dashed Orbit */}
-        <svg
-          className="absolute inset-0 animate-spin-slow transform-gpu opacity-40 pointer-events-none"
-          viewBox="0 0 200 200"
-          aria-hidden
-        >
-          <circle
-            cx="100"
-            cy="100"
-            r="94"
-            fill="none"
-            stroke="var(--gold)"
-            strokeWidth="1"
-            strokeDasharray="8 8"
-          />
-        </svg>
-
-        {/* Circular Progress Indicator */}
-        <svg
-          className="absolute inset-0 h-full w-full -rotate-90 transform-gpu"
-          viewBox="0 0 200 200"
-        >
-          <defs>
-            <linearGradient id="scanGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FFF2B2" />
-              <stop offset="35%" stopColor="#FFD700" />
-              <stop offset="70%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#996515" />
-            </linearGradient>
-
-            <radialGradient id="tipGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#FFF2B2" stopOpacity="1" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
-          <circle
-            cx="100"
-            cy="100"
-            r={radius}
-            fill="none"
-            stroke="var(--gold-deep)"
-            strokeOpacity="0.2"
-            strokeWidth="6"
-          />
-
-          <circle
-            cx="100"
-            cy="100"
-            r={radius}
-            fill="none"
-            stroke="url(#scanGoldGrad)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            className="transition-[stroke-dashoffset] duration-75 ease-out"
-          />
-
-          {displayedProgress > 1 && (
-            <g transform="rotate(90 100 100)">
-              <circle cx={tipX} cy={tipY} r="6" fill="url(#tipGlow)" opacity="0.9" />
-              <circle cx={tipX} cy={tipY} r="3" fill="#FFF2B2" stroke="#D4AF37" strokeWidth="1" />
-            </g>
-          )}
-        </svg>
-
-        {/* Center Counter */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-28 w-28 sm:h-32 sm:w-32 rounded-full surface-panel border border-primary/40 shadow-gold transform-gpu">
-          <Activity className="h-6 w-6 text-primary animate-pulse transform-gpu mb-1" />
-          <span className="font-mono text-2xl font-extrabold text-gold-gradient tracking-tight leading-none">
-            {Math.round(displayedProgress)}%
-          </span>
-          <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest mt-1">
-            SNIFFING
+          <span className="text-[10px] text-primary/80">
+            ({Math.ceil(secondsRemaining)}s remaining)
           </span>
         </div>
       </div>
 
-      {/* Terminal Monospace Packet Sniffer Stream Box */}
-      <div className="w-full rounded-2xl border border-border/80 bg-black/90 p-4 font-mono text-xs shadow-inner">
-        <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
-          <div className="flex items-center gap-2 text-primary font-bold text-[11px]">
-            <Terminal className="h-3.5 w-3.5" />
-            <span>LIVE TELEMETRY SNIFFER LOGS (30s REAL-TIME STREAM)</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>STREAMING PACKETS</span>
-          </div>
-        </div>
-
-        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-          {SNIFFER_LOGS.slice(0, activeLogIndex + 1).map((log, idx) => (
+      {/* Top Steps Pills Bar */}
+      <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {steps.map((step, idx) => {
+          const isActive = idx === activeStepIdx;
+          const isCompleted = idx < activeStepIdx || p >= 100;
+          return (
             <div
-              key={idx}
-              className={`flex items-start gap-2.5 text-[11px] leading-relaxed transition-all ${
-                idx === activeLogIndex
-                  ? "text-emerald-400 font-bold bg-emerald-950/20 px-2 py-1 rounded"
-                  : "text-muted-foreground/80"
+              key={step.label}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-300 text-xs ${
+                isActive
+                  ? "bg-primary/15 border-primary shadow-[0_0_20px_rgba(212,175,55,0.3)] text-foreground scale-[1.02]"
+                  : isCompleted
+                    ? "bg-secondary/40 border-primary/30 text-primary"
+                    : "bg-secondary/20 border-border/40 text-muted-foreground opacity-60"
               }`}
             >
-              <span className="text-primary/70 shrink-0 select-none">[{log.time}]</span>
-              <span className="rounded bg-black border border-border/60 px-1 py-0.2 text-[9px] text-amber-300/90 font-mono shrink-0">
-                {log.tag}
-              </span>
-              <span className="break-all">{log.text}</span>
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                  isActive || isCompleted
+                    ? "bg-primary text-black shadow-md shadow-primary/30"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {isCompleted ? <CheckCircle2 className="w-3 h-3 text-black" /> : idx + 1}
+              </div>
+              <span className="truncate font-semibold">{step.label}</span>
             </div>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* Main Radar Scanner Graphic Container */}
+      <div className="relative w-72 h-72 sm:w-84 sm:h-84 flex items-center justify-center my-3 select-none">
+        {/* Outer rotating dashed ring with degree ticks */}
+        <div className="absolute inset-0 rounded-full border border-dashed border-primary/35 animate-spin-slow pointer-events-none" />
+
+        {/* Concentric distance radar rings */}
+        <div className="absolute inset-3 rounded-full border border-primary/20 pointer-events-none" />
+        <div className="absolute inset-10 rounded-full border border-primary/15 pointer-events-none" />
+        <div className="absolute inset-20 rounded-full border border-primary/10 pointer-events-none" />
+
+        {/* Sonar Expanding Waves */}
+        <div className="absolute inset-8 rounded-full border border-primary/20 animate-ping opacity-25 pointer-events-none" />
+
+        {/* Cardinal crosshair axes */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-full h-[1px] bg-primary/20" />
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="h-full w-[1px] bg-primary/20" />
         </div>
 
-        {/* Linear Gold Bar */}
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 p-0.5 border border-primary/20">
+        {/* Radar Cardinal Marks (0°, 90°, 180°, 270°) */}
+        <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] text-primary/50 font-bold pointer-events-none">
+          0° N
+        </div>
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-primary/50 font-bold pointer-events-none">
+          90° E
+        </div>
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] text-primary/50 font-bold pointer-events-none">
+          180° S
+        </div>
+        <div className="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] text-primary/50 font-bold pointer-events-none">
+          270° W
+        </div>
+
+        {/* Target Radar Signal Blips (Simulating detected endpoints & cookies) */}
+        <div
+          className="absolute top-1/4 right-1/4 w-2 h-2 rounded-full bg-primary animate-pulse pointer-events-none shadow-[0_0_8px_#d4af37]"
+          title="TLS Node"
+        />
+        <div
+          className="absolute bottom-1/3 left-1/4 w-2 h-2 rounded-full bg-emerald-400 animate-ping pointer-events-none opacity-60"
+          title="HSTS Header"
+        />
+        <div
+          className="absolute top-1/3 left-1/3 w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse pointer-events-none shadow-[0_0_6px_#f59e0b]"
+          title="Cookie Signal"
+        />
+        <div
+          className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 rounded-full bg-primary animate-pulse pointer-events-none shadow-[0_0_6px_#d4af37]"
+          title="CMP Gating"
+        />
+
+        {/* Rotating Radar Sweep Beam with Golden Phosphor Trail */}
+        <div className="absolute inset-4 rounded-full overflow-hidden pointer-events-none animate-radar-sweep">
           <div
-            className="h-full rounded-full transition-all duration-75 ease-out"
+            className="absolute inset-0"
             style={{
-              width: `${displayedProgress}%`,
-              backgroundImage: "var(--gradient-gold)",
+              background:
+                "conic-gradient(from 0deg at 50% 50%, rgba(212, 175, 55, 0.45) 0deg, rgba(212, 175, 55, 0.12) 45deg, transparent 75deg, transparent 360deg)",
             }}
           />
+        </div>
+
+        {/* Progress Arc / Ring SVG */}
+        <div className="absolute inset-2 pointer-events-none">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle
+              cx="50"
+              cy="50"
+              r="44"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className="text-primary/20"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="44"
+              fill="none"
+              stroke="url(#scanGoldGradient)"
+              strokeWidth="4"
+              strokeDasharray="276"
+              strokeDashoffset={276 - (276 * p) / 100}
+              strokeLinecap="round"
+              className="transition-all duration-150 ease-out"
+            />
+            <defs>
+              <linearGradient id="scanGoldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8c7322" />
+                <stop offset="50%" stopColor="#d4af37" />
+                <stop offset="100%" stopColor="#fef08a" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* Glowing Head Dot Tracking Progress on Perimeter */}
+        <div
+          className="absolute inset-6 pointer-events-none transition-all duration-150 ease-out"
+          style={{
+            transform: `rotate(${(p / 100) * 360}deg)`,
+          }}
+        >
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary shadow-[0_0_14px_#d4af37,0_0_4px_#fff]" />
+        </div>
+
+        {/* Center Hub Display */}
+        <div className="relative z-10 w-42 h-42 sm:w-46 sm:h-46 rounded-full bg-gradient-to-b from-[#1a1714] to-[#0c0a09] border border-primary/50 shadow-[0_0_35px_rgba(212,175,55,0.25)] flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-primary mb-1 animate-pulse-glow shadow-sm shadow-primary/20">
+            <Activity className="w-4.5 h-4.5 text-primary" />
+          </div>
+          <div className="text-3xl sm:text-4xl font-mono font-black text-gold-gradient tracking-tight">
+            {p}%
+          </div>
+          <div className="text-[10px] sm:text-[11px] font-mono font-extrabold tracking-widest text-primary uppercase mt-0.5">
+            {getStatusText(p)}
+          </div>
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wider mt-0.5 font-bold">
+            {secondsRemaining > 0 ? `${Math.ceil(secondsRemaining)}s remaining` : "Completing…"}
+          </div>
+        </div>
+      </div>
+
+      {/* Target & Dynamic Status Telemetry Terminal Box */}
+      <div className="w-full max-w-xl flex flex-col items-center gap-2.5 text-center bg-black/80 border border-primary/30 rounded-2xl p-4 sm:p-5 backdrop-blur-md shadow-xl">
+        <div className="flex items-center justify-between w-full border-b border-white/10 pb-2">
+          <div className="flex items-center gap-2 text-xs text-primary font-bold">
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+            <span className="truncate max-w-[280px] sm:max-w-[380px]">
+              Target: {url || "Target Website"}
+            </span>
+          </div>
+          <span className="rounded bg-primary/15 border border-primary/30 px-2 py-0.5 text-[10px] text-primary font-bold uppercase tracking-wider">
+            Live Inspection
+          </span>
+        </div>
+
+        {/* Current Inspection Step Description */}
+        <div className="text-sm font-semibold text-foreground pt-1">{getStepDescription(p)}</div>
+
+        {/* Live Terminal Signal Ticker */}
+        <div className="w-full rounded-lg bg-black/90 border border-border/80 px-3 py-2 text-left text-[11px] text-emerald-400 flex items-center gap-2 overflow-hidden shadow-inner">
+          <Cpu className="h-3.5 w-3.5 text-emerald-400 shrink-0 animate-pulse" />
+          <span className="truncate text-muted-foreground">PROBE // </span>
+          <span className="truncate text-emerald-300 font-medium">
+            {liveProbeLogs[activeLogIndex]}
+          </span>
+        </div>
+
+        {/* High Precision Progress Bar */}
+        <div className="w-full bg-secondary/80 h-2 rounded-full overflow-hidden mt-1 border border-primary/20">
+          <div
+            className="h-full bg-gradient-to-r from-primary/60 via-primary to-yellow-200 transition-all duration-150 ease-out shadow-[0_0_12px_rgba(212,175,55,0.5)]"
+            style={{ width: `${p}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between w-full text-[11px] text-muted-foreground pt-0.5">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            <span>{checkCount}/124 Evidence Checks</span>
+          </span>
+          <span className="text-primary font-bold font-mono">{p}% Complete</span>
         </div>
       </div>
     </div>

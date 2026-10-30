@@ -65,15 +65,34 @@ service cloud.firestore {
     // 5. Admin Directory
     match /admins/{adminId} {
       allow read: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.masterPasscode == "ASJI-CITADEL-2026" ||
+        request.auth.token.email == "123.aarushsharma@gmail.com"
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // 6. Enterprise Licensing & Payment Verification Transactions
+    match /transactions/{txnId} {
+      // Anyone can submit a payment verification reference
+      allow create: if request.resource.data.referenceId is string &&
+                       request.resource.data.domain is string;
+      // Reading, verifying and updating transactions strictly restricted to admin
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 7. Active Licensed Domains (verified by admin)
+    match /licenses/{domain} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 6. Test connection ping
+    // 8. Test connection ping
     match /test/{testId} {
       allow read, write: if true;
     }
 
-    // 7. Global Safety Net (Default Deny)
+    // 9. Global Safety Net (Default Deny)
     match /{document=**} {
       allow read, write: if false;
     }

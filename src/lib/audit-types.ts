@@ -69,9 +69,57 @@ export type RadarTerminalData = {
   };
 };
 
+export type ScanMethodWorked =
+  "Direct" | "Rendered" | "Proxy" | "Limited (blocked by site firewall)";
+
+export type LimitedScanDetails = {
+  httpsWorks: boolean;
+  sslCert?: {
+    issuer: string;
+    validTo: string;
+    daysRemaining: number;
+  } | null;
+  securityHeaders: Record<string, string | null>;
+  dnsRecords?: {
+    spf: string | null;
+    dmarc: string | null;
+  };
+  serverLocation?: {
+    countryName: string;
+    flag: string;
+    jurisdictionCode: string;
+    provider?: string;
+  };
+};
+
 export type AuditReport = {
   target: string;
   originCountry: string;
+  serverLocation?: {
+    countryName: string;
+    flag: string;
+    jurisdictionCode: string;
+    provider?: string;
+  };
+  businessLocation?: {
+    countryName: string;
+    flag: string;
+    jurisdictionCode: string;
+    source?: string;
+  };
+  scanStatus?: "completed" | "incomplete";
+  scanMethodWorked?: ScanMethodWorked | null;
+  finalHttpStatus?: number;
+  isBlockedOrIncomplete?: boolean;
+  isLimitedScan?: boolean;
+  limitedScanDetails?: LimitedScanDetails;
+  incompleteReason?: string;
+  incompleteDetails?: {
+    statusCode: number;
+    reason: string;
+    challengeType?: string;
+    attemptedMethods?: string[];
+  };
   score: number;
   summary: string;
   inputKind: "url" | "text";

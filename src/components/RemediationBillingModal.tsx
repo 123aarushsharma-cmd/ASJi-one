@@ -18,7 +18,10 @@ import {
   FileText,
   Code,
   Download,
+  Clock,
 } from "lucide-react";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type { AuditReport } from "@/lib/audit-types";
 import {
   generateClientHandoverDocument,
@@ -56,8 +59,8 @@ const BILLING_TIERS: TierDetails[] = [
     id: "patch-code",
     name: "Autonomous Remediation Code Patches",
     badge: "Instant Code Release",
-    priceInr: "₹24,999",
-    priceNum: 24999,
+    priceInr: "₹2,499/mo",
+    priceNum: 2499,
     unlockSummary: "Production Code Patches Only",
     description:
       "Direct code repository unlock: Full executable server hardening, consent gates, and edge middleware.",
@@ -90,11 +93,11 @@ const BILLING_TIERS: TierDetails[] = [
     name: "GDPR & Multi-Sovereign Legal Pack",
     priceInr: "₹45,000",
     priceNum: 45000,
-    unlockSummary: "All 14 Sovereign Legal Solutions (GDPR, DUAA, CCPA, PDPL)",
+    unlockSummary: "All 15 Sovereign Legal Solutions (GDPR, DUAA, CCPA, NDPA, etc.)",
     description:
-      "Complete statutory legal solution matrix and non-compliance disclosures for EU GDPR, UK DUAA, UAE PDPL, US CCPA/CPRA, and all 14 global laws.",
+      "Complete statutory legal solution matrix and non-compliance disclosures for EU GDPR, UK DUAA, UAE PDPL, US CCPA/CPRA, Nigeria NDPA, and all 15 global laws.",
     features: [
-      "Full disclosure of statutory gaps across all 14 global sovereign privacy frameworks",
+      "Full disclosure of statutory gaps across all 15 global sovereign privacy frameworks",
       "EU Standard Contractual Clauses (SCCs) & Cross-Border Transfer Assessment",
       "GDPR Article 13/14 privacy charter & 30-day Subject Access Request (SAR) templates",
       "UAE PDPL Data Office statutory notification protocols & US CCPA GPC listener",
@@ -108,12 +111,12 @@ const BILLING_TIERS: TierDetails[] = [
     popular: true,
     priceInr: "₹59,999",
     priceNum: 59999,
-    unlockSummary: "Both Full Code Patches AND All 14 Sovereign Legal Solutions",
+    unlockSummary: "Both Full Code Patches AND All 15 Sovereign Legal Solutions",
     description:
-      "Combined complete autonomous code patches + 14 sovereign legal draft packs + official client handover summary report.",
+      "Combined complete autonomous code patches + 15 sovereign legal draft packs + official client handover summary report.",
     features: [
       "Includes ALL Autonomous Remediation Code Patches (NGINX, Edge, CMP, Node, Grievance)",
-      "Includes ALL 14 Global Privacy Law statutory legal solutions & non-compliance disclosures",
+      "Includes ALL 15 Global Privacy Law statutory legal solutions & non-compliance disclosures",
       "Tailored Statutory Privacy Notice Draft with 22-language provisions",
       "Designated Grievance Redressal Officer & DPO statutory charter with 48h SLA",
       "4-Phase Board-Ready Rectification Roadmap with executive milestones",
@@ -139,7 +142,7 @@ export function RemediationBillingModal({
   initialTier,
 }: RemediationBillingModalProps) {
   const [selectedTier, setSelectedTier] = useState<BillingTierId>(initialTier || "full-bundle");
-  const [txnStep, setTxnStep] = useState<"form" | "processing" | "success">("form");
+  const [txnStep, setTxnStep] = useState<"form" | "processing" | "submitted" | "success">("form");
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const [orgName, setOrgName] = useState("");
   const [email, setEmail] = useState("");
@@ -195,74 +198,49 @@ export function RemediationBillingModal({
     }
   };
 
-  const handleQuickFillRef = () => {
-    const randomRef = `${Math.floor(100000000000 + Math.random() * 900000000000)}`;
-    setReferenceId(randomRef);
-    if (!orgName) setOrgName(targetDomain);
-    if (!email) setEmail(`compliance@${targetDomain}`);
-    toast.success("Reference Number Generated", {
-      description: `UTR ${randomRef} set for instant enterprise verification.`,
-    });
-  };
-
-  const handleStartTransaction = (e: React.FormEvent) => {
+  const handleStartTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTxnStep("processing");
-
-    setProcessingStatus(
-      `Initiating Direct Enterprise Transfer Verification to ${OFFICIAL_UPI_CONFIG.payeeName}...`,
-    );
-
-    setTimeout(() => {
-      setProcessingStatus(
-        `Verifying Bank Transfer Reference [${referenceId || generatedTxnId}] via Secure Switch...`,
-      );
-    }, 800);
-
-    setTimeout(() => {
-      if (selectedTier === "patch-code") {
-        setProcessingStatus(`Synthesizing Production Code Patches for ${targetDomain}...`);
-      } else if (selectedTier === "dpdp-india") {
-        setProcessingStatus(
-          `Compiling India DPDP Act 2023 Statutory Legal Solutions for ${targetDomain}...`,
-        );
-      } else if (selectedTier === "gdpr-global") {
-        setProcessingStatus(
-          `Generating Multi-Sovereign Legal Matrix (GDPR, DUAA, PDPL, CPRA) for ${targetDomain}...`,
-        );
-      } else {
-        setProcessingStatus(
-          `Synthesizing Full Autonomous Code Patches & 14 Sovereign Legal Packs for ${targetDomain}...`,
-        );
-      }
-    }, 1800);
-
-    setTimeout(() => {
-      setProcessingStatus("Minting Cryptographic Sovereign Compliance Token...");
-    }, 3200);
-
-    setTimeout(() => {
-      // Persist unlock in localStorage for domain
-      try {
-        const storedTiers = JSON.parse(
-          localStorage.getItem(`asji_unlocked_tiers_${targetDomain}`) || "[]",
-        );
-        if (!storedTiers.includes(selectedTier)) {
-          storedTiers.push(selectedTier);
-        }
-        localStorage.setItem(`asji_unlocked_tiers_${targetDomain}`, JSON.stringify(storedTiers));
-        localStorage.setItem(`asji_unlocked_${targetDomain}`, "true");
-        localStorage.setItem("asji_unlocked_global", "true");
-      } catch {
-        // ignore
-      }
-
-      setTxnStep("success");
-      onUnlockSuccess(selectedTier);
-      toast.success("Enterprise License Activated!", {
-        description: `${currentTier.name} successfully unlocked for ${targetDomain}.`,
+    const cleanRef = (referenceId || "").trim();
+    if (!cleanRef || cleanRef.length < 8) {
+      toast.error("Invalid Transfer Reference", {
+        description: "Please enter a valid 12-digit bank UTR or IMPS reference number.",
       });
-    }, 4500);
+      return;
+    }
+
+    setTxnStep("processing");
+    setProcessingStatus(`Connecting to banking switch for reference ${cleanRef}...`);
+
+    try {
+      const txnDocId = `txn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await setDoc(doc(db, "transactions", txnDocId), {
+        id: txnDocId,
+        referenceId: cleanRef,
+        domain: targetDomain,
+        tier: selectedTier,
+        tierName: currentTier.name,
+        priceInr: currentTier.priceInr,
+        orgName: orgName.trim() || targetDomain,
+        email: email.trim() || `compliance@${targetDomain}`,
+        taxId: taxId.trim() || null,
+        status: "pending_verification",
+        createdAt: serverTimestamp(),
+        submittedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn("Firestore transaction record note:", err);
+    }
+
+    setTimeout(() => {
+      setProcessingStatus("Registering cryptographic invoice seal with ASJi treasury...");
+    }, 1200);
+
+    setTimeout(() => {
+      setTxnStep("submitted");
+      toast.success("Transaction Reference Logged", {
+        description: `UTR ${cleanRef} is awaiting banking reconciliation.`,
+      });
+    }, 2500);
   };
 
   const handleCopyReceipt = async () => {
@@ -395,7 +373,87 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
           </div>
         )}
 
-        {/* SUCCESS STEP */}
+        {/* SUBMITTED STEP: PENDING ADMIN RECONCILIATION */}
+        {txnStep === "submitted" && (
+          <div className="py-6 animate-in fade-in duration-300 space-y-6 max-w-3xl mx-auto">
+            <div className="flex flex-col items-center justify-center text-center border-b border-border/60 pb-6">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 border-2 border-amber-500/40 mb-4 shadow-xl shadow-amber-500/10">
+                <Clock className="h-10 w-10 animate-pulse" />
+              </div>
+              <span className="font-mono text-xs uppercase tracking-wider text-amber-400 font-bold bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full">
+                UTR Recorded · Banking Switch Reconciliation Pending
+              </span>
+              <h2 className="mt-3 font-display text-2xl sm:text-3xl font-bold text-gold-gradient">
+                Payment Verification Underway
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
+                Your 12-digit transaction UTR{" "}
+                <strong className="text-amber-300 font-mono">{referenceId}</strong> has been logged
+                with ASJi Accounts Desk for <strong className="text-white">{targetDomain}</strong>.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-primary/30 bg-black/80 p-5 sm:p-6 font-mono text-xs space-y-3">
+              <div className="flex items-center gap-2 text-amber-300 font-bold border-b border-white/10 pb-2">
+                <ShieldCheck className="h-4 w-4" />
+                <span>Anti-Fraud &amp; Zero-Bypass Compliance Protocol</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed text-[11px]">
+                Autonomous remediation code patches, edge middleware, and sovereign legal drafts are
+                production-grade enterprise assets. To prevent unauthorized extraction, access is
+                activated upon bank settlement confirmation (typically 15–30 minutes during banking
+                hours).
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-[11px]">
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                  <span className="text-neutral-500 block">Licensed Organization:</span>
+                  <span className="text-white font-bold">{orgName || targetDomain}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                  <span className="text-neutral-500 block">Deliverable Tier:</span>
+                  <span className="text-amber-300 font-bold">
+                    {currentTier.name} ({currentTier.priceInr})
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                  <span className="text-neutral-500 block">Submitted Bank UTR:</span>
+                  <span className="text-primary font-bold">{referenceId}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                  <span className="text-neutral-500 block">Delivery Email:</span>
+                  <span className="text-white font-bold">{email || "compliance@domain.com"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCopyReceipt}
+                className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-mono font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+              >
+                <Receipt className="h-4 w-4" />
+                <span>{receiptCopied ? "Receipt Copied ✓" : "Copy Tax Receipt"}</span>
+              </button>
+              <a
+                href={`mailto:asji.online@gmail.com?subject=Expedited%20Activation%20Request%20-%20UTR%20${encodeURIComponent(referenceId)}&body=Hello%20ASJi%20Compliance%20Desk,%0A%0AI%20have%20completed%20the%20UPI%20transfer%20for%20${encodeURIComponent(targetDomain)}.%0AUTR:%20${encodeURIComponent(referenceId)}%0ATier:%20${encodeURIComponent(currentTier.name)}%0AOrganization:%20${encodeURIComponent(orgName)}%0A%0APlease%20expedite%20activation.`}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs font-mono font-bold text-black hover:from-amber-400 hover:to-amber-500 transition-all cursor-pointer shadow-lg"
+              >
+                <span>Expedite via Email Desk</span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-neutral-900 px-5 py-2.5 text-xs font-mono text-muted-foreground hover:bg-neutral-800 hover:text-white transition-all cursor-pointer"
+              >
+                <span>Return to Audit</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SUCCESS STEP (Shown when approved) */}
         {txnStep === "success" && (
           <div className="py-4 animate-in fade-in duration-300 space-y-6">
             <div className="flex flex-col items-center justify-center text-center border-b border-border/60 pb-6">
@@ -410,7 +468,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                 {selectedTier === "dpdp-india" && "DPDP Act 2023 Statutory Legal Suite Unlocked"}
                 {selectedTier === "gdpr-global" && "GDPR & Multi-Sovereign Legal Pack Unlocked"}
                 {selectedTier === "full-bundle" &&
-                  "Full Code Patches & 14 Sovereign Legal Suite Ready"}
+                  "Full Code Patches & 15 Sovereign Legal Suite Ready"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground max-w-xl">
                 {selectedTier === "patch-code" &&
@@ -418,9 +476,9 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                 {selectedTier === "dpdp-india" &&
                   `Itemized notice at collection, bilingual statutory templates, designated Grievance Redressal Officer charters, and non-compliance penalty disclosures under DPDP Act 2023 are unlocked for ${targetDomain}.`}
                 {selectedTier === "gdpr-global" &&
-                  `Complete statutory legal solutions, SCCs, SAR templates, and non-compliance disclosures across all 14 global sovereign privacy frameworks are unlocked for ${targetDomain}.`}
+                  `Complete statutory legal solutions, SCCs, SAR templates, and non-compliance disclosures across all 15 global sovereign privacy frameworks are unlocked for ${targetDomain}.`}
                 {selectedTier === "full-bundle" &&
-                  `Full autonomous remediation code patches, all 14 sovereign legal solution packs, signed audit certificates, and white-label client handover packs are permanently unlocked for ${targetDomain}.`}
+                  `Full autonomous remediation code patches, all 15 sovereign legal solution packs, signed audit certificates, and white-label client handover packs are permanently unlocked for ${targetDomain}.`}
               </p>
             </div>
 
@@ -810,13 +868,9 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         Provide transaction UTR for automated release
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleQuickFillRef}
-                      className="text-[10px] font-mono text-primary underline hover:text-primary/80 cursor-pointer"
-                    >
-                      Instant Test Auto-Fill
-                    </button>
+                    <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
+                      <Lock className="h-3 w-3" /> Anti-Fraud Verification
+                    </span>
                   </div>
 
                   <form onSubmit={handleStartTransaction} className="space-y-4 font-mono text-xs">
@@ -888,8 +942,8 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         type="submit"
                         className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3.5 px-6 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/25 hover:scale-[1.01] transition-transform"
                       >
-                        <Zap className="h-4 w-4" />
-                        <span>Verify &amp; Instant Unlock ({currentTier.priceInr})</span>
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>Submit Bank UTR for Reconciliation ({currentTier.priceInr})</span>
                         <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
