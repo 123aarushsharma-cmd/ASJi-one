@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -17,12 +18,18 @@ import { Route as LegalAcceptableUseRouteImport } from './routes/legal/acceptabl
 import { Route as LegalCookiesRouteImport } from './routes/legal/cookies'
 import { Route as LegalDisclaimerRouteImport } from './routes/legal/disclaimer'
 import { Route as LegalPrivacyRouteImport } from './routes/legal/privacy'
+import { Route as LegalRefundsRouteImport } from './routes/legal/refunds'
 import { Route as LegalSecurityRouteImport } from './routes/legal/security'
 import { Route as LegalTermsRouteImport } from './routes/legal/terms'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -60,6 +67,11 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalRefundsRoute = LegalRefundsRouteImport.update({
+  id: '/legal/refunds',
+  path: '/legal/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalSecurityRoute = LegalSecurityRouteImport.update({
   id: '/legal/security',
   path: '/legal/security',
@@ -73,6 +85,7 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -80,11 +93,13 @@ export interface FileRoutesByFullPath {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/disclaimer': typeof LegalDisclaimerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
   '/legal/security': typeof LegalSecurityRoute
   '/legal/terms': typeof LegalTermsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -92,12 +107,14 @@ export interface FileRoutesByTo {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/disclaimer': typeof LegalDisclaimerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
   '/legal/security': typeof LegalSecurityRoute
   '/legal/terms': typeof LegalTermsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -105,6 +122,7 @@ export interface FileRoutesById {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/disclaimer': typeof LegalDisclaimerRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
   '/legal/security': typeof LegalSecurityRoute
   '/legal/terms': typeof LegalTermsRoute
 }
@@ -112,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -119,11 +138,13 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/disclaimer'
     | '/legal/privacy'
+    | '/legal/refunds'
     | '/legal/security'
     | '/legal/terms'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -131,11 +152,13 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/disclaimer'
     | '/legal/privacy'
+    | '/legal/refunds'
     | '/legal/security'
     | '/legal/terms'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -143,12 +166,14 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/disclaimer'
     | '/legal/privacy'
+    | '/legal/refunds'
     | '/legal/security'
     | '/legal/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -156,6 +181,7 @@ export interface RootRouteChildren {
   LegalCookiesRoute: typeof LegalCookiesRoute
   LegalDisclaimerRoute: typeof LegalDisclaimerRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalRefundsRoute: typeof LegalRefundsRoute
   LegalSecurityRoute: typeof LegalSecurityRoute
   LegalTermsRoute: typeof LegalTermsRoute
 }
@@ -167,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -218,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/refunds': {
+      id: '/legal/refunds'
+      path: '/legal/refunds'
+      fullPath: '/legal/refunds'
+      preLoaderRoute: typeof LegalRefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/security': {
       id: '/legal/security'
       path: '/legal/security'
@@ -237,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
@@ -244,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalCookiesRoute: LegalCookiesRoute,
   LegalDisclaimerRoute: LegalDisclaimerRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalRefundsRoute: LegalRefundsRoute,
   LegalSecurityRoute: LegalSecurityRoute,
   LegalTermsRoute: LegalTermsRoute,
 }

@@ -21,17 +21,18 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
-export const AUTHORIZED_ADMIN_EMAILS = ["asji.online@gmail.com", "123.aarushsharma@gmail.com"];
+const MASTER_ADMIN_EMAILS = ["123.aarushsharma@gmail.com", "asji.online@gmail.com"];
 
-export const isWhitelistedAdminEmail = (email: string | null | undefined): boolean => {
+export const isMasterAdminEmail = (email?: string | null): boolean => {
   if (!email) return false;
-  return AUTHORIZED_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+  return MASTER_ADMIN_EMAILS.includes(email.trim().toLowerCase());
 };
 
 export interface UserProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
+  photoURL?: string | null;
   createdAt?: string;
 }
 
@@ -41,8 +42,8 @@ export interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   adminSignIn: (email: string, pass: string) => Promise<void>;
-  adminSignUp: (email: string, pass: string) => Promise<void>;
   adminSignInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   userSignIn: (email: string, pass: string) => Promise<void>;
   userSignUp: (email: string, pass: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -72,31 +73,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           uid: currentUser.uid,
           email: currentUser.email,
           displayName: currentUser.displayName || currentUser.email?.split("@")[0] || "User",
+          photoURL: currentUser.photoURL || null,
         });
 
-        // Check if user is in Whitelist AND admins/{uid} document exists in Firestore
-        if (isWhitelistedAdminEmail(currentUser.email)) {
+        // Sync or persist user profile document in Firestore
+        try {
+          const userDocRef = doc(db, "users", currentUser.uid);
+          await setDoc(
+            userDocRef,
+            {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName || currentUser.email?.split("@")[0] || "User",
+              photoURL: currentUser.photoURL || null,
+              lastLogin: serverTimestamp(),
+            },
+            { merge: true },
+          );
+        } catch {
+          // safe fallback
+        }
+
+        // Admin clearance check
+        let adminGranted = false;
+        if (isMasterAdminEmail(currentUser.email)) {
+          adminGranted = true;
           try {
             const adminDocRef = doc(db, "admins", currentUser.uid);
-            const adminSnap = await getDoc(adminDocRef);
-            if (adminSnap.exists()) {
-              setIsAdmin(true);
-            } else {
-              // Auto-provision admin doc if whitelisted email signs in via Google or Auth
-              await setDoc(adminDocRef, {
+            await setDoc(
+              adminDocRef,
+              {
                 uid: currentUser.uid,
                 email: currentUser.email,
                 role: "admin",
-                createdAt: serverTimestamp(),
-              });
-              setIsAdmin(true);
-            }
+                updatedAt: serverTimestamp(),
+              },
+              { merge: true },
+            );
           } catch {
-            setIsAdmin(false);
+            // best effort
           }
         } else {
-          setIsAdmin(false);
+          try {
+            const adminDocRef = doc(db, "admins", currentUser.uid);
+            const adminSnap = await getDoc(adminDocRef);
+            if (
+              adminSnap.exists() &&
+              (currentUser.emailVerified ||
+                currentUser.providerData.some((p) => p.providerId === "google.com"))
+            ) {
+              adminGranted = true;
+            }
+          } catch {
+            adminGranted = false;
+          }
         }
+        setIsAdmin(adminGranted);
       } else {
         setFbUser(null);
         setUser(null);
@@ -108,70 +140,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const adminSignIn = async (email: string, pass: string) => {
+  const signInWithGoogle = async () => {
     setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-    if (!isWhitelistedAdminEmail(cleanEmail)) {
-      const err = "Access Denied: Provided email is not an authorized administrator account.";
-      setAuthError(err);
-      throw new Error(err);
-    }
-
     try {
-      const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass.trim());
-      const userEmail = cred.user.email;
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const cred = await signInWithPopup(auth, provider);
 
-      if (!isWhitelistedAdminEmail(userEmail)) {
-        await signOut(auth);
-        setIsAdmin(false);
-        const err = "Access Denied: Provided email is not an authorized administrator account.";
-        setAuthError(err);
-        throw new Error(err);
-      }
-
-      const adminDocRef = doc(db, "admins", cred.user.uid);
-      const adminSnap = await getDoc(adminDocRef);
-
-      if (!adminSnap.exists()) {
-        await setDoc(adminDocRef, {
+      // Persist user record in Firestore
+      const userDocRef = doc(db, "users", cred.user.uid);
+      await setDoc(
+        userDocRef,
+        {
           uid: cred.user.uid,
-          email: userEmail,
-          role: "admin",
-          createdAt: serverTimestamp(),
-        });
+          email: cred.user.email,
+          displayName: cred.user.displayName || cred.user.email?.split("@")[0] || "User",
+          photoURL: cred.user.photoURL || null,
+          lastLogin: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      if (isMasterAdminEmail(cred.user.email)) {
+        setIsAdmin(true);
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        await setDoc(
+          adminDocRef,
+          {
+            uid: cred.user.uid,
+            email: cred.user.email,
+            role: "admin",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
       }
-
-      setIsAdmin(true);
-      await logAdminActivity("ADMIN_LOGIN_SUCCESS", { email: cred.user.email });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Authentication failed.";
-      setAuthError(msg);
-      throw error;
-    }
-  };
-
-  const adminSignUp = async (email: string, pass: string) => {
-    setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-    if (!isWhitelistedAdminEmail(cleanEmail)) {
-      const err = "Access Denied: Provided email is not authorized for administrator registration.";
-      setAuthError(err);
-      throw new Error(err);
-    }
-
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, pass.trim());
-      const adminDocRef = doc(db, "admins", cred.user.uid);
-      await setDoc(adminDocRef, {
-        uid: cred.user.uid,
-        email: cred.user.email,
-        role: "admin",
-        createdAt: serverTimestamp(),
-      });
-      setIsAdmin(true);
-      await logAdminActivity("ADMIN_REGISTER_SUCCESS", { email: cred.user.email });
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Admin registration failed.";
+      const msg = error instanceof Error ? error.message : "Google authentication failed.";
       setAuthError(msg);
       throw error;
     }
@@ -185,31 +190,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cred = await signInWithPopup(auth, provider);
       const userEmail = cred.user.email;
 
-      if (!isWhitelistedAdminEmail(userEmail)) {
+      let authorized = false;
+      if (isMasterAdminEmail(userEmail)) {
+        authorized = true;
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        await setDoc(
+          adminDocRef,
+          {
+            uid: cred.user.uid,
+            email: userEmail,
+            role: "admin",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } else {
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        const adminSnap = await getDoc(adminDocRef);
+        if (adminSnap.exists()) {
+          authorized = true;
+        }
+      }
+
+      if (!authorized) {
         await signOut(auth);
         setIsAdmin(false);
-        const err = "Access Denied: Provided Google account is not an authorized administrator.";
+        const err = "Access denied: Account is not an authorized administrator.";
         setAuthError(err);
         throw new Error(err);
       }
 
-      const adminDocRef = doc(db, "admins", cred.user.uid);
-      const adminSnap = await getDoc(adminDocRef);
+      setIsAdmin(true);
+      await logAdminActivity("ADMIN_GOOGLE_LOGIN_SUCCESS", { email: cred.user.email });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Google authentication failed.";
+      setAuthError(msg);
+      throw error;
+    }
+  };
 
-      if (!adminSnap.exists()) {
-        await setDoc(adminDocRef, {
-          uid: cred.user.uid,
-          email: userEmail,
-          role: "admin",
-          provider: "google.com",
-          createdAt: serverTimestamp(),
-        });
+  const adminSignIn = async (email: string, pass: string) => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass.trim());
+
+      let authorized = false;
+      if (isMasterAdminEmail(cred.user.email)) {
+        authorized = true;
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        await setDoc(
+          adminDocRef,
+          {
+            uid: cred.user.uid,
+            email: cred.user.email,
+            role: "admin",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } else {
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        const adminSnap = await getDoc(adminDocRef);
+        if (adminSnap.exists() && cred.user.emailVerified) {
+          authorized = true;
+        }
+      }
+
+      if (!authorized) {
+        await signOut(auth);
+        setIsAdmin(false);
+        const err = "Access denied: Account is not an authorized administrator.";
+        setAuthError(err);
+        throw new Error(err);
       }
 
       setIsAdmin(true);
-      await logAdminActivity("ADMIN_GOOGLE_LOGIN_SUCCESS", { email: userEmail });
+      await logAdminActivity("ADMIN_LOGIN_SUCCESS", { email: cred.user.email });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Google authentication failed.";
+      const msg = error instanceof Error ? error.message : "Authentication failed.";
       setAuthError(msg);
       throw error;
     }
@@ -237,6 +297,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: name || email.split("@")[0],
         createdAt: serverTimestamp(),
       });
+      if (isMasterAdminEmail(cred.user.email)) {
+        setIsAdmin(true);
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        await setDoc(
+          adminDocRef,
+          {
+            uid: cred.user.uid,
+            email: cred.user.email,
+            role: "admin",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Sign up failed.";
       setAuthError(msg);
@@ -365,8 +439,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isAdmin,
         adminSignIn,
-        adminSignUp,
         adminSignInWithGoogle,
+        signInWithGoogle,
         userSignIn,
         userSignUp,
         logout,

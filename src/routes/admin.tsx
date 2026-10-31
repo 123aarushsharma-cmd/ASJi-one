@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Shield,
   ShieldCheck,
@@ -12,9 +11,10 @@ import {
   Receipt,
   Award,
   User,
-  KeyRound,
   Eye,
   EyeOff,
+  RefreshCw,
+  CheckCircle,
 } from "lucide-react";
 import {
   collection,
@@ -29,7 +29,6 @@ import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { seedWorldLawsToFirestore } from "@/lib/firestore-service";
-import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -41,27 +40,26 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-export interface BulkLeadItem {
+interface AdminTransaction {
   id: string;
-  rawInput: string;
+  referenceId: string;
   domain: string;
-  status: "queued" | "scanning" | "completed" | "failed";
-  report?: AuditReport;
-  error?: string;
-  score?: number;
-  fineRisk?: string;
-  originCountry?: string;
-  startedAt?: number;
-  completedAt?: number;
+  tier: string;
+  tierName: string;
+  priceInr: string;
+  orgName: string;
+  email: string;
+  taxId?: string | null;
+  status: "pending_verification" | "approved" | "rejected";
+  submittedAt?: string;
 }
 
-export function AdminPage() {
+function AdminPage() {
   const {
     user,
     loading,
     isAdmin,
     adminSignIn,
-    adminSignUp,
     adminSignInWithGoogle,
     logout,
     logAdminActivity,
@@ -69,53 +67,18 @@ export function AdminPage() {
     clearAuthError,
   } = useAuth();
 
-  const auditFn = useServerFn(auditCompliance);
-  const purgeFn = useServerFn(purgeDatabase);
-
-  // Admin Auth Mode ("signin" vs "signup")
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPass, setAdminPass] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleGoogleAuth = async () => {
-    setIsAuthenticating(true);
-    clearAuthError();
-    try {
-      await adminSignInWithGoogle();
-      toast.success("Google Authentication Successful", {
-        description: "Verified master admin whitelist & initialized session.",
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Google authentication failed.";
-      toast.error("Access Denied", { description: msg });
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
-
   // Navigation & Clearance Tabs
-  const [adminTab, setAdminTab] = useState<"scanner" | "licensing" | "trust-hub">("licensing");
+  const [adminTab, setAdminTab] = useState<"licensing" | "trust-hub" | "scanner">("licensing");
 
   // Bulk Scanner State
   const [inputText, setInputText] = useState("");
 
   // Transactions State
-  interface AdminTransaction {
-    id: string;
-    referenceId: string;
-    domain: string;
-    tier: string;
-    tierName: string;
-    priceInr: string;
-    orgName: string;
-    email: string;
-    taxId?: string | null;
-    status: "pending_verification" | "approved" | "rejected";
-    submittedAt?: string;
-  }
-
   const [transactions, setTransactions] = useState<AdminTransaction[]>([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
   const [syncingLaws, setSyncingLaws] = useState(false);
@@ -133,7 +96,7 @@ export function AdminPage() {
       list.sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
       setTransactions(list);
     } catch {
-      // safe error
+      // safe fallback
     } finally {
       setLoadingTxns(false);
     }
@@ -145,23 +108,32 @@ export function AdminPage() {
     }
   }, [isAdmin, fetchTransactions]);
 
+  const handleGoogleAuth = async () => {
+    setIsAuthenticating(true);
+    clearAuthError();
+    try {
+      await adminSignInWithGoogle();
+      toast.success("Welcome to Sovereign Command Citadel", {
+        description: "Authenticated with Firebase Auth & Verified Admin Clearance.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Access denied.";
+      toast.error("Authentication Error", { description: msg });
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   const handleAdminAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthenticating(true);
     clearAuthError();
 
     try {
-      if (authMode === "signin") {
-        await adminSignIn(adminEmail, adminPass);
-        toast.success("Welcome to Sovereign Command Citadel", {
-          description: "Authenticated with Firebase Auth & Verified in admins/{uid}.",
-        });
-      } else {
-        await adminSignUp(adminEmail, adminPass);
-        toast.success("Admin Account Registered", {
-          description: "Firebase Auth user created & registered in admins/{uid} ledger.",
-        });
-      }
+      await adminSignIn(adminEmail, adminPass);
+      toast.success("Welcome to Sovereign Command Citadel", {
+        description: "Authenticated with Firebase Auth & Verified in admins/{uid}.",
+      });
       setAdminEmail("");
       setAdminPass("");
     } catch (err: unknown) {
@@ -230,7 +202,7 @@ export function AdminPage() {
     try {
       const res = await seedWorldLawsToFirestore();
       await logAdminActivity("SYNC_WORLD_LAWS", { count: res.count });
-      toast.success(`Synchronized ${res.count} Sovereign Jurisdictions to Database`);
+      toast.success(`Synchronized ${res.count} Sovereign Jurisdictions to Cloud Firestore!`);
     } catch {
       toast.error("Failed to sync laws.");
     } finally {
@@ -246,7 +218,7 @@ export function AdminPage() {
     );
   }
 
-  // Pure Firebase Auth + admins/{uid} Guard
+  // Firebase Auth + Admin Clearance Guard
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4 font-sans relative overflow-hidden">
@@ -259,17 +231,17 @@ export function AdminPage() {
               Sovereign Command Citadel
             </h1>
             <p className="text-xs font-mono text-muted-foreground">
-              Firebase Auth Sign-In • Verified in Firestore admins/{"{uid}"}
+              Firebase Authentication • Cloud Firestore Secured
             </p>
           </div>
 
-          {/* Direct Google Sign-In */}
+          {/* Direct Google Sign-In with Firebase Auth */}
           <div className="space-y-3 font-mono">
             <button
               type="button"
               onClick={handleGoogleAuth}
               disabled={isAuthenticating}
-              className="w-full flex items-center justify-center gap-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 py-3 px-4 text-xs font-semibold text-white transition-all cursor-pointer shadow-lg hover:border-primary/50 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 py-3.5 px-4 text-xs font-semibold text-white transition-all cursor-pointer shadow-lg hover:border-primary/50 disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -289,45 +261,15 @@ export function AdminPage() {
                   d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 22.3 12 22.3z"
                 />
               </svg>
-              <span>Sign in with Google</span>
+              <span>Sign In with Google</span>
             </button>
 
             <div className="relative flex items-center justify-center py-2">
               <div className="w-full border-t border-white/10" />
               <span className="absolute bg-neutral-950 px-3 text-[10px] text-muted-foreground uppercase font-mono tracking-widest">
-                OR WITH EMAIL & PASSWORD
+                OR SIGN IN WITH EMAIL
               </span>
             </div>
-          </div>
-
-          {/* Auth Mode Toggle */}
-          <div className="flex rounded-xl bg-white/5 p-1 font-mono text-xs">
-            <button
-              onClick={() => {
-                clearAuthError();
-                setAuthMode("signin");
-              }}
-              className={`flex-1 py-2 rounded-lg transition-all font-semibold cursor-pointer ${
-                authMode === "signin"
-                  ? "bg-primary text-black font-bold shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                clearAuthError();
-                setAuthMode("signup");
-              }}
-              className={`flex-1 py-2 rounded-lg transition-all font-semibold cursor-pointer ${
-                authMode === "signup"
-                  ? "bg-primary text-black font-bold shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Register Admin
-            </button>
           </div>
 
           <form onSubmit={handleAdminAuthSubmit} className="space-y-4 font-mono text-xs">
@@ -384,24 +326,18 @@ export function AdminPage() {
               disabled={isAuthenticating}
               className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/20"
             >
-              <span>
-                {isAuthenticating
-                  ? "Authenticating..."
-                  : authMode === "signin"
-                    ? "Authorize Citadel Access"
-                    : "Register & Initialize Admin Clearance"}
-              </span>
+              <span>{isAuthenticating ? "Authenticating..." : "Authorize Citadel Access"}</span>
             </button>
           </form>
 
-          {/* Master Admin Security Shield Badge (Generic & Clean) */}
+          {/* Master Admin Security Shield Badge */}
           <div className="text-center space-y-1.5 border-t border-white/10 pt-4 font-mono text-[10px]">
             <div className="flex items-center justify-center gap-1.5 text-amber-400 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span>AUTHORIZED ADMINISTRATOR ACCESS ONLY</span>
+              <span>AUTHORIZED CITADEL ADMINISTRATORS ONLY</span>
             </div>
             <p className="text-muted-foreground text-[9px] pt-1">
-              🔒 Protected by Firebase Auth & Strict Firestore Security Rules
+              🔒 Powered by Firebase Auth • Strict Cloud Firestore Security Rules
             </p>
           </div>
         </div>
@@ -412,7 +348,7 @@ export function AdminPage() {
   return (
     <div className="min-h-screen bg-[#07090e] text-foreground font-sans p-4 sm:p-8 space-y-6">
       {/* Header Bar */}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/30 bg-black/80 backdrop-blur-md">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-primary/30 bg-black/80 backdrop-blur-md shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/15 text-primary border border-primary/30">
             <ShieldCheck className="w-6 h-6" />
@@ -422,17 +358,28 @@ export function AdminPage() {
               <h1 className="text-xl font-bold font-display text-white">
                 ASJi Sovereign Command Citadel
               </h1>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
                 ADMIN CLEARANCE ACTIVE
               </span>
             </div>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">
-              Logged in: {user.email} (UID: {user.uid.slice(0, 8)}...)
+              Logged in: <strong className="text-white">{user.email}</strong> (UID:{" "}
+              {user.uid.slice(0, 8)}...)
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={fetchTransactions}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all cursor-pointer"
+            title="Refresh Firestore Database"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sync Firestore</span>
+          </button>
+
           <button
             onClick={logout}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-muted-foreground hover:text-white transition-all cursor-pointer"
@@ -443,7 +390,7 @@ export function AdminPage() {
         </div>
       </header>
 
-      {/* Admin Tabs */}
+      {/* Admin Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3 text-xs font-mono">
         <button
           onClick={() => setAdminTab("licensing")}
@@ -466,7 +413,7 @@ export function AdminPage() {
           }`}
         >
           <Award className="w-4 h-4" />
-          Client Deliverables &amp; Laws Sync
+          Firestore Laws Database Sync
         </button>
 
         <button
@@ -489,24 +436,25 @@ export function AdminPage() {
             <div>
               <h3 className="font-bold text-sm text-white flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-primary" />
-                Enterprise UPI / Bank UTR Payment Submissions
+                Enterprise UPI / Bank UTR Payment Submissions (Firestore Collection: transactions)
               </h3>
               <p className="text-muted-foreground text-[11px] mt-0.5">
-                Verify 12-digit UPI reference numbers and activate domain licenses.
+                Verify 12-digit UPI reference numbers and activate domain licenses in Firestore.
               </p>
             </div>
             <button
               onClick={fetchTransactions}
-              className="px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Refresh Ledger
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Ledger</span>
             </button>
           </div>
 
           {loadingTxns ? (
             <div className="p-8 text-center text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-              <p className="mt-2 text-xs">Loading transaction ledger...</p>
+              <p className="mt-2 text-xs">Querying Firestore transactions ledger...</p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="p-8 text-center rounded-xl border border-dashed border-white/10 bg-white/[0.01]">
@@ -556,7 +504,7 @@ export function AdminPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleApproveTransaction(txn)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all cursor-pointer shadow-md shadow-emerald-900/30"
                       >
                         Approve License
                       </button>
@@ -585,17 +533,20 @@ export function AdminPage() {
             </h3>
             <p className="text-muted-foreground leading-relaxed">
               Synchronize the verified 15-jurisdiction World Data Protection Laws database directly
-              to your Cloud Firestore instance.
+              to your Cloud Firestore instance (collection:{" "}
+              <strong className="text-white">laws</strong>).
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3">
               <button
                 onClick={handleSyncWorldLaws}
                 disabled={syncingLaws}
-                className="px-4 py-2 rounded-xl bg-primary text-black font-bold flex items-center gap-2 hover:bg-primary/90 transition-all cursor-pointer shadow-lg shadow-primary/20"
+                className="px-4 py-2.5 rounded-xl bg-primary text-black font-bold flex items-center gap-2 hover:bg-primary/90 transition-all cursor-pointer shadow-lg shadow-primary/20 disabled:opacity-50"
               >
                 <Database className="w-4 h-4" />
-                {syncingLaws ? "Syncing Laws..." : "Sync 15 Sovereign Laws to Firestore"}
+                {syncingLaws
+                  ? "Syncing Laws to Firestore..."
+                  : "Sync 15 Sovereign Laws to Firestore"}
               </button>
             </div>
           </div>
@@ -605,13 +556,16 @@ export function AdminPage() {
       {/* TAB 3: SCANNER */}
       {adminTab === "scanner" && (
         <div className="p-6 rounded-2xl border border-white/10 bg-black/50 text-xs font-mono space-y-4">
-          <h3 className="font-bold text-sm text-white">Bulk Command Lead Scanner</h3>
+          <h3 className="font-bold text-sm text-white flex items-center gap-2">
+            <Search className="w-4 h-4 text-primary" />
+            Bulk Command Lead Scanner
+          </h3>
           <textarea
             rows={4}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Enter domain URLs to scan (e.g. domain1.com, domain2.com)..."
-            className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground focus:border-primary focus:outline-none font-mono"
           />
         </div>
       )}

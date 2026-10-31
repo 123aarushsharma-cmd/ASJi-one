@@ -15,13 +15,17 @@ service cloud.firestore {
       return isSignedIn() 
         && request.auth.token.email != null 
         && (
-          request.auth.token.email.lower() == 'asji.online@gmail.com' || 
-          request.auth.token.email.lower() == '123.aarushsharma@gmail.com'
+          request.auth.token.email.lower() == '123.aarushsharma@gmail.com' || 
+          request.auth.token.email.lower() == 'asji.online@gmail.com'
         );
     }
 
     function isAdmin() {
-      return isWhitelistedAdminEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() 
+        && (
+          (request.auth.token.email_verified == true && exists(/databases/$(database)/documents/admins/$(request.auth.uid)))
+          || isWhitelistedAdminEmail()
+        );
     }
 
     function is12DigitUTR(utr) {
@@ -33,11 +37,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 2. Admins collection - Authenticated whitelisted user can read/register their admin credential
+    // 2. Admins collection - Read by owner or admin, writeable by whitelisted master admin
     match /admins/{adminId} {
-      allow read: if isOwner(adminId) || isAdmin();
-      allow create: if isOwner(adminId) && isWhitelistedAdminEmail();
-      allow update, delete: if false;
+      allow read: if request.auth != null && (request.auth.uid == adminId || isAdmin());
+      allow write: if isOwner(adminId) && isWhitelistedAdminEmail();
     }
 
     // 3. Admin Activity Audit Logs - Write-only for admins, no client read/delete

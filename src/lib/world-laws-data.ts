@@ -7,7 +7,7 @@ export type WorldLaw = {
   lawName: string;
   acronym: string;
   enactedYear: number;
-  status: "In Force" | "Active & Enforced" | "Draft Rules 2025" | "Amended";
+  status: "In Force" | "Active & Enforced" | "DPDP Rules, 2025" | "Amended";
   governingBody: string;
   officialPortal: string;
   officialGazetteUrl?: string;
@@ -36,13 +36,13 @@ export const WORLD_LAWS_DATA: WorldLaw[] = [
     countryCode: "IN",
     flag: "🇮🇳",
     region: "Asia-Pacific",
-    lawName: "Digital Personal Data Protection Act, 2023 (Act No. 22 of 2023) & Draft Rules 2025",
+    lawName: "Digital Personal Data Protection Act, 2023 (Act No. 22 of 2023) & DPDP Rules, 2025",
     acronym: "DPDP Act 2023",
     enactedYear: 2023,
     status: "In Force",
     governingBody: "Data Protection Board of India (DPBI) / MeitY",
     officialPortal: "https://www.meity.gov.in",
-    maxPenalty: "Up to ₹250 Crore (approx. $30M USD) per statutory breach",
+    maxPenalty: "Refer to the Act",
     extraterritorialScope: true,
     dpoMandatory: true,
     breachNotificationHours: "Immediate",

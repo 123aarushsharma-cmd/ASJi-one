@@ -51,6 +51,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { AUTHORISATION_NOTICE, LEGAL, LEGAL_PAGES, NOT_LEGAL_ADVICE } from "@/lib/legal";
 import { useAuth } from "@/lib/auth-context";
+import { saveUserAudit } from "@/lib/firestore-service";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -110,7 +111,7 @@ const reportItemVariants = {
 };
 
 function Index() {
-  const { recordUserConsent } = useAuth();
+  const { user, recordUserConsent } = useAuth();
   const [input, setInput] = useState("");
   const [selectedFramework, setSelectedFramework] = useState<string>("ind-dpdp");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -325,6 +326,21 @@ function Index() {
       setProgress(100);
       setReport(result);
       setPhase("result");
+
+      // Data Persistence: Save to authenticated user's private Firestore vault
+      if (user?.uid) {
+        saveUserAudit(user.uid, {
+          id: result.id || `audit_${Date.now()}`,
+          domain: result.target,
+          score: result.score,
+          verdict: result.verdict || "Audited",
+          criticalFindingsCount: result.criticalLeaks?.length || 0,
+          statutoryExceptionsCount: result.statutoryExceptions?.length || 0,
+          reportSummary: result.summary,
+          createdAt: new Date().toISOString(),
+          reportData: result,
+        }).catch(() => {});
+      }
     } catch (err) {
       let msg = "Domain analysis failed. Please verify the URL and try again.";
       if (err instanceof Error) {

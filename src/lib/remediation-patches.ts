@@ -68,7 +68,7 @@ export function evaluateIntermediaryShield(report: AuditReport): IntermediaryShi
       "Statutory intermediary immunity is currently compromised. Unsolicited third-party tracking, unconsented telemetry, or missing statutory governance disclosures remove the legal safe-harbor presumption, exposing the platform to direct civil and penal liability.",
     risks: [
       "Loss of intermediary immunity under Section 79(3)(b) makes the entity directly co-liable for third-party user content and data breaches.",
-      "Regulatory exposure to penalties up to ₹250 Crores (India DPDP Act) or 4% global turnover (EU GDPR).",
+      "Regulatory exposure to penalties under the India DPDP Act or 4% global turnover (EU GDPR).",
       "Immediate liability for intellectual property or defamation claims without statutory shelter.",
     ],
     remedies: [
