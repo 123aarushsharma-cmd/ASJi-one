@@ -4,15 +4,14 @@ import {
   Database,
   Lock,
   Trash2,
-  ExternalLink,
   RefreshCw,
   X,
   FileText,
   Clock,
   CheckCircle2,
-  Scale,
-  Sparkles,
   Cloud,
+  Download,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -33,12 +32,15 @@ interface PrivateVaultModalProps {
 }
 
 export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVaultModalProps) {
-  const { user, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<"audits" | "notices" | "sync">("audits");
+  const { user, isAdmin, exportUserDataJson, deleteUserAccountAndData } = useAuth();
+  const [activeTab, setActiveTab] = useState<"audits" | "notices" | "sync" | "privacy">("audits");
   const [audits, setAudits] = useState<UserAuditRecord[]>([]);
   const [notices, setNotices] = useState<UserNoticeRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const loadVaultData = useCallback(async () => {
     if (!user) return;
@@ -50,8 +52,8 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
       ]);
       setAudits(userAudits);
       setNotices(userNotices);
-    } catch (err) {
-      console.error("Vault load error:", err);
+    } catch {
+      // safe fallback
     } finally {
       setLoading(false);
     }
@@ -92,10 +94,49 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
       toast.success(
         `Synchronized ${result.count} verified sovereign data protection laws to Cloud Firestore.`,
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to synchronize world laws.");
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleDownloadMyData = async () => {
+    setIsExporting(true);
+    try {
+      const jsonData = await exportUserDataJson();
+      const blob = new Blob([jsonData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ASJi-User-Data-Export-${user?.uid || "account"}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("User Data Export Downloaded", {
+        description:
+          "Your complete Firestore records, consents, and audit history exported as JSON.",
+      });
+    } catch {
+      toast.error("Failed to export user data.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await deleteUserAccountAndData();
+      toast.success("Account & Associated Data Permanently Deleted", {
+        description: "Pursuant to DPDP Act 2023 & GDPR Right to Erasure.",
+      });
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Deletion failed.";
+      toast.error("Account Deletion Failed", { description: msg });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -127,7 +168,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Dedicated cloud ledger for {user?.email || "Authenticated User"}
+                Dedicated ledger for {user?.email || "Authenticated User"}
               </p>
             </div>
           </div>
@@ -140,7 +181,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 pt-4 pb-2 border-b border-white/5 text-xs font-medium">
+        <div className="flex items-center gap-2 pt-4 pb-2 border-b border-white/5 text-xs font-medium flex-wrap">
           <button
             onClick={() => setActiveTab("audits")}
             className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
@@ -172,7 +213,18 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            Cloud Database & Laws
+            Cloud Database
+          </button>
+          <button
+            onClick={() => setActiveTab("privacy")}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+              activeTab === "privacy"
+                ? "bg-primary text-primary-foreground font-semibold"
+                : "text-muted-foreground hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Data Rights (DPDP/GDPR)
           </button>
         </div>
 
@@ -225,7 +277,6 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                             {new Date(a.createdAt).toLocaleDateString()}
                           </span>
                           <span>Critical: {a.criticalFindingsCount}</span>
-                          <span>Safe Harbors: {a.statutoryExceptionsCount}</span>
                         </div>
                       </div>
                     </div>
@@ -258,10 +309,6 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
               <div className="text-center py-12 px-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01]">
                 <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                 <p className="text-sm font-medium text-white">No Legal Charters Saved Yet</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                  Customize and save statutory DPDP grievance notices, GDPR Data Processing
-                  Addendums, or CPRA notices from the Sovereign Legal Matrix.
-                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -288,7 +335,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                 ))}
               </div>
             )
-          ) : (
+          ) : activeTab === "sync" ? (
             <div className="space-y-4 text-xs">
               <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-3">
                 <div className="flex items-center gap-2">
@@ -298,38 +345,94 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                   </h4>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  ASJi One is integrated with Google Cloud Firestore (DB:{" "}
-                  <code className="text-primary font-mono text-[11px]">
-                    ai-studio-asjioneasjiweble-94ea65e4-c46e-4b43-b7d9-ef269ec313a5
-                  </code>
-                  ). You can synchronize the complete 15-jurisdiction World Sovereign Laws Database
-                  directly to your Firestore instance for high-speed, verifiable lookup.
+                  ASJi One is integrated with Google Cloud Firestore. Synchronize the
+                  15-jurisdiction World Sovereign Laws Database directly to your Firestore instance.
                 </p>
-                <div className="pt-2">
-                  <button
-                    onClick={handleSyncWorldLaws}
-                    disabled={isSyncing}
-                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-primary/20"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-                    {isSyncing
-                      ? "Synchronizing to Cloud..."
-                      : "Sync 15 Sovereign Laws to Firestore"}
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSyncWorldLaws}
+                      disabled={isSyncing}
+                      className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-primary/20"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+                      {isSyncing
+                        ? "Synchronizing to Cloud..."
+                        : "Sync 15 Sovereign Laws to Firestore"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* DATA PRIVACY & RIGHTS (DPDP ACT 2023 / GDPR) */
+            <div className="space-y-4 text-xs">
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 space-y-3">
+                <h4 className="font-bold text-sm text-emerald-300 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-emerald-400" />
+                  Download My Personal Data (JSON Export)
+                </h4>
+                <p className="text-emerald-100/80 leading-relaxed">
+                  In compliance with Section 11 of the Digital Personal Data Protection Act, 2023 &
+                  GDPR Article 15/20, you have the right to request a complete machine-readable copy
+                  of your profile, audit records, saved legal charters, and consent records.
+                </p>
+                <button
+                  onClick={handleDownloadMyData}
+                  disabled={isExporting}
+                  className="px-4 py-2 rounded-xl border border-emerald-500/50 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  {isExporting ? "Exporting Data..." : "Download My Data (.json)"}
+                </button>
               </div>
 
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.01] space-y-2">
-                <h5 className="font-semibold text-white flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Statutory Hallucination Verification Engine
-                </h5>
-                <p className="text-muted-foreground leading-relaxed">
-                  All statutory citations, breach notification thresholds, and maximum penalty caps
-                  are verified against official gazettes and supervisory registers (DPBI, EDPB,
-                  CNIL, ICO, CPPA, FDPIC) using Google Search Grounding to guarantee statutory
-                  fidelity.
+              <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 space-y-3">
+                <h4 className="font-bold text-sm text-rose-300 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  Delete My Account &amp; Data (Right to Erasure)
+                </h4>
+                <p className="text-rose-100/80 leading-relaxed">
+                  Under Section 12 of India DPDP Act 2023 & GDPR Article 17, you have the statutory
+                  right to withdraw consent and request the permanent erasure of your personal data,
+                  saved scan reports, and user credentials.
                 </p>
+
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-4 py-2 rounded-xl border border-rose-500/50 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete My Account &amp; Data
+                  </button>
+                ) : (
+                  <div className="p-3.5 rounded-xl border border-rose-500/60 bg-black/80 space-y-3 animate-in fade-in">
+                    <div className="flex items-center gap-2 text-rose-400 font-bold">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>Confirm Permanent Account &amp; Data Erasure</span>
+                    </div>
+                    <p className="text-muted-foreground text-[11px]">
+                      This action cannot be undone. All your private scan history, saved legal
+                      charters, and account credentials will be immediately purged from Firestore.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleConfirmDeleteAccount}
+                        disabled={isDeletingAccount}
+                        className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all cursor-pointer"
+                      >
+                        {isDeletingAccount ? "Erasing Data..." : "Yes, Permanently Erase All Data"}
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="px-3.5 py-1.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -339,11 +442,11 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
         <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Zero-Trust Client/Server Isolation Active</span>
+            <span>DPDP Act 2023 &amp; GDPR Compliant Ledger</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+            className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium transition-colors cursor-pointer"
           >
             Close Vault
           </button>

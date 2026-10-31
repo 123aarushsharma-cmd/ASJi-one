@@ -125,12 +125,10 @@ export function computeRadarTerminalLog(
 
   // Intermediary Warning Tag
   const intermediaryWarningTag = intermediary.isIntermediary
-    ? `⚠️ CORPORATE INTERMEDIARY WARNING: Target operates multi-layered Safe Harbor immunity frameworks (India IT Act Sec. 79 / US Sec. 230) & pre-authenticated blanket consent terms.`
+    ? `⚠️ CORPORATE INTERMEDIARY WARNING: Target operates multi-layered Safe Harbor frameworks (India IT Act Sec. 79 / US Sec. 230) & pre-authenticated consent terms.`
     : null;
 
-  // A) 🇮🇳 INDIA (Digital Personal Data Protection Act, 2023):
-  // - Section 6(1) [Pre-Consent Telemetry Drift]: Trigger [FAIL] if client-side telemetry arrays (Google Tag Manager, Meta Pixel, Sentry scripts) initialize inside browser runtime cache BEFORE explicit opt-in consent tokens are recorded.
-  // - Section 8(1) [Reasonable Infrastructure Safeguards]: Trigger [FAIL] if HTTP response headers ('Strict-Transport-Security' [HSTS], 'Content-Security-Policy' [CSP]) are missing from incoming server frames.
+  // A) 🇮🇳 INDIA (Digital Personal Data Protection Act, 2023 & DPDP Rules, 2025):
   const indiaTelemetryFail = (trackerSignals.length > 0 || preConsentCookiesCount > 0) && !hasCmp;
   const indiaSafeguardsFail = missingHsts || missingCsp || unencrypted;
   const indiaPass = evidence
@@ -139,7 +137,7 @@ export function computeRadarTerminalLog(
 
   const indiaVerdict: JurisdictionVerdictItem = {
     jurisdiction: "INDIA",
-    statute: "DPDP ACT 2023",
+    statute: "DPDP ACT, 2023 & DPDP RULES, 2025",
     status: indiaPass ? "[🟩 PASS]" : "[🟥 FAIL]",
     pass: indiaPass,
     triggerRules: [
@@ -164,7 +162,6 @@ export function computeRadarTerminalLog(
   };
 
   // B) 🇪🇺 EUROPEAN UNION (GDPR 2026 Coordinated Reforms):
-  // - Article 7 & Article 32: Trigger [FAIL] if non-essential telemetry cookies harvest device telemetry scripts prior to explicit opt-in preference authorization logs.
   const euTelemetryFail =
     preConsentCookiesCount > 0 || (trackerSignals.length > 0 && !hasCmp) || unencrypted;
   const euPass = evidence
@@ -191,7 +188,6 @@ export function computeRadarTerminalLog(
   };
 
   // C) 🇬🇧 UNITED KINGDOM (DUAA 2026):
-  // - Trigger [FAIL] if non-essential telemetry cookies harvest device telemetry scripts prior to explicit opt-in preference authorization logs.
   const ukPass = euPass;
   const ukVerdict: JurisdictionVerdictItem = {
     jurisdiction: "UK",
@@ -211,7 +207,6 @@ export function computeRadarTerminalLog(
   };
 
   // D) 🇦🇪 UAE (Decree-Law No. 45 of 2021):
-  // - Trigger [FAIL] if PropTech, luxury real estate platforms, or digital checkouts execute tracking cookies or session parameters without explicit user selection tokens.
   const uaeTelemetryFail = preConsentCookiesCount > 0 || (trackerSignals.length > 0 && !hasCmp);
   const uaePass = evidence
     ? !uaeTelemetryFail
@@ -236,8 +231,7 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // E) 🇸🇦 SAUDI ARABIA (PDPL 2024):
-  // - Trigger [FAIL] if tracking cookies or session parameters execute without explicit user selection tokens.
+  // E) 🇸🇦 SAUDI ARABIA (PDPL):
   const saudiPass = uaePass;
   const saudiVerdict: JurisdictionVerdictItem = {
     jurisdiction: "SAUDI ARABIA",
@@ -245,7 +239,7 @@ export function computeRadarTerminalLog(
     status: saudiPass ? "[🟩 PASS]" : "[🟥 FAIL]",
     pass: saudiPass,
     triggerRules: [
-      "Saudi Arabia PDPL 2024 (Explicit consent mechanism for analytics and cross-border telemetries)",
+      "Saudi Arabia PDPL (Explicit consent mechanism for analytics and cross-border telemetries)",
     ],
     findings: saudiPass
       ? [
@@ -258,8 +252,7 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // F) 🇸🇬 SINGAPORE (Personal Data Protection Act [PDPA] & 2024 Amendments):
-  // - Section 26 [Transfer Limitation Obligation]: Trigger [FAIL] if network configurations initiate an outbound data packet stream to a destination outside Singapore's network perimeter without explicit cross-border tracking verification or missing comparable protection tokens.
+  // F) 🇸🇬 SINGAPORE (PDPA):
   const usTrackers = trackerSignals.filter((t) =>
     /google|analytics|tag manager|meta|facebook|hotjar|clarity|segment|mixpanel|amplitude|sentry|criteo/i.test(
       t,
@@ -314,7 +307,7 @@ export function computeRadarTerminalLog(
   };
 
   // 3. Construct Intermediary Exception Log Block
-  const legalInterceptionExplanation = `- NOTICE: This platform evaluates multi-layered Intermediary Immunity Frameworks (Safe Harbor Protections) alongside pre-authenticated consent terms. While raw client-side telemetry packet leaks are observable inside the browser runtime memory cache, corporate infrastructure may leverage applicable statutory safe harbor provisions (e.g. India IT Act Sec. 79 / US Sec. 230) where strict intermediary due diligence criteria are satisfied.`;
+  const legalInterceptionExplanation = `- NOTICE: This platform evaluates multi-layered Intermediary Frameworks (Safe Harbor Protections) alongside pre-authenticated consent terms. While raw client-side telemetry packet leaks are observable inside the browser runtime memory cache, corporate infrastructure may leverage applicable statutory safe harbor provisions (e.g. India IT Act Sec. 79 / US Sec. 230) where strict intermediary due diligence criteria are satisfied.`;
 
   const intermediaryAdvisoryLogRaw = `----------------------------------------------------------------------------------------
 [ASJi ONE // ADVANCED STATUTORY INTERMEDIARY ADVISORY REGISTER]
@@ -327,45 +320,25 @@ ${legalInterceptionExplanation}
 ========================================================================================
      ⚖️ SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D 🔒]
 ========================================================================================
-// STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS
-// FOR INTERMEDIARY NETWORKS AND ENTERPRISE ENTITIES ARE RESTRICTED.
-// REQUIRES AUDIT DEFENSE RETAINER ACTIVATION OF ₹24,999 ($300 USD).
+// STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS FOR ENTERPRISE ENTITIES ARE RESTRICTED.
 ----------------------------------------------------------------------------------------`;
 
   const intermediaryAdvisory: IntermediaryAdvisoryData = {
     isIntermediary: intermediary.isIntermediary,
     conglomerateName: intermediary.conglomerateName || "Global Intermediary Network",
     immunityTag: "Safe Harbor / India IT Act Sec. 79 & US Sec. 230",
-    verdictStatus: "🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)",
+    verdictStatus: "NAVIGATING STATUTORY FRAMEWORKS",
     legalExplanation: legalInterceptionExplanation,
     advisoryLogRaw: intermediaryAdvisoryLogRaw,
     treatyExemptionShieldActive: intermediary.isIntermediary,
   };
-
-  // 4. Construct Primary Radar Terminal Raw Output String
-  const intermediarySectionInTerminal = intermediary.isIntermediary
-    ? `\n\n----------------------------------------------------------------------------------------
-[ASJi ONE // ADVANCED STATUTORY INTERMEDIARY ADVISORY REGISTER]
-TARGET NODE: ${cleanTarget}
-VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)
-
-[THE LEGAL INTERCEPTION EXPLANATION]:
-${legalInterceptionExplanation}
-
-========================================================================================
-     ⚖️ SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D 🔒]
-========================================================================================
-// STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS
-// FOR INTERMEDIARY NETWORKS AND ENTERPRISE ENTITIES ARE RESTRICTED.
-// REQUIRES AUDIT DEFENSE RETAINER ACTIVATION OF ₹24,999 ($300 USD).`
-    : "";
 
   const terminalLogRaw = `----------------------------------------------------------------------------------------
 [ASJi ONE // AUTONOMOUS TRUST RADAR TERMINAL LOG]
 TARGET DOMAIN: ${cleanTarget}
 
 [JURISDICTION VERDICT MATRIX]:
-- 🇮🇳 INDIA DPDP ACT 2023: ${indiaVerdict.status}
+- 🇮🇳 INDIA DPDP ACT, 2023 & DPDP RULES, 2025: ${indiaVerdict.status}
 - 🇪🇺 EU GDPR REFORMS:    ${euVerdict.status}
 - 🇬🇧 UK DUAA 2026:       ${ukVerdict.status}
 - 🇦🇪 UAE DECREE LAW 45:  ${uaeVerdict.status}
@@ -380,11 +353,8 @@ TARGET DOMAIN: ${cleanTarget}
      🛠️ PRODUCTION REMEDIATION CODE SUITE [L O C K E D 🔒]
 ========================================================================================
 // CODE REPOSITORY IS LOCKED UNDER STATUTORY REGTECH AUDIT FRAMEWORK.
-// POTENTIAL STATUTORY LIABILITY EXPOSURE: MAXIMUM CAP UP TO ₹250 CRORES UNDER SECTION 33 DPDP ACT UNLESS REMEDIATED.
-// COMPLETE DIRECT UPI TRANSFER (8290841179-3@ibl - ARUSH SHARMA) OF ₹24,999 ($300 USD) TO UNLOCK THE PRODUCTION REMEDIATION SUITE.
-
-👉 [BUTTON ACTION: DIRECT UPI TRANSFER & UNLOCK REMEDIATION CODE PATCHES]
-----------------------------------------------------------------------------------------${intermediarySectionInTerminal}`;
+// DIRECT ACCESS AVAILABLE UPON ACTIVATION (₹2,499/mo).
+----------------------------------------------------------------------------------------`;
 
   return {
     targetDomain: cleanTarget,
@@ -401,9 +371,9 @@ TARGET DOMAIN: ${cleanTarget}
     intermediaryAdvisory,
     remediationLock: {
       isLocked: true,
-      penaltyAccrual: "Accruing up to ₹250 Crores",
-      deploymentFeeInr: "₹24,999",
-      deploymentFeeUsd: "$300 USD",
+      penaltyAccrual: "Statutory observations noted",
+      deploymentFeeInr: "₹2,499/mo",
+      deploymentFeeUsd: "$30/mo USD",
     },
   };
 }

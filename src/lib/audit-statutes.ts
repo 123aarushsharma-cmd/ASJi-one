@@ -12,7 +12,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
     id: "ind-dpdp",
     flag: "🇮🇳",
     country: "INDIA",
-    label: "Digital Personal Data Protection Act (DPDP 2023 & Draft Rules 2025)",
+    label: "Digital Personal Data Protection Act (DPDP Act, 2023 & DPDP Rules, 2025)",
     authority: "Data Protection Board of India (DPBI) / MeitY",
     region: "Asia-Pacific / South Asia",
   },

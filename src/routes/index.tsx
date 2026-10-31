@@ -50,6 +50,7 @@ import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.fu
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { AUTHORISATION_NOTICE, LEGAL, LEGAL_PAGES, NOT_LEGAL_ADVICE } from "@/lib/legal";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -109,6 +110,7 @@ const reportItemVariants = {
 };
 
 function Index() {
+  const { recordUserConsent } = useAuth();
   const [input, setInput] = useState("");
   const [selectedFramework, setSelectedFramework] = useState<string>("ind-dpdp");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -123,6 +125,7 @@ function Index() {
   const [unlockedTiers, setUnlockedTiers] = useState<string[]>([]);
   const [showDetailedAnnexes, setShowDetailedAnnexes] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [retentionMode, setRetentionMode] = useState<RetentionOption>("5min");
   const [scanMode, setScanMode] = useState<"deep-grounded" | "fast-lite">("deep-grounded");
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
@@ -257,17 +260,60 @@ function Index() {
   const startScan = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = input.trim();
-    if (phase === "scanning") return;
+    if (phase === "scanning" || cooldownRemaining > 0) return;
+
     if (!agreed) {
-      setError("Please confirm you are authorised to scan this target and accept the Terms.");
+      setError(
+        "I agree to the Privacy Policy and consent to processing of my data for the website scan.",
+      );
       return;
     }
+
+    // Rate Limiting: Max 5 scans per hour
+    const now = Date.now();
+    const scansRaw = localStorage.getItem("asji_scan_timestamps") || "[]";
+    let scans: number[] = [];
+    try {
+      scans = JSON.parse(scansRaw);
+    } catch {
+      scans = [];
+    }
+    const recentScans = scans.filter((ts) => now - ts < 3600 * 1000);
+    if (recentScans.length >= 5) {
+      setError("Rate limit exceeded: Maximum 5 scans allowed per hour under security policy.");
+      return;
+    }
+
     const validation = validateAuditInput(value);
     if (!validation.ok) {
       setError(validation.error);
       return;
     }
+
     setError(null);
+
+    // Save scan timestamp for rate limiting & start 10s cooldown
+    recentScans.push(now);
+    try {
+      localStorage.setItem("asji_scan_timestamps", JSON.stringify(recentScans));
+    } catch {
+      // safe fallback
+    }
+
+    setCooldownRemaining(10);
+    const cdInterval = setInterval(() => {
+      setCooldownRemaining((c) => {
+        if (c <= 1) {
+          clearInterval(cdInterval);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+
+    // Record user consent in Firestore
+    await recordUserConsent("2025.1", "website_scan_consent");
+
     const label =
       validation.detected.kind === "url"
         ? validation.detected.host!
@@ -280,29 +326,13 @@ function Index() {
       setReport(result);
       setPhase("result");
     } catch (err) {
-      let msg = "Analysis failed. Please try again.";
+      let msg = "Domain analysis failed. Please verify the URL and try again.";
       if (err instanceof Error) {
         msg = err.message;
-      } else if (typeof err === "string") {
-        msg = err;
       }
-
-      if (msg.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(msg);
-          if (parsed.error?.message) {
-            msg = parsed.error.message;
-          }
-        } catch {
-          /* keep original */
-        }
+      if (msg.includes("503") || msg.includes("UNAVAILABLE")) {
+        msg = "Engine busy. Please wait a moment and click Analyze Domain Compliance again.";
       }
-
-      if (msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("high demand")) {
-        msg =
-          "The AI model engine is currently experiencing temporary peak traffic. Click 'Analyze Domain Compliance' to retry.";
-      }
-
       setError(msg);
       setPhase("idle");
     }
@@ -476,42 +506,40 @@ function Index() {
             )}
 
             {/* Terms Consent Checkbox */}
-            <label className="flex items-start gap-3 px-1 text-left text-[11px] leading-relaxed text-muted-foreground font-mono">
+            <label className="flex items-start gap-3 px-1 text-left text-[11px] leading-relaxed text-muted-foreground font-mono cursor-pointer">
               <input
                 type="checkbox"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-primary rounded border-border"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary rounded border-border cursor-pointer"
               />
               <span>
-                I own this target or am authorised in writing to assess it, and I accept the{" "}
-                <Link to="/legal/terms" className="text-primary underline-offset-2 hover:underline">
-                  Terms
-                </Link>
-                ,{" "}
-                <Link
-                  to="/legal/acceptable-use"
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  Acceptable Use Policy
-                </Link>{" "}
-                and{" "}
+                I agree to the{" "}
                 <Link
                   to="/legal/privacy"
-                  className="text-primary underline-offset-2 hover:underline"
+                  className="text-primary underline underline-offset-2 hover:text-white"
                 >
                   Privacy Policy
-                </Link>
-                . Reports are informational technical audits and not formal legal advice.
+                </Link>{" "}
+                and consent to processing of my data for the website scan.
               </span>
             </label>
 
             <button
               type="submit"
-              disabled={phase === "scanning" || !agreed || (liveCheck ? !liveCheck.ok : true)}
+              disabled={
+                phase === "scanning" ||
+                cooldownRemaining > 0 ||
+                !agreed ||
+                (liveCheck ? !liveCheck.ok : true)
+              }
               className="btn-gold w-full rounded-xl px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider disabled:opacity-60 shadow-lg transition-all hover:scale-[1.01] font-mono cursor-pointer"
             >
-              {phase === "scanning" ? "Running Deep Domain Scan..." : "Analyze Domain Compliance"}
+              {cooldownRemaining > 0
+                ? `Please wait ${cooldownRemaining}s...`
+                : phase === "scanning"
+                  ? "Running Deep Domain Scan..."
+                  : "Analyze Domain Compliance"}
             </button>
 
             <p className="px-1 text-left text-[10px] leading-relaxed text-muted-foreground/80 font-mono">

@@ -103,7 +103,7 @@ export function StatutoryGrievanceNotice() {
               <div className="mt-4 space-y-2 rounded-xl border border-[#D4AF37]/15 bg-black/80 p-4 font-mono text-xs text-[#E5E5E5]">
                 <div className="flex items-center gap-2">
                   <span className="text-[#D4AF37]">Designation:</span>
-                  <span>{LEGAL.grievanceOfficer}</span>
+                  <span>{LEGAL.grievanceOfficer.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-3.5 w-3.5 text-[#D4AF37]" />

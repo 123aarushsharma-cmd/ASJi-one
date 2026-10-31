@@ -1,34 +1,37 @@
 import React, { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Lock, LogOut, Database, Shield, KeyRound, User, CheckCircle2, X } from "lucide-react";
+import { Lock, LogOut, Database, Shield, KeyRound, User, X } from "lucide-react";
 import { PrivateVaultModal } from "./PrivateVaultModal";
 import { toast } from "sonner";
 
 export function SovereignAuthBar() {
-  const { user, loading, isAdmin, signInWithCredentials, logout, dbOnline, authError } = useAuth();
+  const { user, loading, isAdmin, adminSignIn, logout, authError, clearAuthError } = useAuth();
   const [isVaultOpen, setIsVaultOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [usernameInput, setUsernameInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthenticating(true);
-    const success = signInWithCredentials(usernameInput, passwordInput);
-    setIsAuthenticating(false);
+    clearAuthError();
 
-    if (success) {
-      toast.success("Secure Sovereign Authentication Granted", {
-        description: "Private Firestore cloud persistence and admin clearance enabled.",
+    try {
+      await adminSignIn(emailInput, passwordInput);
+      toast.success("Administrator Access Granted", {
+        description: "Authenticated with Firebase Auth & Verified in admins/{uid} ledger.",
       });
       setIsLoginModalOpen(false);
-      setUsernameInput("");
+      setEmailInput("");
       setPasswordInput("");
-    } else {
-      toast.error("Authentication Failed", {
-        description: authError || "Invalid username or master access passphrase.",
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Authentication Failed.";
+      toast.error("Access Denied", {
+        description: msg || "Account is not registered in the administrator registry.",
       });
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -50,9 +53,12 @@ export function SovereignAuthBar() {
       <div className="flex items-center gap-2.5">
         {!user ? (
           <button
-            onClick={() => setIsLoginModalOpen(true)}
+            onClick={() => {
+              clearAuthError();
+              setIsLoginModalOpen(true);
+            }}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer"
-            title="Secure Sovereign Admin Sign-In"
+            title="Admin Sign-In"
           >
             <KeyRound className="w-3.5 h-3.5" />
             <span>Admin Sign-In</span>
@@ -62,12 +68,18 @@ export function SovereignAuthBar() {
             {/* User Pill */}
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl border border-white/10 bg-white/[0.03]">
               <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
-                {user.username.charAt(0).toUpperCase()}
+                {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
               </div>
 
               <div className="hidden sm:flex flex-col text-left leading-tight">
-                <span className="text-[11px] font-semibold text-white">{user.displayName}</span>
-                <span className="text-[9px] text-amber-400 font-medium">👑 Sovereign Admin</span>
+                <span className="text-[11px] font-semibold text-white">
+                  {user.displayName || user.email}
+                </span>
+                {isAdmin ? (
+                  <span className="text-[9px] text-amber-400 font-medium">👑 Admin Clearance</span>
+                ) : (
+                  <span className="text-[9px] text-emerald-400 font-medium">🛡️ Authenticated</span>
+                )}
               </div>
             </div>
 
@@ -75,7 +87,7 @@ export function SovereignAuthBar() {
             <button
               onClick={() => setIsVaultOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold transition-all cursor-pointer shadow-sm"
-              title="Open Private Sovereign Vault"
+              title="Open Private Vault"
             >
               <Database className="w-3.5 h-3.5" />
               <span>Private Vault</span>
@@ -95,7 +107,7 @@ export function SovereignAuthBar() {
 
       <PrivateVaultModal isOpen={isVaultOpen} onClose={() => setIsVaultOpen(false)} />
 
-      {/* Secure Username / Password Admin Sign-In Modal */}
+      {/* Pure Firebase Auth Admin Sign-In Modal */}
       {isLoginModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-neutral-950 border border-primary/40 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative space-y-6">
@@ -110,27 +122,25 @@ export function SovereignAuthBar() {
               <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center text-primary mx-auto shadow-lg shadow-primary/20">
                 <Shield className="w-6 h-6" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-white">
-                Sovereign Citadel Authentication
-              </h2>
+              <h2 className="font-display text-2xl font-bold text-white">Admin Authentication</h2>
               <p className="text-xs font-mono text-muted-foreground">
-                Enter your private administrator credentials to access command controls.
+                Firebase Auth Email & Password • Checked against admins/{"{uid}"}
               </p>
             </div>
 
-            <form onSubmit={handleLoginSubmit} className="space-y-4 font-mono text-xs">
+            <form onSubmit={handleAdminLoginSubmit} className="space-y-4 font-mono text-xs">
               <div>
                 <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                  Administrator Username
+                  Admin Email
                 </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-3 w-4 h-4 text-muted-foreground" />
                   <input
-                    type="text"
+                    type="email"
                     required
-                    placeholder="admin"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
+                    placeholder="admin@domain.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
                     className="w-full rounded-xl border border-border bg-background/90 pl-10 pr-3 py-2.5 text-xs text-foreground focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -138,7 +148,7 @@ export function SovereignAuthBar() {
 
               <div>
                 <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                  Master Access Passphrase
+                  Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3 w-4 h-4 text-muted-foreground" />
@@ -164,12 +174,12 @@ export function SovereignAuthBar() {
                 disabled={isAuthenticating}
                 className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/20"
               >
-                <span>{isAuthenticating ? "Authenticating..." : "Authorize Citadel Access"}</span>
+                <span>{isAuthenticating ? "Authenticating..." : "Sign In As Admin"}</span>
               </button>
             </form>
 
             <div className="pt-2 text-center text-[10px] font-mono text-muted-foreground border-t border-white/10">
-              <p>🔒 Zero-Knowledge Private Architecture • Zero External Leakage</p>
+              <p>🔒 Zero-Trust Firebase Auth • Verified Admin Record Required</p>
             </div>
           </div>
         </div>

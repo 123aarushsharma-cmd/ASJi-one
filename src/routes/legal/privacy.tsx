@@ -9,127 +9,115 @@ export const Route = createFileRoute("/legal/privacy")({
       {
         name: "description",
         content:
-          "How ASJi One handles the URLs and text you submit: lawful bases, retention, transfers, subprocessors and your GDPR, DPDP, CCPA, LGPD and PIPL rights.",
+          "Lawful bases, data minimization, 12-month retention policy, Google/Firebase & Vercel processors, and DPDP Act 2023 / GDPR rights.",
       },
-      { property: "og:title", content: "Privacy Policy — ASJi One" },
-      {
-        property: "og:description",
-        content:
-          "Lawful bases, retention, international transfers and your privacy rights worldwide.",
-      },
-      { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (
     <LegalPage
       title="Privacy Policy"
-      intro="This policy explains what the ASJi One scanner processes, why, on what lawful basis, and the rights you can exercise under the world’s major data-protection regimes."
+      intro="This policy explains what personal data ASJi One collects, the purpose, retention, third-party processors, and your statutory rights under the India DPDP Act 2023 (and DPDP Rules, 2025) and EU GDPR."
     >
-      <LegalSection title="1. Who is responsible">
+      <LegalSection title="1. Who is Responsible">
         <p>
-          {LEGAL.legalEntity} (operating {LEGAL.operator}) is the controller for personal data
-          processed through this site. Privacy &amp; Data Protection Contact:{" "}
+          {LEGAL.legalEntity} (operating {LEGAL.operator}) is the Data Fiduciary / Controller for
+          personal data processed through this platform. Privacy &amp; Data Protection Contact:{" "}
           <strong>{LEGAL.contactEmail}</strong>. Direct Phone:{" "}
-          <strong>{LEGAL.phoneNumbers.join(" / ")}</strong>. India DPDP Grievance Officer:{" "}
-          <strong>{LEGAL.grievanceOfficer}</strong>, {LEGAL.contactEmail}.
+          <strong>{LEGAL.phoneNumbers.join(" / ")}</strong>.
         </p>
       </LegalSection>
 
-      <LegalSection title="2. What we process">
-        <ul className="space-y-1">
+      <LegalSection title="2. Data Minimization — What We Collect & Why">
+        <p>
+          In strict compliance with data minimization principles, we collect only necessary
+          attributes required to conduct requested website audits and maintain secure accounts:
+        </p>
+        <ul className="list-disc pl-5 space-y-1 mt-2">
           <li>
-            <strong>Scan input</strong> — the URL or infrastructure text you submit. Do not paste
-            secrets, credentials, or personal data about other people.
+            <strong>Account Credentials:</strong> Name and Email address (when signing up or logging
+            in).
           </li>
           <li>
-            <strong>Scan output</strong> — the evidence dossier collected from the public target and
-            the generated report.
+            <strong>Target Website URL:</strong> The domain submitted for compliance scanning.
           </li>
           <li>
-            <strong>Technical data</strong> — request metadata such as IP address, user agent and
-            timestamps, processed for security, abuse prevention and service reliability.
+            <strong>Consent Records:</strong> Affirmative consent timestamp, policy version, and
+            user ID.
           </li>
         </ul>
-        <p>
-          We do not sell or share personal information for cross-context behavioural advertising,
-          and we do not knowingly process data of children under 16 (under 18 where DPDP applies).
+        <p className="mt-2">
+          We do NOT collect unnecessary personal attributes, financial passwords, or sensitive
+          personal data.
         </p>
       </LegalSection>
 
-      <LegalSection title="3. Lawful bases">
-        <ul className="space-y-1">
-          <li>
-            <strong>Contract</strong> (GDPR Art. 6(1)(b)) — running the scan you requested.
-          </li>
-          <li>
-            <strong>Legitimate interests</strong> (Art. 6(1)(f)) — service security, abuse
-            prevention and improvement, balanced against your rights.
-          </li>
-          <li>
-            <strong>Consent</strong> (Art. 6(1)(a); DPDP s. 6) — for any optional cookie or
-            analytics use, and withdrawable at any time.
-          </li>
-          <li>
-            <strong>Legal obligation</strong> (Art. 6(1)(c)) — where retention or disclosure is
-            required by law.
-          </li>
+      <LegalSection title="3. Third-Party Data Processors">
+        <p>
+          To operate secure infrastructure, personal data is processed by trusted infrastructure
+          sub-processors under strict confidentiality and security terms:
+        </p>
+        <ul className="list-disc pl-5 space-y-1 mt-2">
+          {LEGAL.dataProcessors.map((proc, idx) => (
+            <li key={idx}>
+              <strong>{proc.name}:</strong> {proc.purpose}
+            </li>
+          ))}
         </ul>
       </LegalSection>
 
-      <LegalSection title="4. Retention">
+      <LegalSection title="4. Retention Policy & Auto-Deletion">
         <p>
-          Scan input and generated reports are processed transiently to produce your result and are
-          not used to build a public database of scanned entities. Operational logs are kept only as
-          long as needed for security and legal purposes, then deleted or anonymised.
+          {LEGAL.retentionPolicy} Users may also execute immediate on-demand account and data
+          deletion at any time directly through their Private Sovereign Vault dashboard.
         </p>
       </LegalSection>
 
-      <LegalSection title="5. Processors and international transfers">
+      <LegalSection title="5. Your Statutory Rights (DPDP Act 2023 & GDPR)">
         <p>
-          To deliver the service we use hosting/CDN infrastructure and an AI model provider, which
-          may process data outside your country. Transfers rely on appropriate safeguards such as
-          the EU Standard Contractual Clauses, the UK IDTA/Addendum, and equivalent contractual
-          measures for other regimes. A current subprocessor list is available on request from{" "}
-          <strong>{LEGAL.privacyEmail}</strong>.
+          Under the Digital Personal Data Protection Act, 2023 and EU GDPR, you have guaranteed
+          statutory rights:
         </p>
+        <ul className="list-disc pl-5 space-y-1 mt-2">
+          <li>
+            <strong>Right to Access & Summary:</strong> Request a full copy of processed personal
+            data via the 'Download My Data (JSON)' button.
+          </li>
+          <li>
+            <strong>Right to Correction & Erasure:</strong> Request correction or complete deletion
+            of your account and audit history.
+          </li>
+          <li>
+            <strong>Right to Withdraw Consent:</strong> Revoke processing consent at any time
+            without affecting prior lawful processing.
+          </li>
+          <li>
+            <strong>Right to Grievance Redressal:</strong> Submit grievances to our designated
+            Grievance Officer.
+          </li>
+        </ul>
       </LegalSection>
 
-      <LegalSection title="6. Your rights">
-        <p>
-          Depending on where you live, you may have rights to access, rectification, erasure,
-          restriction, portability, objection, withdrawal of consent, non-discrimination for
-          exercising rights, and to nominate another person (DPDP s. 14). These rights arise under
-          the{" "}
-          <strong>
-            GDPR / UK GDPR, India DPDP Act 2023, CCPA/CPRA, PIPEDA, LGPD, PDPA (SG/TH), POPIA, PIPL
-            and the Australian Privacy Act
-          </strong>
-          , among others.
-        </p>
-        <p>
-          Contact <strong>{LEGAL.privacyEmail}</strong> to exercise a right; we respond within the
-          statutory deadline applicable to you. You may also complain to your supervisory authority
-          — for example your EU/EEA DPA, the UK ICO, or the Data Protection Board of India.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="7. Security and breach handling">
-        <p>
-          We apply technical and organisational measures appropriate to the risk (GDPR Art. 32; DPDP
-          s. 8(5)), including encryption in transit and least-privilege access. Report a suspected
-          vulnerability to <strong>{LEGAL.securityEmail}</strong>. Where a notifiable personal-data
-          breach occurs, we notify the competent authority and affected people within the timeframes
-          the applicable law requires.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="8. Automated processing">
-        <p>
-          Reports are produced with AI assistance. They are informational only and are not used to
-          make legal or similarly significant automated decisions about you. You can always request
-          human review by writing to <strong>{LEGAL.privacyEmail}</strong>.
-        </p>
+      <LegalSection title="6. Designated Grievance Officer Section">
+        <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2 font-mono text-xs text-foreground">
+          <p className="font-bold text-sm text-gold-gradient">
+            Statutory Grievance Redressal Officer
+          </p>
+          <p>
+            <strong>Officer Name:</strong> {LEGAL.grievanceOfficer.name}
+          </p>
+          <p>
+            <strong>Entity:</strong> {LEGAL.grievanceOfficer.entity}
+          </p>
+          <p>
+            <strong>Email Endpoint:</strong>{" "}
+            <a href={`mailto:${LEGAL.grievanceOfficer.email}`} className="text-primary underline">
+              {LEGAL.grievanceOfficer.email}
+            </a>
+          </p>
+          <p>
+            <strong>Statutory SLA:</strong> {LEGAL.grievanceOfficer.sla}
+          </p>
+        </div>
       </LegalSection>
     </LegalPage>
   ),

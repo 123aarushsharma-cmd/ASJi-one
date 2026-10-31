@@ -1,100 +1,113 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Hardened Primitive Helpers
+    
+    // Helper Functions
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email == "123.aarushsharma@gmail.com" && request.auth.token.email_verified == true) ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
+    function isWhitelistedAdminEmail() {
+      return isSignedIn() 
+        && request.auth.token.email != null 
+        && (
+          request.auth.token.email.lower() == 'asji.online@gmail.com' || 
+          request.auth.token.email.lower() == '123.aarushsharma@gmail.com'
+        );
     }
 
-    // 2. Public Verified World Sovereign Laws Database
+    function isAdmin() {
+      return isWhitelistedAdminEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function is12DigitUTR(utr) {
+      return utr is string && utr.matches('^[0-9]{12}$');
+    }
+
+    // 1. Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Admins collection - Authenticated whitelisted user can read/register their admin credential
+    match /admins/{adminId} {
+      allow read: if isOwner(adminId) || isAdmin();
+      allow create: if isOwner(adminId) && isWhitelistedAdminEmail();
+      allow update, delete: if false;
+    }
+
+    // 3. Admin Activity Audit Logs - Write-only for admins, no client read/delete
+    match /auditLogs/{logId} {
+      allow create: if isAdmin() 
+        && request.resource.data.adminUid == request.auth.uid 
+        && request.resource.data.action is string 
+        && request.resource.data.timestamp is timestamp;
+      allow read, update, delete: if false;
+    }
+
+    // 4. User Isolated Data & Vault
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /audits/{auditId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /notices/{noticeId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /consents/{consentId} {
+        allow create, read: if isOwner(userId);
+        allow update, delete: if isOwner(userId);
+      }
+
+      match /chat_sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+
+        match /messages/{messageId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+    }
+
+    // 5. Rate Limit Tracker per User
+    match /scan_rate_limits/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 6. Global Verified World Sovereign Laws Database (Public Read)
     match /laws/{lawId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 3. User Isolated Private Documents & Vault
-    match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
-
-      // Private User Audits History
-      match /audits/{auditId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      // Private User Statutory Notices & Charters
-      match /notices/{noticeId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      // Private User Chat Sessions with Oracle
-      match /chat_sessions/{sessionId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-
-        match /messages/{messageId} {
-          allow read, write: if isOwner(userId) || isAdmin();
-        }
-      }
-    }
-
-    // 4. Backward Compatibility for Legacy Public Demo Chat Sessions
-    match /chat_sessions/{sessionId} {
-      allow read, write: if true;
-      match /messages/{messageId} {
-        allow read, write: if true;
-      }
-    }
-
-    // 5. Admin Directory
-    match /admins/{adminId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && (
-        request.resource.data.masterPasscode == "ASJI-CITADEL-2026" ||
-        request.auth.token.email == "123.aarushsharma@gmail.com"
-      );
-      allow update, delete: if isAdmin();
-    }
-
-    // 6. Enterprise Licensing & Payment Verification Transactions
+    // 7. Payment Verification Transactions / UTR Requests
     match /transactions/{txnId} {
-      // Anyone can submit a payment verification reference
-      allow create: if request.resource.data.referenceId is string &&
-                       request.resource.data.domain is string;
-      // Reading, verifying and updating transactions strictly restricted to admin
+      // Users can create only their own payment request
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.domain is string
+        && request.resource.data.domain.size() <= 253
+        && is12DigitUTR(request.resource.data.referenceId);
+      // Only admins can read/update/approve/reject transactions
       allow read, update, delete: if isAdmin();
     }
 
-    // 7. Active Licensed Domains (verified by admin)
+    // 8. Active Domain Licenses (Public Read for Active License Lookup, Write for Admin)
     match /licenses/{domain} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 8. Test connection ping
+    // 9. Test connection ping
     match /test/{testId} {
-      allow read, write: if true;
-    }
-
-    // 9. Global Safety Net (Default Deny)
-    match /{document=**} {
-      allow read, write: if false;
+      allow read: if true;
+      allow write: if false;
     }
   }
 }
