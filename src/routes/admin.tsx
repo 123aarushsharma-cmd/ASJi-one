@@ -15,6 +15,10 @@ import {
   EyeOff,
   RefreshCw,
   CheckCircle,
+  AlertTriangle,
+  ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   collection,
@@ -60,6 +64,7 @@ function AdminPage() {
     loading,
     isAdmin,
     adminSignIn,
+    adminSignUp,
     adminSignInWithGoogle,
     logout,
     logAdminActivity,
@@ -67,10 +72,12 @@ function AdminPage() {
     clearAuthError,
   } = useAuth();
 
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPass, setAdminPass] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
   // Navigation & Clearance Tabs
   const [adminTab, setAdminTab] = useState<"licensing" | "trust-hub" | "scanner">("licensing");
@@ -82,6 +89,12 @@ function AdminPage() {
   const [transactions, setTransactions] = useState<AdminTransaction[]>([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
   const [syncingLaws, setSyncingLaws] = useState(false);
+  const [showDomainGuide, setShowDomainGuide] = useState(false);
+
+  const currentHostname =
+    typeof window !== "undefined" && window.location.hostname
+      ? window.location.hostname
+      : "asji.online";
 
   const fetchTransactions = useCallback(async () => {
     if (!isAdmin) return;
@@ -108,6 +121,17 @@ function AdminPage() {
     }
   }, [isAdmin, fetchTransactions]);
 
+  const handleCopyHostname = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(currentHostname);
+      setCopiedDomain(true);
+      toast.success("Domain copied to clipboard", {
+        description: `Add '${currentHostname}' to Authorized domains in Firebase Console.`,
+      });
+      setTimeout(() => setCopiedDomain(false), 3000);
+    }
+  };
+
   const handleGoogleAuth = async () => {
     setIsAuthenticating(true);
     clearAuthError();
@@ -130,10 +154,17 @@ function AdminPage() {
     clearAuthError();
 
     try {
-      await adminSignIn(adminEmail, adminPass);
-      toast.success("Welcome to Sovereign Command Citadel", {
-        description: "Authenticated with Firebase Auth & Verified in admins/{uid}.",
-      });
+      if (authMode === "signin") {
+        await adminSignIn(adminEmail, adminPass);
+        toast.success("Welcome to Sovereign Command Citadel", {
+          description: "Authenticated with Firebase Auth & Verified in admins/{uid}.",
+        });
+      } else {
+        await adminSignUp(adminEmail, adminPass);
+        toast.success("Admin Account Initialized", {
+          description: "Account registered in Firebase Auth and verified in admins/{uid}.",
+        });
+      }
       setAdminEmail("");
       setAdminPass("");
     } catch (err: unknown) {
@@ -218,11 +249,18 @@ function AdminPage() {
     );
   }
 
+  const isUnauthorizedDomain =
+    showDomainGuide ||
+    authError?.includes("unauthorized-domain") ||
+    authError?.includes("auth/unauthorized-domain") ||
+    authError?.toLowerCase().includes("host") ||
+    authError?.toLowerCase().includes("domain not authorized");
+
   // Firebase Auth + Admin Clearance Guard
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4 font-sans relative overflow-hidden">
-        <div className="w-full max-w-md rounded-3xl border border-primary/40 bg-neutral-950 p-8 shadow-2xl relative z-10 space-y-6">
+        <div className="w-full max-w-md rounded-3xl border border-primary/40 bg-neutral-950 p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
           <div className="text-center space-y-2">
             <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center text-primary mx-auto shadow-xl shadow-primary/20">
               <Shield className="w-7 h-7" />
@@ -234,6 +272,68 @@ function AdminPage() {
               Firebase Authentication • Cloud Firestore Secured
             </p>
           </div>
+
+          {/* Dedicated Domain Authorization Warning Card when hosted externally */}
+          {isUnauthorizedDomain && (
+            <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-xs font-mono space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-amber-300">Authorize Hosted Domain in Firebase</h4>
+                  <p className="text-amber-200/80 text-[11px] mt-0.5 leading-relaxed">
+                    Firebase blocks Google OAuth popups until your hosting domain is added to{" "}
+                    <strong>Authorized domains</strong> in Firebase Console.
+                  </p>
+                </div>
+              </div>
+
+              {/* Domain Copy Box */}
+              <div className="flex items-center justify-between p-2 rounded-xl bg-black/60 border border-amber-500/30 text-[11px]">
+                <code className="text-amber-300 font-bold truncate max-w-[220px]">
+                  {currentHostname}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyHostname}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium transition-colors cursor-pointer"
+                >
+                  {copiedDomain ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  <span>{copiedDomain ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+
+              {/* Direct Firebase Console Link */}
+              <a
+                href="https://console.firebase.google.com/project/perceptive-bulwark-js7sz/authentication/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-colors cursor-pointer shadow-md"
+              >
+                <span>Open Firebase Console Settings</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <div className="space-y-1 text-[10px] text-muted-foreground leading-tight bg-black/40 p-2.5 rounded-xl border border-white/5">
+                <p className="font-semibold text-amber-200/90 mb-1">How to fix in 30 seconds:</p>
+                <p>1. Click the button above to open Firebase Console Settings</p>
+                <p>
+                  2. Scroll down to <strong>Authorized domains</strong> &amp; click{" "}
+                  <strong>Add domain</strong>
+                </p>
+                <p>
+                  3. Paste <code>{currentHostname}</code> and click <strong>Add</strong>
+                </p>
+                <p className="pt-1 text-primary">
+                  💡 Alternatively, sign in below using <strong>Email &amp; Password</strong> — it
+                  works immediately on any domain without domain authorization!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Direct Google Sign-In with Firebase Auth */}
           <div className="space-y-3 font-mono">
@@ -264,12 +364,59 @@ function AdminPage() {
               <span>Sign In with Google</span>
             </button>
 
+            {!isUnauthorizedDomain && (
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
+                <span>
+                  Host: <code className="text-amber-300/80 font-bold">{currentHostname}</code>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDomainGuide(true)}
+                  className="text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                >
+                  Firebase domain setup?
+                </button>
+              </div>
+            )}
+
             <div className="relative flex items-center justify-center py-2">
               <div className="w-full border-t border-white/10" />
               <span className="absolute bg-neutral-950 px-3 text-[10px] text-muted-foreground uppercase font-mono tracking-widest">
-                OR SIGN IN WITH EMAIL
+                OR WITH EMAIL &amp; PASSWORD
               </span>
             </div>
+          </div>
+
+          {/* Auth Mode Toggle */}
+          <div className="flex rounded-xl bg-white/5 p-1 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                clearAuthError();
+                setAuthMode("signin");
+              }}
+              className={`flex-1 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+                authMode === "signin"
+                  ? "bg-primary text-black font-bold shadow-md"
+                  : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                clearAuthError();
+                setAuthMode("signup");
+              }}
+              className={`flex-1 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+                authMode === "signup"
+                  ? "bg-primary text-black font-bold shadow-md"
+                  : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              Create Admin Password
+            </button>
           </div>
 
           <form onSubmit={handleAdminAuthSubmit} className="space-y-4 font-mono text-xs">
@@ -315,7 +462,7 @@ function AdminPage() {
               </div>
             </div>
 
-            {authError && (
+            {authError && !isUnauthorizedDomain && (
               <p className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-xl">
                 {authError}
               </p>
@@ -326,7 +473,13 @@ function AdminPage() {
               disabled={isAuthenticating}
               className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/20"
             >
-              <span>{isAuthenticating ? "Authenticating..." : "Authorize Citadel Access"}</span>
+              <span>
+                {isAuthenticating
+                  ? "Authenticating..."
+                  : authMode === "signin"
+                    ? "Authorize Citadel Access"
+                    : "Create & Register Admin"}
+              </span>
             </button>
           </form>
 

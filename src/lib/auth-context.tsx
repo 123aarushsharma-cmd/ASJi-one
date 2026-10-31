@@ -28,6 +28,36 @@ export const isMasterAdminEmail = (email?: string | null): boolean => {
   return MASTER_ADMIN_EMAILS.includes(email.trim().toLowerCase());
 };
 
+export function formatAuthErrorMessage(error: unknown): string {
+  if (!error) return "Authentication failed.";
+  const msg = error instanceof Error ? error.message : String(error);
+
+  if (msg.includes("auth/unauthorized-domain")) {
+    const currentDomain =
+      typeof window !== "undefined" && window.location.hostname
+        ? window.location.hostname
+        : "your hosted domain";
+    return `auth/unauthorized-domain: Host '${currentDomain}' is not authorized in Firebase Authentication. Please add it to your Firebase Console under Authentication > Settings > Authorized domains.`;
+  }
+  if (
+    msg.includes("auth/user-not-found") ||
+    msg.includes("auth/wrong-password") ||
+    msg.includes("auth/invalid-credential")
+  ) {
+    return "Invalid email address or password. If you haven't created a password account yet, please use 'Create Admin Account' or 'Sign In with Google'.";
+  }
+  if (msg.includes("auth/email-already-in-use")) {
+    return "This email is already registered. Please sign in with your password or use Google Sign-In.";
+  }
+  if (msg.includes("auth/popup-closed-by-user")) {
+    return "Google Sign-In popup was closed before completing authentication.";
+  }
+  if (msg.includes("auth/popup-blocked")) {
+    return "Sign-In popup was blocked by your browser. Please allow popups for this domain.";
+  }
+  return msg;
+}
+
 export interface UserProfile {
   uid: string;
   email: string | null;
@@ -42,6 +72,7 @@ export interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   adminSignIn: (email: string, pass: string) => Promise<void>;
+  adminSignUp: (email: string, pass: string) => Promise<void>;
   adminSignInWithGoogle: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   userSignIn: (email: string, pass: string) => Promise<void>;
@@ -176,9 +207,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Google authentication failed.";
+      const msg = formatAuthErrorMessage(error);
       setAuthError(msg);
-      throw error;
+      throw new Error(msg);
     }
   };
 
@@ -223,9 +254,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(true);
       await logAdminActivity("ADMIN_GOOGLE_LOGIN_SUCCESS", { email: cred.user.email });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Google authentication failed.";
+      const msg = formatAuthErrorMessage(error);
       setAuthError(msg);
-      throw error;
+      throw new Error(msg);
     }
   };
 
@@ -269,9 +300,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(true);
       await logAdminActivity("ADMIN_LOGIN_SUCCESS", { email: cred.user.email });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Authentication failed.";
+      const msg = formatAuthErrorMessage(error);
       setAuthError(msg);
-      throw error;
+      throw new Error(msg);
+    }
+  };
+
+  const adminSignUp = async (email: string, pass: string) => {
+    setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, pass.trim());
+      const userDocRef = doc(db, "users", cred.user.uid);
+      await setDoc(userDocRef, {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        displayName: cleanEmail.split("@")[0],
+        role: "admin",
+        createdAt: serverTimestamp(),
+      });
+
+      let authorized = false;
+      if (isMasterAdminEmail(cred.user.email)) {
+        authorized = true;
+        const adminDocRef = doc(db, "admins", cred.user.uid);
+        await setDoc(
+          adminDocRef,
+          {
+            uid: cred.user.uid,
+            email: cred.user.email,
+            role: "admin",
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
+      setIsAdmin(authorized);
+      await logAdminActivity("ADMIN_REGISTER_SUCCESS", { email: cred.user.email });
+    } catch (error: unknown) {
+      const msg = formatAuthErrorMessage(error);
+      setAuthError(msg);
+      throw new Error(msg);
     }
   };
 
@@ -280,9 +350,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithEmailAndPassword(auth, email.trim(), pass.trim());
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Sign in failed.";
+      const msg = formatAuthErrorMessage(error);
       setAuthError(msg);
-      throw error;
+      throw new Error(msg);
     }
   };
 
@@ -312,9 +382,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Sign up failed.";
+      const msg = formatAuthErrorMessage(error);
       setAuthError(msg);
-      throw error;
+      throw new Error(msg);
     }
   };
 
@@ -439,6 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isAdmin,
         adminSignIn,
+        adminSignUp,
         adminSignInWithGoogle,
         signInWithGoogle,
         userSignIn,

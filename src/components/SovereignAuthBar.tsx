@@ -11,6 +11,10 @@ import {
   Eye,
   EyeOff,
   ShieldAlert,
+  AlertTriangle,
+  ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { PrivateVaultModal } from "./PrivateVaultModal";
@@ -38,6 +42,28 @@ export function SovereignAuthBar() {
   const [nameInput, setNameInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
+
+  const currentHostname =
+    typeof window !== "undefined" && window.location.hostname
+      ? window.location.hostname
+      : "asji.online";
+
+  const isUnauthorizedDomain =
+    authError?.includes("unauthorized-domain") ||
+    authError?.includes("auth/unauthorized-domain") ||
+    authError?.toLowerCase().includes("host");
+
+  const handleCopyHostname = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(currentHostname);
+      setCopiedDomain(true);
+      toast.success("Domain copied to clipboard", {
+        description: `Add '${currentHostname}' in Firebase Console.`,
+      });
+      setTimeout(() => setCopiedDomain(false), 3000);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
@@ -342,7 +368,48 @@ export function SovereignAuthBar() {
                 </div>
               </div>
 
-              {authError && (
+              {authError && isUnauthorizedDomain && (
+                <div className="p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-xs font-mono space-y-2.5">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-bold text-amber-300 text-[11px]">
+                        Authorize Domain in Firebase
+                      </h4>
+                      <p className="text-amber-200/80 text-[10px] mt-0.5 leading-relaxed">
+                        Google Sign-In requires your hosting domain to be added to Authorized
+                        domains in Firebase Console.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-black/60 border border-amber-500/30 text-[10px]">
+                    <code className="text-amber-300 font-bold truncate max-w-[190px]">
+                      {currentHostname}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={handleCopyHostname}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-medium transition-colors cursor-pointer"
+                    >
+                      {copiedDomain ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedDomain ? "Copied" : "Copy"}</span>
+                    </button>
+                  </div>
+
+                  <a
+                    href="https://console.firebase.google.com/project/perceptive-bulwark-js7sz/authentication/settings"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-500 text-black font-bold text-[11px] hover:bg-amber-400 transition-colors cursor-pointer shadow-sm"
+                  >
+                    <span>Open Firebase Console Settings</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
+              {authError && !isUnauthorizedDomain && (
                 <p className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-xl">
                   {authError}
                 </p>
