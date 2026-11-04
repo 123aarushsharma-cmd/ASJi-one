@@ -3,22 +3,14 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Shield,
   ShieldCheck,
-  Lock,
   Search,
   Loader2,
   Database,
   LogOut,
   Receipt,
   Award,
-  User,
-  Eye,
-  EyeOff,
   RefreshCw,
   CheckCircle,
-  AlertTriangle,
-  ExternalLink,
-  Copy,
-  Check,
 } from "lucide-react";
 import {
   collection,
@@ -63,8 +55,6 @@ function AdminPage() {
     user,
     loading,
     isAdmin,
-    adminSignIn,
-    adminSignUp,
     adminSignInWithGoogle,
     logout,
     logAdminActivity,
@@ -72,12 +62,7 @@ function AdminPage() {
     clearAuthError,
   } = useAuth();
 
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPass, setAdminPass] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [copiedDomain, setCopiedDomain] = useState(false);
 
   // Navigation & Clearance Tabs
   const [adminTab, setAdminTab] = useState<"licensing" | "trust-hub" | "scanner">("licensing");
@@ -89,12 +74,6 @@ function AdminPage() {
   const [transactions, setTransactions] = useState<AdminTransaction[]>([]);
   const [loadingTxns, setLoadingTxns] = useState(false);
   const [syncingLaws, setSyncingLaws] = useState(false);
-  const [showDomainGuide, setShowDomainGuide] = useState(false);
-
-  const currentHostname =
-    typeof window !== "undefined" && window.location.hostname
-      ? window.location.hostname
-      : "asji.online";
 
   const fetchTransactions = useCallback(async () => {
     if (!isAdmin) return;
@@ -121,17 +100,6 @@ function AdminPage() {
     }
   }, [isAdmin, fetchTransactions]);
 
-  const handleCopyHostname = () => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(currentHostname);
-      setCopiedDomain(true);
-      toast.success("Domain copied to clipboard", {
-        description: `Add '${currentHostname}' to Authorized domains in Firebase Console.`,
-      });
-      setTimeout(() => setCopiedDomain(false), 3000);
-    }
-  };
-
   const handleGoogleAuth = async () => {
     setIsAuthenticating(true);
     clearAuthError();
@@ -140,33 +108,6 @@ function AdminPage() {
       toast.success("Welcome to Sovereign Command Citadel", {
         description: "Authenticated with Firebase Auth & Verified Admin Clearance.",
       });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Access denied.";
-      toast.error("Authentication Error", { description: msg });
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
-
-  const handleAdminAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsAuthenticating(true);
-    clearAuthError();
-
-    try {
-      if (authMode === "signin") {
-        await adminSignIn(adminEmail, adminPass);
-        toast.success("Welcome to Sovereign Command Citadel", {
-          description: "Authenticated with Firebase Auth & Verified in admins/{uid}.",
-        });
-      } else {
-        await adminSignUp(adminEmail, adminPass);
-        toast.success("Admin Account Initialized", {
-          description: "Account registered in Firebase Auth and verified in admins/{uid}.",
-        });
-      }
-      setAdminEmail("");
-      setAdminPass("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Access denied.";
       toast.error("Authentication Error", { description: msg });
@@ -249,23 +190,19 @@ function AdminPage() {
     );
   }
 
-  const isUnauthorizedDomain =
-    showDomainGuide ||
-    authError?.includes("unauthorized-domain") ||
-    authError?.includes("auth/unauthorized-domain") ||
-    authError?.toLowerCase().includes("host") ||
-    authError?.toLowerCase().includes("domain not authorized");
-
   // Firebase Auth + Admin Clearance Guard
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4 font-sans relative overflow-hidden">
-        <div className="w-full max-w-md rounded-3xl border border-primary/40 bg-neutral-950 p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center text-primary mx-auto shadow-xl shadow-primary/20">
-              <Shield className="w-7 h-7" />
+        {/* Subtle Ambient Background Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-full max-w-md rounded-3xl border border-primary/40 bg-neutral-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 space-y-7">
+          <div className="text-center space-y-2.5">
+            <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center text-primary mx-auto shadow-xl shadow-primary/20">
+              <Shield className="w-8 h-8" />
             </div>
-            <h1 className="font-display text-2xl font-bold text-gold-gradient">
+            <h1 className="font-display text-2xl font-bold text-gold-gradient tracking-tight">
               Sovereign Command Citadel
             </h1>
             <p className="text-xs font-mono text-muted-foreground">
@@ -273,223 +210,56 @@ function AdminPage() {
             </p>
           </div>
 
-          {/* Dedicated Domain Authorization Warning Card when hosted externally */}
-          {isUnauthorizedDomain && (
-            <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-xs font-mono space-y-3">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-amber-300">Authorize Hosted Domain in Firebase</h4>
-                  <p className="text-amber-200/80 text-[11px] mt-0.5 leading-relaxed">
-                    Firebase blocks Google OAuth popups until your hosting domain is added to{" "}
-                    <strong>Authorized domains</strong> in Firebase Console.
-                  </p>
-                </div>
-              </div>
-
-              {/* Domain Copy Box */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-black/60 border border-amber-500/30 text-[11px]">
-                <code className="text-amber-300 font-bold truncate max-w-[220px]">
-                  {currentHostname}
-                </code>
-                <button
-                  type="button"
-                  onClick={handleCopyHostname}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium transition-colors cursor-pointer"
-                >
-                  {copiedDomain ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copiedDomain ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-
-              {/* Direct Firebase Console Link */}
-              <a
-                href="https://console.firebase.google.com/project/perceptive-bulwark-js7sz/authentication/settings"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-colors cursor-pointer shadow-md"
-              >
-                <span>Open Firebase Console Settings</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-
-              <div className="space-y-1 text-[10px] text-muted-foreground leading-tight bg-black/40 p-2.5 rounded-xl border border-white/5">
-                <p className="font-semibold text-amber-200/90 mb-1">How to fix in 30 seconds:</p>
-                <p>1. Click the button above to open Firebase Console Settings</p>
-                <p>
-                  2. Scroll down to <strong>Authorized domains</strong> &amp; click{" "}
-                  <strong>Add domain</strong>
-                </p>
-                <p>
-                  3. Paste <code>{currentHostname}</code> and click <strong>Add</strong>
-                </p>
-                <p className="pt-1 text-primary">
-                  💡 Alternatively, sign in below using <strong>Email &amp; Password</strong> — it
-                  works immediately on any domain without domain authorization!
-                </p>
-              </div>
+          {/* Auth Error Notification */}
+          {authError && (
+            <div className="p-3.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-mono text-center leading-relaxed">
+              {authError}
             </div>
           )}
 
           {/* Direct Google Sign-In with Firebase Auth */}
-          <div className="space-y-3 font-mono">
+          <div className="space-y-4">
             <button
               type="button"
               onClick={handleGoogleAuth}
               disabled={isAuthenticating}
-              className="w-full flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 py-3.5 px-4 text-xs font-semibold text-white transition-all cursor-pointer shadow-lg hover:border-primary/50 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3.5 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 py-4 px-5 text-sm font-semibold text-white transition-all cursor-pointer shadow-xl hover:border-primary/60 hover:shadow-primary/20 disabled:opacity-50 font-sans"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9c-.2-.7-.4-1.5-.4-2.3z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 22.3 12 22.3z"
-                />
-              </svg>
-              <span>Sign In with Google</span>
-            </button>
-
-            {!isUnauthorizedDomain && (
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
-                <span>
-                  Host: <code className="text-amber-300/80 font-bold">{currentHostname}</code>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowDomainGuide(true)}
-                  className="text-amber-400 hover:text-amber-300 underline cursor-pointer"
-                >
-                  Firebase domain setup?
-                </button>
-              </div>
-            )}
-
-            <div className="relative flex items-center justify-center py-2">
-              <div className="w-full border-t border-white/10" />
-              <span className="absolute bg-neutral-950 px-3 text-[10px] text-muted-foreground uppercase font-mono tracking-widest">
-                OR WITH EMAIL &amp; PASSWORD
-              </span>
-            </div>
-          </div>
-
-          {/* Auth Mode Toggle */}
-          <div className="flex rounded-xl bg-white/5 p-1 font-mono text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                clearAuthError();
-                setAuthMode("signin");
-              }}
-              className={`flex-1 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
-                authMode === "signin"
-                  ? "bg-primary text-black font-bold shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearAuthError();
-                setAuthMode("signup");
-              }}
-              className={`flex-1 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
-                authMode === "signup"
-                  ? "bg-primary text-black font-bold shadow-md"
-                  : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              Create Admin Password
-            </button>
-          </div>
-
-          <form onSubmit={handleAdminAuthSubmit} className="space-y-4 font-mono text-xs">
-            <div>
-              <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                Admin Email Address
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-3 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  required
-                  placeholder="admin@domain.com"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background/90 pl-10 pr-3 py-2.5 text-xs text-foreground focus:border-primary focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-medium text-muted-foreground mb-1">
-                Admin Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  placeholder="••••••••••••"
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background/90 pl-10 pr-10 py-2.5 text-xs text-foreground focus:border-primary focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-white transition-colors cursor-pointer"
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {authError && !isUnauthorizedDomain && (
-              <p className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-xl">
-                {authError}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isAuthenticating}
-              className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/20"
-            >
+              {isAuthenticating ? (
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              ) : (
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9c-.2-.7-.4-1.5-.4-2.3z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 22.3 12 22.3z"
+                  />
+                </svg>
+              )}
               <span>
-                {isAuthenticating
-                  ? "Authenticating..."
-                  : authMode === "signin"
-                    ? "Authorize Citadel Access"
-                    : "Create & Register Admin"}
+                {isAuthenticating ? "Authenticating with Firebase..." : "Sign In with Google"}
               </span>
             </button>
-          </form>
+          </div>
 
           {/* Master Admin Security Shield Badge */}
-          <div className="text-center space-y-1.5 border-t border-white/10 pt-4 font-mono text-[10px]">
-            <div className="flex items-center justify-center gap-1.5 text-amber-400 font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          <div className="text-center space-y-1.5 border-t border-white/10 pt-5 font-mono text-[10px]">
+            <div className="flex items-center justify-center gap-1.5 text-amber-400 font-semibold tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
               <span>AUTHORIZED CITADEL ADMINISTRATORS ONLY</span>
             </div>
-            <p className="text-muted-foreground text-[9px] pt-1">
+            <p className="text-muted-foreground text-[10px] pt-1">
               🔒 Powered by Firebase Auth • Strict Cloud Firestore Security Rules
             </p>
           </div>

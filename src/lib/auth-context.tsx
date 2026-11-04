@@ -33,11 +33,7 @@ export function formatAuthErrorMessage(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
 
   if (msg.includes("auth/unauthorized-domain")) {
-    const currentDomain =
-      typeof window !== "undefined" && window.location.hostname
-        ? window.location.hostname
-        : "your hosted domain";
-    return `auth/unauthorized-domain: Host '${currentDomain}' is not authorized in Firebase Authentication. Please add it to your Firebase Console under Authentication > Settings > Authorized domains.`;
+    return "Domain not authorized in Firebase Authentication. Please ensure this domain is added to Authorized Domains in Firebase Console.";
   }
   if (
     msg.includes("auth/user-not-found") ||
