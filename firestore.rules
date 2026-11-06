@@ -112,5 +112,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // 10. Admin Bulk Lead Scans
+    match /bulk_scans/{scanId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 11. Daily Statutory Law Updates Log
+    match /daily_statutory_updates/{updateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

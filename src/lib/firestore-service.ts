@@ -270,3 +270,203 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
     console.warn("Session cleared locally:", err);
   }
 }
+
+export interface BulkScanItem {
+  domain: string;
+  score: number;
+  verdict: "COMPLIANT" | "MODERATE RISK" | "CRITICAL NON-COMPLIANT" | "SCAN FAILED";
+  criticalLeaksCount: number;
+  fineExposure: string;
+  serverLocation?: string;
+  summary: string;
+  scannedAt: string;
+  reportData?: unknown;
+  error?: string;
+}
+
+export interface BulkScanBatch {
+  id: string;
+  title: string;
+  scannedBy: string;
+  createdAt: string;
+  totalDomains: number;
+  completedDomains: number;
+  avgScore: number;
+  highRiskCount: number;
+  items: BulkScanItem[];
+}
+
+const BULK_SCANS_COLLECTION = "bulk_scans";
+const STATUTORY_UPDATES_COLLECTION = "daily_statutory_updates";
+
+/**
+ * Saves a completed bulk scan batch to Firestore for persistent auditing.
+ */
+export async function saveBulkScanBatch(batch: BulkScanBatch): Promise<void> {
+  try {
+    const docRef = doc(db, BULK_SCANS_COLLECTION, batch.id);
+    await setDoc(
+      docRef,
+      {
+        ...batch,
+        syncedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    console.error("Failed to save bulk scan batch to Firestore:", err);
+    throw err;
+  }
+}
+
+/**
+ * Retrieves past bulk scan batches from Firestore.
+ */
+export async function fetchBulkScanBatches(): Promise<BulkScanBatch[]> {
+  try {
+    const colRef = collection(db, BULK_SCANS_COLLECTION);
+    const snap = await getDocs(colRef);
+    const list: BulkScanBatch[] = [];
+    snap.forEach((d) => {
+      list.push(d.data() as BulkScanBatch);
+    });
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (err) {
+    console.warn("Failed to fetch bulk scan batches:", err);
+    return [];
+  }
+}
+
+/**
+ * Deletes a bulk scan batch from Firestore.
+ */
+export async function deleteBulkScanBatch(batchId: string): Promise<void> {
+  try {
+    const docRef = doc(db, BULK_SCANS_COLLECTION, batchId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error("Failed to delete bulk scan batch:", err);
+    throw err;
+  }
+}
+
+/**
+ * Updates a sovereign law in the Cloud Firestore database.
+ * Ensures statutory amendments or changes in penalties are persisted daily.
+ */
+export async function updateWorldLaw(law: WorldLaw, updatedBy: string): Promise<void> {
+  try {
+    const docRef = doc(db, LAWS_COLLECTION, law.id);
+    await setDoc(
+      docRef,
+      {
+        ...law,
+        lastUpdated: serverTimestamp(),
+        lastUpdatedIso: new Date().toISOString(),
+        lastUpdatedBy: updatedBy,
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    console.error("Failed to update law in Firestore:", err);
+    throw err;
+  }
+}
+
+/**
+ * Creates or inserts a new sovereign law into Firestore.
+ */
+export async function createWorldLaw(law: WorldLaw, createdBy: string): Promise<void> {
+  try {
+    const docRef = doc(db, LAWS_COLLECTION, law.id);
+    await setDoc(
+      docRef,
+      {
+        ...law,
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+        lastUpdatedIso: new Date().toISOString(),
+        createdBy,
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    console.error("Failed to create law in Firestore:", err);
+    throw err;
+  }
+}
+
+/**
+ * Deletes a law from Firestore.
+ */
+export async function deleteWorldLaw(lawId: string): Promise<void> {
+  try {
+    const docRef = doc(db, LAWS_COLLECTION, lawId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error("Failed to delete law from Firestore:", err);
+    throw err;
+  }
+}
+
+export interface DailyStatutoryUpdate {
+  id: string;
+  verifiedAt: string;
+  verifiedBy: string;
+  statutesCount: number;
+  notes: string;
+  status: "verified_current" | "amendment_applied" | "review_completed";
+  lawsReviewed?: string[];
+}
+
+/**
+ * Records a daily statutory verification check in Firestore.
+ */
+export async function recordDailyStatutoryCheck(
+  verifiedBy: string,
+  notes: string,
+  statutesCount: number,
+): Promise<DailyStatutoryUpdate> {
+  const updateRecord: DailyStatutoryUpdate = {
+    id: `statutory-verif-${Date.now()}`,
+    verifiedAt: new Date().toISOString(),
+    verifiedBy,
+    statutesCount,
+    notes: notes || "Daily statutory verification completed across all global jurisdictions.",
+    status: "verified_current",
+  };
+
+  try {
+    const docRef = doc(db, STATUTORY_UPDATES_COLLECTION, updateRecord.id);
+    await setDoc(
+      docRef,
+      {
+        ...updateRecord,
+        timestamp: serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return updateRecord;
+  } catch (err) {
+    console.warn("Failed to record daily statutory check in Firestore:", err);
+    return updateRecord;
+  }
+}
+
+/**
+ * Fetches the daily statutory updates log.
+ */
+export async function fetchDailyStatutoryUpdates(): Promise<DailyStatutoryUpdate[]> {
+  try {
+    const colRef = collection(db, STATUTORY_UPDATES_COLLECTION);
+    const snap = await getDocs(colRef);
+    const list: DailyStatutoryUpdate[] = [];
+    snap.forEach((d) => {
+      list.push(d.data() as DailyStatutoryUpdate);
+    });
+    return list.sort((a, b) => new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime());
+  } catch (err) {
+    console.warn("Failed to fetch statutory updates log:", err);
+    return [];
+  }
+}
