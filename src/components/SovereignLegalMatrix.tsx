@@ -7,7 +7,6 @@ import {
   FileText,
   Globe,
   Scale,
-  Search,
   Shield,
   ShieldAlert,
   Lock,
@@ -47,49 +46,24 @@ export function SovereignLegalMatrix({
   const [selectedId, setSelectedId] = useState<string>(
     (selectedFramework && FRAMEWORK_TO_DRAFT_ID[selectedFramework]) || "ind-dpdp",
   );
-  const [activeRegion, setActiveRegion] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"document" | "articles">("document");
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
     if (selectedFramework && FRAMEWORK_TO_DRAFT_ID[selectedFramework]) {
       setSelectedId(FRAMEWORK_TO_DRAFT_ID[selectedFramework]);
+      setCopied(false);
     }
   }, [selectedFramework]);
 
-  const filteredDrafts = useMemo(() => {
-    return interactiveLegalDrafts.filter((draft) => {
-      const matchesRegion = activeRegion === "ALL" || draft.region === activeRegion;
-      const q = searchQuery.toLowerCase().trim();
-      if (!q) return matchesRegion;
-      const matchesSearch =
-        draft.jurisdiction.toLowerCase().includes(q) ||
-        draft.tag.toLowerCase().includes(q) ||
-        draft.statutoryReference.toLowerCase().includes(q) ||
-        draft.governingBody.toLowerCase().includes(q) ||
-        draft.titleHeader.toLowerCase().includes(q) ||
-        draft.executiveSummary.toLowerCase().includes(q) ||
-        draft.keyArticles.some(
-          (a) =>
-            a.title.toLowerCase().includes(q) ||
-            a.ref.toLowerCase().includes(q) ||
-            a.desc.toLowerCase().includes(q),
-        );
-      return matchesRegion && matchesSearch;
-    });
-  }, [activeRegion, searchQuery]);
-
   const activeDraft: LegalDraft =
-    interactiveLegalDrafts.find((d) => d.id === selectedId) ||
-    filteredDrafts[0] ||
-    interactiveLegalDrafts[0];
+    interactiveLegalDrafts.find((d) => d.id === selectedId) || interactiveLegalDrafts[0];
 
   // Concise 2-to-4 line executive statutory excerpt tailored to the law
   const conciseExcerpt = useMemo(() => {
     switch (activeDraft.id) {
       case "ind-dpdp":
-        return `Pursuant to Sections 5(1) & 13 of the Digital Personal Data Protection Act, 2023, data processing across this digital asset is restricted to verified legitimate uses with mandatory itemized notices. Shri/Smt. [Grievance Officer Name] is designated with a 48-hour resolution mandate and DPBI escalation protocols. Tracking or behavioral profiling of minors under 18 is strictly blocked.`;
+        return `Pursuant to Sections 5(1) & 13 of the Digital Personal Data Protection Act, 2023, data processing across this digital asset is restricted to verified legitimate uses with mandatory itemized notices. Arush Sharma is designated Grievance Officer with a 48-hour resolution mandate and DPBI escalation protocols. Tracking or behavioral profiling of minors under 18 is strictly blocked.`;
       case "uae-pdpl":
       case "ae-pdpl":
         return `Under Federal Decree-Law No. 45 of 2021 (UAE PDPL), personal data is processed strictly in accordance with cross-border transfer protections and Data Office supervisory mandates. Data Subjects maintain statutory rights to erasure, objection, and rectification under Articles 13–18.`;
@@ -167,15 +141,6 @@ export function SovereignLegalMatrix({
     URL.revokeObjectURL(url);
   };
 
-  const regions = [
-    { label: "All 15", value: "ALL" },
-    { label: "India & Asia-Pacific", value: "Asia-Pacific" },
-    { label: "Europe & UK", value: "Europe & UK" },
-    { label: "Americas", value: "Americas" },
-    { label: "Middle East", value: "Middle East" },
-    { label: "Africa", value: "Africa" },
-  ];
-
   return (
     <section
       id="legal-matrix"
@@ -192,150 +157,19 @@ export function SovereignLegalMatrix({
             Sovereign Legal Drafting &amp; Compliance Matrix
           </h2>
           <p className="mt-1 font-sans text-xs text-muted-foreground">
-            Tailored statutory disclosures and turnkey legal drafting templates across 15 sovereign
-            jurisdictions: India, UAE, Saudi Arabia, EU, UK, USA, Canada, Brazil, Singapore, Japan,
-            South Korea, Switzerland, Australia, South Africa, and Nigeria.
+            Synchronized directly with your active jurisdiction in the Sovereign Privacy Atlas above
+            for tailored statutory disclosures and legal drafting templates.
           </p>
         </div>
 
         <span className="font-mono text-[11px] text-[#C9A227] whitespace-nowrap">
-          ASJi Statutory Repository · 15 Regimes
+          Synced to Atlas · {activeDraft.tag}
         </span>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="mt-6 flex flex-col gap-4 border-b border-[#262932] pb-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Region Filter Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {regions.map((reg) => (
-            <button
-              key={reg.value}
-              onClick={() => setActiveRegion(reg.value)}
-              className={`rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
-                activeRegion === reg.value
-                  ? "border border-[#C9A227] bg-[#C9A227] text-[#0D0E11]"
-                  : "border border-[#262932] bg-[#0D0E11] text-muted-foreground hover:border-[#C9A227]/50 hover:text-foreground"
-              }`}
-            >
-              {reg.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search Box */}
-        <div className="relative min-w-[260px] max-w-sm">
-          <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#C9A227]/70" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search clauses, articles, penalties..."
-            className="w-full rounded-md border border-[#262932] bg-[#0D0E11] py-2 pr-3 pl-9 font-mono text-xs text-foreground placeholder:text-muted-foreground/60 outline-none transition-colors focus:border-[#C9A227]"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 font-mono text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Main Grid Partition */}
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: 15 Sovereign Law Selection Cards */}
-        <div className="flex flex-col gap-3 lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-[#C9A227]">
-              Select Jurisdiction ({filteredDrafts.length} of 15)
-            </p>
-            <span className="font-mono text-[10px] text-muted-foreground">2025/2026 Standards</span>
-          </div>
-
-          <div className="flex flex-col gap-2.5 max-h-[560px] overflow-y-auto pr-1">
-            {filteredDrafts.map((draft) => {
-              const isSelected = draft.id === activeDraft.id;
-              return (
-                <button
-                  key={draft.id}
-                  onClick={() => {
-                    setSelectedId(draft.id);
-                    setCopied(false);
-                  }}
-                  className={`group flex cursor-pointer flex-col items-start rounded-md border p-4 text-left transition-colors ${
-                    isSelected
-                      ? "border-[#C9A227] bg-[#0D0E11] ring-1 ring-[#C9A227]"
-                      : "border-[#262932] bg-[#0D0E11] hover:border-[#C9A227]/50"
-                  }`}
-                >
-                  <div className="flex w-full items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border border-[#262932] bg-[#15171C] text-[#FAF8F5]">
-                        {draft.flag}
-                      </span>
-                      <span
-                        className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase ${
-                          isSelected
-                            ? "bg-[#C9A227] text-[#0D0E11]"
-                            : "bg-[#15171C] text-[#C9A227] border border-[#262932]"
-                        }`}
-                      >
-                        {draft.tag}
-                      </span>
-                    </div>
-                    <span className="font-mono text-[10px] text-muted-foreground text-right leading-snug">
-                      {draft.badge}
-                    </span>
-                  </div>
-
-                  <h3
-                    className={`mt-2.5 font-display text-sm font-semibold transition-colors ${
-                      isSelected ? "text-[#C9A227]" : "text-[#FAF8F5] group-hover:text-[#C9A227]"
-                    }`}
-                  >
-                    {draft.jurisdiction}
-                  </h3>
-
-                  <p className="mt-1 font-sans text-xs leading-relaxed text-muted-foreground">
-                    {draft.titleHeader}
-                  </p>
-
-                  <div className="mt-3 w-full border-t border-[#262932] pt-2.5 font-mono text-[11px] leading-snug">
-                    <span className="block text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                      Maximum Penalty
-                    </span>
-                    <span className="mt-0.5 block font-semibold text-[#EF4444]">
-                      {draft.statutoryPenalty}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-
-            {filteredDrafts.length === 0 && (
-              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-6 text-center">
-                <ShieldAlert className="mx-auto h-8 w-8 text-[#C9A227]" />
-                <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  No statutory frameworks matched &ldquo;{searchQuery}&rdquo;
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setActiveRegion("ALL");
-                  }}
-                  className="mt-3 rounded border border-[#C9A227]/40 bg-[#15171C] px-3 py-1 font-mono text-xs text-[#C9A227] cursor-pointer"
-                >
-                  Reset Filter
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Legal Brief & Remediation Surface on Warm Alabaster (#FAF8F5) */}
-        <div className="legal-paper flex flex-col rounded-md border border-[#E5DEC9] bg-[#FAF8F5] p-5 sm:p-7 text-[#18181B] lg:col-span-8">
+      {/* Main Legal Drafting Sandbox on Warm Alabaster (#FAF8F5) */}
+      <div className="mt-6">
+        <div className="legal-paper flex flex-col rounded-md border border-[#E5DEC9] bg-[#FAF8F5] p-5 sm:p-7 text-[#18181B]">
           {/* Top Bar of Legal Document Preview */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5DEC9] pb-4">
             <div className="flex items-center gap-3">

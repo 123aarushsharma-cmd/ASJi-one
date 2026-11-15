@@ -327,7 +327,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0D0E11] text-foreground font-sans animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#0D0E11] text-foreground font-sans animate-in fade-in duration-200">
       {/* Top Enterprise Security & Navigation Bar */}
       <header className="sticky top-0 z-40 border-b border-[#262932] bg-[#0D0E11] px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
