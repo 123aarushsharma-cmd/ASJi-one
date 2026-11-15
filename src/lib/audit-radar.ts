@@ -125,10 +125,10 @@ export function computeRadarTerminalLog(
 
   // Intermediary Warning Tag
   const intermediaryWarningTag = intermediary.isIntermediary
-    ? `⚠️ CORPORATE INTERMEDIARY WARNING: Target operates multi-layered Safe Harbor frameworks (India IT Act Sec. 79 / US Sec. 230) & pre-authenticated consent terms.`
+    ? `CORPORATE INTERMEDIARY NOTICE: Target operates multi-layered Safe Harbor frameworks (India IT Act Sec. 79 / US Sec. 230) & pre-authenticated consent terms.`
     : null;
 
-  // A) 🇮🇳 INDIA (Digital Personal Data Protection Act, 2023 & DPDP Rules, 2025):
+  // A) [IN] INDIA (Digital Personal Data Protection Act, 2023 & DPDP Rules, 2025):
   const indiaTelemetryFail = (trackerSignals.length > 0 || preConsentCookiesCount > 0) && !hasCmp;
   const indiaSafeguardsFail = missingHsts || missingCsp || unencrypted;
   const indiaPass = evidence
@@ -138,7 +138,7 @@ export function computeRadarTerminalLog(
   const indiaVerdict: JurisdictionVerdictItem = {
     jurisdiction: "INDIA",
     statute: "DPDP ACT, 2023 & DPDP RULES, 2025",
-    status: indiaPass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: indiaPass ? "[PASS]" : "[FAIL]",
     pass: indiaPass,
     triggerRules: [
       "Section 6(1) Pre-Consent Telemetry Drift (GTM, Meta Pixel, Sentry scripts without opt-in token)",
@@ -161,7 +161,7 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // B) 🇪🇺 EUROPEAN UNION (GDPR 2026 Coordinated Reforms):
+  // B) [EU] EUROPEAN UNION (GDPR 2026 Coordinated Reforms):
   const euTelemetryFail =
     preConsentCookiesCount > 0 || (trackerSignals.length > 0 && !hasCmp) || unencrypted;
   const euPass = evidence
@@ -171,7 +171,7 @@ export function computeRadarTerminalLog(
   const euVerdict: JurisdictionVerdictItem = {
     jurisdiction: "EU",
     statute: "GDPR REFORMS",
-    status: euPass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: euPass ? "[PASS]" : "[FAIL]",
     pass: euPass,
     triggerRules: [
       "Article 7 & Article 32 (Pre-consent telemetry harvesting & technical security safeguards)",
@@ -187,12 +187,12 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // C) 🇬🇧 UNITED KINGDOM (DUAA 2026):
+  // C) [UK] UNITED KINGDOM (DUAA 2026):
   const ukPass = euPass;
   const ukVerdict: JurisdictionVerdictItem = {
     jurisdiction: "UK",
     statute: "DUAA 2026",
-    status: ukPass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: ukPass ? "[PASS]" : "[FAIL]",
     pass: ukPass,
     triggerRules: ["DUAA 2026 Statutory Preference Architecture & Telemetry Consent"],
     findings: ukPass
@@ -206,7 +206,7 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // D) 🇦🇪 UAE (Decree-Law No. 45 of 2021):
+  // D) [AE] UAE (Decree-Law No. 45 of 2021):
   const uaeTelemetryFail = preConsentCookiesCount > 0 || (trackerSignals.length > 0 && !hasCmp);
   const uaePass = evidence
     ? !uaeTelemetryFail
@@ -215,7 +215,7 @@ export function computeRadarTerminalLog(
   const uaeVerdict: JurisdictionVerdictItem = {
     jurisdiction: "UAE",
     statute: "DECREE LAW 45",
-    status: uaePass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: uaePass ? "[PASS]" : "[FAIL]",
     pass: uaePass,
     triggerRules: [
       "Decree-Law No. 45 of 2021 (User selection token verification for tracking & session cookies)",
@@ -231,12 +231,12 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // E) 🇸🇦 SAUDI ARABIA (PDPL):
+  // E) [SA] SAUDI ARABIA (PDPL):
   const saudiPass = uaePass;
   const saudiVerdict: JurisdictionVerdictItem = {
     jurisdiction: "SAUDI ARABIA",
     statute: "PDPL",
-    status: saudiPass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: saudiPass ? "[PASS]" : "[FAIL]",
     pass: saudiPass,
     triggerRules: [
       "Saudi Arabia PDPL (Explicit consent mechanism for analytics and cross-border telemetries)",
@@ -252,7 +252,7 @@ export function computeRadarTerminalLog(
         ],
   };
 
-  // F) 🇸🇬 SINGAPORE (PDPA):
+  // F) [SG] SINGAPORE (PDPA):
   const usTrackers = trackerSignals.filter((t) =>
     /google|analytics|tag manager|meta|facebook|hotjar|clarity|segment|mixpanel|amplitude|sentry|criteo/i.test(
       t,
@@ -267,7 +267,7 @@ export function computeRadarTerminalLog(
   const sgVerdict: JurisdictionVerdictItem = {
     jurisdiction: "SINGAPORE",
     statute: "PDPA",
-    status: sgPass ? "[🟩 PASS]" : "[🟥 FAIL]",
+    status: sgPass ? "[PASS]" : "[FAIL]",
     pass: sgPass,
     triggerRules: [
       "Section 26 Transfer Limitation Obligation (Cross-border data packet streams & comparable protection tokens)",
@@ -298,7 +298,7 @@ export function computeRadarTerminalLog(
 
   const crossBorder: CrossBorderAnalysis = {
     routingLedgerStatus: crossBorderCompliant ? "COMPLIANT" : "NON-COMPLIANT",
-    routingLedgerDisplay: crossBorderCompliant ? "[COMPLIANT]" : "[🟥 NON-COMPLIANT]",
+    routingLedgerDisplay: crossBorderCompliant ? "[COMPLIANT]" : "[NON-COMPLIANT]",
     anomalyCaptureLog,
     isCompliant: crossBorderCompliant,
     packetDestinationNote: crossBorderCompliant
@@ -311,14 +311,14 @@ export function computeRadarTerminalLog(
 
   const intermediaryAdvisoryLogRaw = `----------------------------------------------------------------------------------------
 [ASJi ONE // ADVANCED STATUTORY INTERMEDIARY ADVISORY REGISTER]
-TARGET NODE: ${cleanTarget}
-VERDICT STATUS: 🟥 STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)
+TARGET DOMAIN: ${cleanTarget}
+VERDICT STATUS: STRUCTURAL DRIFT DETECTED (POTENTIAL EXEMPTION SHIELD EVALUATED)
 
 [THE LEGAL INTERCEPTION EXPLANATION]:
 ${legalInterceptionExplanation}
 
 ========================================================================================
-     ⚖️ SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D 🔒]
+     SPECIALIZED STATUTORY EXEMPTION & DEFENSE ANALYSIS [L O C K E D]
 ========================================================================================
 // STATUTORY EXEMPTION MITIGATION ARGUMENTS AND ADVISORY SHIELDS FOR ENTERPRISE ENTITIES ARE RESTRICTED.
 ----------------------------------------------------------------------------------------`;
@@ -338,19 +338,19 @@ ${legalInterceptionExplanation}
 TARGET DOMAIN: ${cleanTarget}
 
 [JURISDICTION VERDICT MATRIX]:
-- 🇮🇳 INDIA DPDP ACT, 2023 & DPDP RULES, 2025: ${indiaVerdict.status}
-- 🇪🇺 EU GDPR REFORMS:    ${euVerdict.status}
-- 🇬🇧 UK DUAA 2026:       ${ukVerdict.status}
-- 🇦🇪 UAE DECREE LAW 45:  ${uaeVerdict.status}
-- 🇸🇦 SAUDI ARABIA PDPL:  ${saudiVerdict.status}
-- 🇸🇬 SINGAPORE PDPA:     ${sgVerdict.status}
+- [IN] INDIA DPDP ACT, 2023 & DPDP RULES, 2025: ${indiaVerdict.status}
+- [EU] EU GDPR REFORMS:    ${euVerdict.status}
+- [UK] UK DUAA 2026:       ${ukVerdict.status}
+- [AE] UAE DECREE LAW 45:  ${uaeVerdict.status}
+- [SA] SAUDI ARABIA PDPL:  ${saudiVerdict.status}
+- [SG] SINGAPORE PDPA:     ${sgVerdict.status}
 
 [CROSS-BORDER DATA ANALYSIS]:
 - ROUTING LEDGER STATUS: ${crossBorder.routingLedgerDisplay}
 - ANOMALY CAPTURE LOG: ${anomalyCaptureLog}
 
 ========================================================================================
-     🛠️ PRODUCTION REMEDIATION CODE SUITE [L O C K E D 🔒]
+     PRODUCTION REMEDIATION CODE SUITE [L O C K E D]
 ========================================================================================
 // CODE REPOSITORY IS LOCKED UNDER STATUTORY REGTECH AUDIT FRAMEWORK.
 // DIRECT ACCESS AVAILABLE UPON ACTIVATION (₹2,499/mo).

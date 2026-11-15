@@ -1,31 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper Functions
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isValidId(docId) {
+      return docId is string && docId.size() >= 1 && docId.size() <= 128 && !docId.matches('.*[/\\\\].*');
+    }
+
     function isWhitelistedAdminEmail() {
-      return isSignedIn() 
-        && request.auth.token.email != null 
+      return isVerifiedEmail()
+        && request.auth.token.email != null
         && (
-          request.auth.token.email.lower() == '123.aarushsharma@gmail.com' || 
+          request.auth.token.email.lower() == '123.aarushsharma@gmail.com' ||
+          request.auth.token.email.lower() == 'hello@asjione.com' ||
           request.auth.token.email.lower() == 'asji.online@gmail.com'
         );
     }
 
     function isAdmin() {
-      return isSignedIn() 
-        && (
-          (request.auth.token.email_verified == true && exists(/databases/$(database)/documents/admins/$(request.auth.uid)))
-          || isWhitelistedAdminEmail()
-        );
+      return isWhitelistedAdminEmail()
+        || (isVerifiedEmail() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
 
     function is12DigitUTR(utr) {
@@ -37,74 +43,129 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 2. Admins collection - Read by owner or admin, writeable by whitelisted master admin
+    // 2. Admins collection - Strictly verified master admins only
     match /admins/{adminId} {
-      allow read: if request.auth != null && (request.auth.uid == adminId || isAdmin());
-      allow write: if isOwner(adminId) && isWhitelistedAdminEmail();
+      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
+      allow create, update: if isOwner(adminId)
+        && isWhitelistedAdminEmail()
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'role', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'admin';
+      allow delete: if false;
     }
 
-    // 3. Admin Activity Audit Logs - Write-only for admins, no client read/delete
+    // 3. Admin Activity Audit Logs - Append-only for verified admins
     match /auditLogs/{logId} {
-      allow create: if isAdmin() 
-        && request.resource.data.adminUid == request.auth.uid 
-        && request.resource.data.action is string 
-        && request.resource.data.timestamp is timestamp;
+      allow create: if isAdmin()
+        && isValidId(logId)
+        && request.resource.data.keys().hasOnly(['adminUid', 'action', 'timestamp', 'details'])
+        && request.resource.data.adminUid == request.auth.uid
+        && request.resource.data.action is string
+        && request.resource.data.action.size() >= 1
+        && request.resource.data.action.size() <= 120
+        && request.resource.data.timestamp == request.time;
       allow read, update, delete: if false;
     }
 
-    // 4. User Isolated Data & Vault
+    // 4. User Isolated Data & Vault (Strict schema & anti-privilege-escalation)
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isValidId(userId)
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'lastLogin', 'createdAt', 'role'])
+        && request.resource.data.uid == request.auth.uid
+        && (!('email' in request.resource.data) || request.resource.data.email == null || (request.resource.data.email is string && request.resource.data.email.size() <= 320))
+        && (!('displayName' in request.resource.data) || request.resource.data.displayName == null || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 150))
+        && (!('photoURL' in request.resource.data) || request.resource.data.photoURL == null || (request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 2048))
+        && (!('role' in request.resource.data) || request.resource.data.role == 'user' || isWhitelistedAdminEmail());
 
       match /audits/{auditId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId) && isValidId(auditId);
+        allow create, update: if isOwner(userId)
+          && isValidId(auditId)
+          && request.resource.data.keys().hasAll(['id', 'userId', 'domain', 'score'])
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.domain is string
+          && request.resource.data.domain.size() >= 1
+          && request.resource.data.domain.size() <= 255
+          && request.resource.data.score is number
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= 100;
       }
 
       match /notices/{noticeId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId) && isValidId(noticeId);
+        allow create, update: if isOwner(userId)
+          && isValidId(noticeId)
+          && request.resource.data.keys().hasAll(['id', 'userId', 'title', 'content'])
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 250
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 60000;
       }
 
       match /consents/{consentId} {
-        allow create, read: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
+        allow read, delete: if isOwner(userId) && isValidId(consentId);
+        allow create: if isOwner(userId)
+          && isValidId(consentId)
+          && request.resource.data.keys().hasOnly(['uid', 'email', 'consentType', 'policyVersion', 'timestamp', 'ipUserAgentRecorded'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.consentType is string
+          && request.resource.data.consentType.size() <= 80
+          && request.resource.data.policyVersion is string
+          && request.resource.data.policyVersion.size() <= 40;
+        allow update: if false;
       }
 
       match /chat_sessions/{sessionId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) && isValidId(sessionId);
 
         match /messages/{messageId} {
-          allow read, write: if isOwner(userId);
+          allow read, delete: if isOwner(userId) && isValidId(sessionId) && isValidId(messageId);
+          allow create, update: if isOwner(userId)
+            && isValidId(sessionId)
+            && isValidId(messageId)
+            && request.resource.data.content is string
+            && request.resource.data.content.size() <= 25000;
         }
       }
     }
 
     // 5. Rate Limit Tracker per User
     match /scan_rate_limits/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) && isValidId(userId);
     }
 
-    // 6. Global Verified World Sovereign Laws Database (Public Read)
+    // 6. Global Verified World Sovereign Laws Database (Public Read, Admin Write)
     match /laws/{lawId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isValidId(lawId);
     }
 
-    // 7. Payment Verification Transactions / UTR Requests
+    // 7. Payment Verification Transactions / UTR Requests (Zero-Bypass Anti-Fraud Guard)
     match /transactions/{txnId} {
-      // Users can create only their own payment request
-      allow create: if isSignedIn() 
+      allow create: if isSignedIn()
+        && isValidId(txnId)
+        && request.resource.data.keys().hasAll(['id', 'userId', 'referenceId', 'domain', 'tier', 'status'])
+        && request.resource.data.keys().hasOnly(['id', 'userId', 'referenceId', 'domain', 'tier', 'tierName', 'priceInr', 'orgName', 'email', 'taxId', 'status', 'createdAt', 'submittedAt'])
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending_verification'
+        && request.resource.data.tier in ['patch-code', 'dpdp-india', 'gdpr-global', 'full-bundle']
         && request.resource.data.domain is string
+        && request.resource.data.domain.size() >= 3
         && request.resource.data.domain.size() <= 253
-        && is12DigitUTR(request.resource.data.referenceId);
-      // Only admins can read/update/approve/reject transactions
+        && is12DigitUTR(request.resource.data.referenceId)
+        && (!('orgName' in request.resource.data) || (request.resource.data.orgName is string && request.resource.data.orgName.size() <= 200))
+        && (!('email' in request.resource.data) || (request.resource.data.email is string && request.resource.data.email.size() <= 320))
+        && (!('taxId' in request.resource.data) || request.resource.data.taxId == null || (request.resource.data.taxId is string && request.resource.data.taxId.size() <= 40));
       allow read, update, delete: if isAdmin();
     }
 
-    // 8. Active Domain Licenses (Public Read for Active License Lookup, Write for Admin)
+    // 8. Active Domain Licenses (Public Read for License Verification, Admin Write)
     match /licenses/{domain} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isValidId(domain);
     }
 
     // 9. Test connection ping
@@ -115,13 +176,154 @@ service cloud.firestore {
 
     // 10. Admin Bulk Lead Scans
     match /bulk_scans/{scanId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isAdmin() && isValidId(scanId);
     }
 
     // 11. Daily Statutory Law Updates Log
     match /daily_statutory_updates/{updateId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isValidId(updateId);
+    }
+
+    // 12. Live Telemetry Audit Scans (Public Certificate Get by ID + Validated Create; Admin List/Manage)
+    match /audit_scans/{scanId} {
+      allow get: if isValidId(scanId);
+      allow list: if isAdmin();
+      allow create: if isValidId(scanId)
+        && scanId.matches('^ASJI-2026-[A-Z0-9]{4,12}$')
+        && request.resource.data.keys().hasAll(['audit_ref_id', 'domain', 'compliance_score', 'findings', 'created_at'])
+        && request.resource.data.keys().hasOnly([
+          'audit_ref_id',
+          'domain',
+          'target',
+          'framework',
+          'politech_mode',
+          'compliance_score',
+          'verdict',
+          'findings',
+          'score_breakdown',
+          'created_at',
+          'timestamp'
+        ])
+        && request.resource.data.audit_ref_id == scanId
+        && request.resource.data.domain is string
+        && request.resource.data.domain.size() >= 3
+        && request.resource.data.domain.size() <= 253
+        && request.resource.data.compliance_score is number
+        && request.resource.data.compliance_score >= 0
+        && request.resource.data.compliance_score <= 100
+        && request.resource.data.findings is list
+        && request.resource.data.findings.size() <= 25
+        && request.resource.data.created_at is string
+        && request.resource.data.created_at.size() <= 64;
+      allow update, delete: if isAdmin();
+    }
+
+    // 13. Persistent Payment Unlocks (Normalized Domain Verified Lookup + Anti-Fraud UTR Gate)
+    match /payment_unlocks/{unlockId} {
+      allow get: if isAdmin()
+        || (
+          isValidId(unlockId)
+          && (
+            resource == null
+            || (resource.data.status == 'verified' && resource.data.domain == unlockId)
+          )
+        );
+      allow list: if isAdmin();
+      allow create: if (
+        isValidId(unlockId)
+        && unlockId.matches('^req_[0-9]+_[a-z0-9]+$')
+        && request.resource.data.keys().hasAll(['id', 'domain', 'referenceId', 'tier', 'status', 'created_at'])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'domain',
+          'referenceId',
+          'tier',
+          'tierName',
+          'priceInr',
+          'orgName',
+          'email',
+          'taxId',
+          'status',
+          'created_at',
+          'createdAt'
+        ])
+        && request.resource.data.id == unlockId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.tier in ['patch-code', 'dpdp-india', 'gdpr-global', 'full-bundle']
+        && request.resource.data.domain is string
+        && request.resource.data.domain.size() >= 3
+        && request.resource.data.domain.size() <= 253
+        && is12DigitUTR(request.resource.data.referenceId)
+        && (!('orgName' in request.resource.data) || (request.resource.data.orgName is string && request.resource.data.orgName.size() <= 200))
+        && (!('email' in request.resource.data) || (request.resource.data.email is string && request.resource.data.email.size() <= 320))
+        && (!('taxId' in request.resource.data) || request.resource.data.taxId == null || (request.resource.data.taxId is string && request.resource.data.taxId.size() <= 40))
+      ) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // 14. Live 15-Nation Statutory Rules Editor (Public Read for Live Scans/Atlas, Admin Write)
+    match /statutory_rules/{ruleId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(ruleId);
+    }
+
+    // 15. DPDP Grievance & Data Principal Tickets (Strict Validated Create, Admin Read/Resolve)
+    match /grievance_tickets/{ticketId} {
+      allow create: if isValidId(ticketId)
+        && ticketId.matches('^ASJI-GRV-2026-[0-9]{4}$')
+        && request.resource.data.keys().hasAll(['ticketId', 'requestType', 'fullName', 'email', 'summary', 'status', 'createdAt'])
+        && request.resource.data.keys().hasOnly([
+          'ticketId',
+          'requestType',
+          'fullName',
+          'email',
+          'domainRef',
+          'summary',
+          'status',
+          'createdAt',
+          'timestamp'
+        ])
+        && request.resource.data.ticketId == ticketId
+        && request.resource.data.status == 'OPEN'
+        && request.resource.data.requestType in ['Access', 'Correction', 'Erasure', 'Grievance']
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 2
+        && request.resource.data.fullName.size() <= 150
+        && request.resource.data.email is string
+        && request.resource.data.email.size() >= 5
+        && request.resource.data.email.size() <= 254
+        && (!('domainRef' in request.resource.data) || (request.resource.data.domainRef is string && request.resource.data.domainRef.size() <= 253))
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() >= 15
+        && request.resource.data.summary.size() <= 2000
+        && request.resource.data.createdAt is string
+        && request.resource.data.createdAt.size() <= 64;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 16. Cookie & Telemetry Consent Ledger (Validated Append-Only Create, Admin Read)
+    match /consent_records/{recordId} {
+      allow create: if isValidId(recordId)
+        && request.resource.data.keys().hasAll(['id', 'choice', 'policyVersion', 'createdAt'])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'choice',
+          'categories',
+          'policyVersion',
+          'domainContext',
+          'createdAt',
+          'timestamp'
+        ])
+        && request.resource.data.id == recordId
+        && request.resource.data.choice in ['Accepted', 'Rejected', 'Managed', 'ScanAuthorized']
+        && request.resource.data.policyVersion is string
+        && request.resource.data.policyVersion.size() <= 40
+        && request.resource.data.createdAt is string
+        && request.resource.data.createdAt.size() <= 64;
+      allow read, delete: if isAdmin();
+      allow update: if false;
     }
   }
 }

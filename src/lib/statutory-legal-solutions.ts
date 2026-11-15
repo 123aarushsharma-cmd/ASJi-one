@@ -6,6 +6,25 @@
 
 import type { AuditReport } from "./audit-types";
 import { STATUTORY_FRAMEWORKS } from "./audit-statutes";
+import type { StatutoryRuleDoc } from "./firestore-service";
+
+export const FRAMEWORK_TO_STATUTORY_RULE_ID: Record<string, string> = {
+  "ind-dpdp": "india-dpdp",
+  "eu-gdpr": "eu-gdpr",
+  "uk-duaa": "uk-gdpr",
+  "us-cpra": "us-cpra",
+  "uae-pdpl": "uae-pdpl",
+  "ksa-pdpl": "saudi-arabia-pdpl",
+  "sg-pdpa": "singapore-pdpa",
+  "brazil-lgpd": "brazil-lgpd",
+  "canada-pipeda": "canada-pipeda",
+  "aus-privacy": "australia-privacy-act",
+  "jp-appi": "japan-appi",
+  "kr-pipa": "korea-pipa",
+  "ch-fadp": "switzerland-fadp",
+  "za-popia": "south-africa-popia",
+  "ng-ndpa": "nigeria-ndpa",
+};
 
 export interface StatutoryNonComplianceGap {
   id: string;
@@ -35,11 +54,16 @@ export interface StatutoryLegalSolutionSuite {
 export function generateStatutoryLegalSolution(
   report: AuditReport | null,
   frameworkId = "ind-dpdp",
+  liveRule?: Partial<StatutoryRuleDoc> | null,
 ): StatutoryLegalSolutionSuite {
   const target = report?.target || "your-domain.com";
   const domain = target.replace(/^https?:\/\//i, "").split("/")[0] || "your-domain.com";
   const score = report?.score ?? 48;
   const fw = STATUTORY_FRAMEWORKS.find((f) => f.id === frameworkId) || STATUTORY_FRAMEWORKS[0];
+  const effectiveLawName = liveRule?.lawName?.trim() || fw.label;
+  const effectiveAuthority = liveRule?.governingBody?.trim() || fw.authority;
+  const effectiveCountry = liveRule?.country?.trim() || fw.country;
+  const effectiveMaxPenalty = liveRule?.maxPenalty?.trim();
 
   const evidenceText = (report?.evidence || []).join(" ").toLowerCase();
 
@@ -142,44 +166,53 @@ export function generateStatutoryLegalSolution(
     }
   }
 
+  const customTemplateSuffix = liveRule?.legalTemplateText?.trim()
+    ? `\n\n5. LIVE STATUTORY MANDATE CLAUSE (${effectiveLawName}${effectiveMaxPenalty ? ` · Ceiling: ${effectiveMaxPenalty}` : ""})\n${liveRule.legalTemplateText.trim()}`
+    : "";
+
   return {
     targetDomain: domain,
     frameworkId,
-    lawName: fw.label,
-    country: fw.country,
-    authority: fw.authority,
+    lawName: effectiveLawName,
+    country: effectiveCountry,
+    authority: effectiveAuthority,
     overallScore: score,
     totalGapsCount: nonComplianceGaps.length,
-    nonComplianceGaps,
-    samplePrivacyPolicy: `STATUTORY PRIVACY POLICY DRAFT (${fw.label})
+    nonComplianceGaps: effectiveMaxPenalty
+      ? nonComplianceGaps.map((g, i) =>
+          i === 0 ? { ...g, legalPenalty: `${g.legalPenalty} (${effectiveMaxPenalty})` } : g,
+        )
+      : nonComplianceGaps,
+    samplePrivacyPolicy: `STATUTORY PRIVACY POLICY DRAFT (${effectiveLawName})
 Effective Date: ${new Date().toISOString().split("T")[0]}
 Target Domain: ${domain}
 
 1. DATA CONTROLLER & IDENTITY
-${domain} operates in full compliance with ${fw.label} under supervisory authority of ${fw.authority}.
+${domain} operates in full compliance with ${effectiveLawName} under supervisory authority of ${effectiveAuthority}.
 
 2. COLLECTION & PURPOSE OF PROCESSING
 We collect only necessary personal data (Name, Email, Website URL) required to perform technical domain inspection. Data is processed strictly pursuant to user affirmative consent.
 
 3. DATA RETENTION & AUTO-DELETION
-Audit reports and technical inspection logs are automatically deleted after 12 months. Users may request immediate account and data deletion via the Private Sovereign Vault.
+Audit reports and technical inspection logs are handled on a transient zero-retention technical inspection basis unless explicitly archived under an authorized compliance account.
 
 4. DESIGNATED GRIEVANCE & DPO CONTACT
-For statutory rights exercise or grievance redressal, contact our designated officer at asji.online@gmail.com. Statutory response SLA: 30 days.
+For statutory rights exercise or grievance redressal, contact our designated officer at hello@asjione.com. Statutory response SLA: 7 business days.${customTemplateSuffix}
 
 Note: This document is an informational observation draft and does not constitute formal legal advice.`,
 
     sampleConsentGateCharter: `STATUTORY CONSENT GATE CHARTER (${domain})
-Under ${fw.label}:
+Under ${effectiveLawName}:
 - All non-essential analytics and tracking cookies are halted by default prior to affirmative opt-in.
 - Reject / Essential Only options function with equal ease as Accept.
 - No behavioral tracking or minor profiling is conducted without consent.`,
 
     sampleGrievanceCharter: `DESIGNATED GRIEVANCE OFFICER APPOINTMENT CHARTER
 Platform: ${domain}
-Governing Law: ${fw.label}
-Designated Email: asji.online@gmail.com
-SLA: 30-day statutory response window`,
+Governing Law: ${effectiveLawName}
+Supervisory Body: ${effectiveAuthority}
+Designated Email: hello@asjione.com
+SLA: 7 business days initial acknowledgment / 30-day statutory resolution window`,
 
     sampleRectificationRoadmap: `STATUTORY RECTIFICATION & GOVERNANCE ROADMAP
 Phase 1: Deploy Zero-Leak CMP Script & Halt Pre-Consent Cookies

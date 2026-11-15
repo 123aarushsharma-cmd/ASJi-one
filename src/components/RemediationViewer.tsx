@@ -6,7 +6,6 @@ import {
   FileText,
   ShieldCheck,
   Code,
-  Sparkles,
   BookOpen,
   Award,
   Send,
@@ -126,24 +125,24 @@ export function RemediationViewer({
   const hiddenLines = patchLines.slice(5).join("\n") || "# [Additional lines concealed...]";
 
   return (
-    <div className="surface-panel overflow-hidden p-4 sm:p-7 animate-in fade-in duration-300">
+    <div className="surface-panel rounded-md border border-[#262932] bg-[#15171C] overflow-hidden p-5 sm:p-7 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#262932] pb-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/40">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[#0D0E11] text-[#C9A227] border border-[#C9A227]/40">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-display text-xl font-bold text-gold-gradient">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-xl font-bold text-[#FAF8F5]">
                 Automated Remediation Code Patches
               </h3>
               {isUnlocked ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  <Sparkles className="h-3 w-3" /> Activated
+                <span className="inline-flex items-center gap-1 rounded bg-[#10B981]/10 border border-[#10B981]/40 px-2.5 py-0.5 text-[10px] font-mono font-semibold text-[#10B981] uppercase tracking-wider">
+                  <Check className="h-3 w-3" /> Activated
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1 rounded bg-[#F59E0B]/10 border border-[#F59E0B]/40 px-2.5 py-0.5 text-[10px] font-mono font-semibold text-[#F59E0B] uppercase tracking-wider">
                   <Lock className="h-3 w-3" /> Locked Preview (₹2,499/mo)
                 </span>
               )}
@@ -160,7 +159,7 @@ export function RemediationViewer({
             <button
               type="button"
               onClick={handleDownloadAllPatchesBundle}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 cursor-pointer shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[#C9A227]/40 bg-[#0D0E11] px-3.5 py-2 text-xs font-mono font-semibold text-[#C9A227] transition-colors hover:bg-[#C9A227]/10 cursor-pointer"
             >
               <FolderArchive className="h-4 w-4" /> Download Complete Patch Bundle
             </button>
@@ -168,7 +167,7 @@ export function RemediationViewer({
             <button
               type="button"
               onClick={() => onOpenUnlockModal?.("patch-code")}
-              className="btn-gold rounded-xl px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-lg flex items-center gap-1.5"
+              className="btn-gold rounded-md px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5"
             >
               <Lock className="h-3.5 w-3.5" /> Unlock Code Patches (₹2,499/mo)
             </button>
@@ -176,33 +175,37 @@ export function RemediationViewer({
         </div>
       </div>
 
-      {/* Navigation Tabs (Touch-friendly & responsive) */}
-      <div className="mt-5 flex overflow-x-auto no-scrollbar border-b border-border/60 gap-1 sm:gap-2">
+      {/* Navigation Tabs */}
+      <div className="mt-5 flex overflow-x-auto no-scrollbar border-b border-[#262932] gap-1 sm:gap-2">
         <button
           onClick={() => setActiveTab("patches")}
           className={`flex items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === "patches"
-              ? "border-primary text-primary"
+              ? "border-[#C9A227] text-[#C9A227]"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Code className="h-4 w-4" /> Automated Code Patches {!isUnlocked && "🔒"}
+          <Code className="h-4 w-4" />
+          <span>Automated Code Patches</span>
+          {!isUnlocked && <Lock className="h-3 w-3 opacity-70" />}
         </button>
         <button
           onClick={() => setActiveTab("handover")}
           className={`flex items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === "handover"
-              ? "border-primary text-primary"
+              ? "border-[#C9A227] text-[#C9A227]"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          <Send className="h-4 w-4" /> Client Handover Pack {!isUnlocked && "🔒"}
+          <Send className="h-4 w-4" />
+          <span>Client Handover Pack</span>
+          {!isUnlocked && <Lock className="h-3 w-3 opacity-70" />}
         </button>
         <button
           onClick={() => setActiveTab("letterhead")}
           className={`flex items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === "letterhead"
-              ? "border-primary text-primary"
+              ? "border-[#C9A227] text-[#C9A227]"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -212,7 +215,7 @@ export function RemediationViewer({
           onClick={() => setActiveTab("statutory")}
           className={`flex items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === "statutory"
-              ? "border-primary text-primary"
+              ? "border-[#C9A227] text-[#C9A227]"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -222,7 +225,7 @@ export function RemediationViewer({
           onClick={() => setActiveTab("dpa")}
           className={`flex items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
             activeTab === "dpa"
-              ? "border-primary text-primary"
+              ? "border-[#C9A227] text-[#C9A227]"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -234,22 +237,22 @@ export function RemediationViewer({
       {activeTab === "patches" && (
         <div className="mt-6 space-y-6">
           {/* Sub-selector for each patch */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {patches.map((patch, idx) => (
               <button
                 key={patch.id}
                 onClick={() => setSelectedPatchIndex(idx)}
-                className={`flex flex-col items-start p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`flex flex-col items-start p-2.5 rounded-md border text-left transition-colors cursor-pointer ${
                   selectedPatchIndex === idx
-                    ? "border-primary bg-primary/10 text-primary shadow-sm"
-                    : "border-border/60 bg-secondary/20 text-muted-foreground hover:border-border hover:text-foreground"
+                    ? "border-[#C9A227] bg-[#0D0E11] text-[#C9A227]"
+                    : "border-[#262932] bg-[#0D0E11] text-muted-foreground hover:border-[#C9A227]/40 hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider opacity-80">
                     {patch.category}
                   </span>
-                  {!isUnlocked && <Lock className="h-3 w-3 text-amber-400" />}
+                  {!isUnlocked && <Lock className="h-3 w-3 text-[#F59E0B]" />}
                 </div>
                 <span className="mt-1 text-xs font-medium truncate w-full">{patch.filename}</span>
               </button>
@@ -258,14 +261,14 @@ export function RemediationViewer({
 
           {/* Active Patch Display Card */}
           {currentPatch && (
-            <div className="rounded-2xl border border-primary/20 bg-background/80 p-4 sm:p-6 space-y-4 relative">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+            <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262932] pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-semibold text-foreground">
+                    <h4 className="font-display text-base font-bold text-[#FAF8F5]">
                       {currentPatch.title}
                     </h4>
-                    <span className="rounded bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-mono text-primary font-bold uppercase">
+                    <span className="rounded bg-[#15171C] border border-[#262932] px-2 py-0.5 text-[10px] font-mono text-[#C9A227] font-bold uppercase">
                       {currentPatch.language}
                     </span>
                   </div>
@@ -276,82 +279,94 @@ export function RemediationViewer({
                   <button
                     type="button"
                     onClick={() => handleCopyPatch(currentPatch)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#262932] bg-[#15171C] px-3 py-1.5 text-xs font-mono font-medium text-foreground transition-colors hover:border-[#C9A227] cursor-pointer"
                   >
                     {copiedPatchId === currentPatch.id ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <Check className="h-3.5 w-3.5 text-[#10B981]" />
+                    ) : isUnlocked ? (
+                      <Copy className="h-3.5 w-3.5 text-[#C9A227]" />
                     ) : (
-                      <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Lock className="h-3.5 w-3.5 text-[#C9A227]" />
                     )}
                     <span>
                       {copiedPatchId === currentPatch.id
                         ? "Copied"
                         : isUnlocked
                           ? "Copy Code"
-                          : "🔒 Unlock Code"}
+                          : "Unlock Code"}
                     </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleDownloadSinglePatch(currentPatch)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[#262932] bg-[#15171C] px-3 py-1.5 text-xs font-mono font-medium text-foreground transition-colors hover:border-[#C9A227] cursor-pointer"
                   >
-                    <Download className="h-3.5 w-3.5 text-primary" />
-                    <span>{isUnlocked ? "Download" : "🔒 Download"}</span>
+                    <Download className="h-3.5 w-3.5 text-[#C9A227]" />
+                    <span>{isUnlocked ? "Download" : "Unlock File"}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Code Snippet Box with Preview & Blur Lock Overlay */}
-              <div className="relative rounded-xl bg-black/95 border border-border p-4 overflow-hidden">
-                {/* Visible Preview Lines */}
-                <pre className="font-mono text-xs text-emerald-400 leading-relaxed">
-                  <code>{previewLines}</code>
+              {/* Code Snippet Box */}
+              <div className="relative rounded-md bg-[#0D0E11] border border-[#262932] p-4 overflow-hidden min-w-0">
+                <pre className="font-mono text-xs text-[#10B981] leading-relaxed overflow-x-auto max-w-full">
+                  <code>
+                    {isUnlocked
+                      ? currentPatch.code
+                      : (() => {
+                          const lines = (currentPatch?.code || "").split("\n");
+                          const firstTwo = lines.slice(0, 2).join("\n");
+                          const rest = lines.slice(2).join("\n");
+                          return (
+                            <>
+                              <div>{firstTwo}</div>
+                              {rest && (
+                                <div
+                                  style={{
+                                    filter: "blur(6px)",
+                                    userSelect: "none",
+                                    pointerEvents: "none",
+                                  }}
+                                  aria-hidden="true"
+                                >
+                                  {rest}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                  </code>
                 </pre>
 
-                {/* Blurred Concealed Lines */}
-                <div
-                  className={`relative mt-1 filter ${
-                    isUnlocked ? "blur-0" : "blur-[6px] opacity-25 select-none pointer-events-none"
-                  }`}
-                >
-                  <pre className="font-mono text-xs text-emerald-400/80 leading-relaxed">
-                    <code>{hiddenLines}</code>
-                  </pre>
-                </div>
-
-                {/* Glassmorphic Lock Overlay for Non-Unlocked State */}
                 {!isUnlocked && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/50 bg-primary/20 text-primary mb-3 shadow-xl">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0D0E11]/92 p-6 text-center border border-[#C9A227]/50 backdrop-blur-md z-10">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[#C9A227] bg-[#15171C] text-[#C9A227] mb-3 shadow-2xl">
                       <Lock className="h-6 w-6" />
                     </div>
-                    <h4 className="font-display text-lg sm:text-xl font-bold text-gold-gradient">
-                      Remediation Code Patches Locked (₹2,499/mo)
+                    <h4 className="font-display text-lg sm:text-xl font-bold text-[#FAF8F5]">
+                      Full Remediation Code &amp; Statutory Legal Pack Locked
                     </h4>
-                    <p className="mt-1.5 max-w-lg text-xs font-mono text-muted-foreground leading-relaxed">
-                      Full executable NGINX, Apache, Cloudflare Worker Edge Shields, and CMP scripts
-                      for <strong className="text-white">{report.target || "your domain"}</strong>{" "}
-                      are locked until subscription payment.
+                    <p className="mt-1.5 mx-auto max-w-md text-xs font-sans text-[#A1A1AA] leading-relaxed">
+                      Unlock complete server security patches, zero-cookie consent blocker scripts,
+                      unredacted statutory notices, and your official Compliance Certificate.
                     </p>
                     <button
                       type="button"
-                      onClick={() => onOpenUnlockModal?.("patch-code")}
-                      className="btn-gold mt-4 rounded-xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-xl flex items-center gap-2 hover:scale-[1.02] transition-transform"
+                      onClick={() => onOpenUnlockModal?.("full-bundle")}
+                      className="btn-gold mt-4 rounded-md px-6 py-3 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-2xl"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      <span>Unlock Code Patches (₹2,499/mo)</span>
+                      <span>Initiate Transaction &amp; Unlock Suite</span>
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 )}
               </div>
 
-              <div className="rounded-xl border border-border/40 bg-secondary/20 p-3.5 text-xs text-muted-foreground">
+              <div className="rounded-md border border-[#262932] bg-[#15171C] p-3.5 text-xs text-muted-foreground">
                 <strong className="text-foreground">Deployment Instructions:</strong> Deploy this
                 file directly into your server configuration or application directory. Once
-                reloaded, test via the ASJi One terminal to verify transport compliance.
+                reloaded, rescan via the ASJi One audit console to verify transport compliance.
               </div>
             </div>
           )}
@@ -361,73 +376,63 @@ export function RemediationViewer({
       {/* TAB 2: Client Handover Pack */}
       {activeTab === "handover" && (
         <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-background/80 p-5 space-y-4 relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+          <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262932] pb-3">
               <div>
-                <h4 className="text-base font-semibold text-foreground">
+                <h4 className="font-display text-base font-bold text-[#FAF8F5]">
                   Official Client Handover Deliverable Document
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  A turnkey, professional compliance audit package formatted to send directly to
-                  clients after receiving payment.
+                  A turnkey compliance audit package formatted to deliver directly to clients.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleCopyHandover}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 cursor-pointer shadow-sm"
-                >
-                  {copiedHandover ? (
-                    <Check className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  <span>
-                    {copiedHandover
-                      ? "Copied Handover Pack"
-                      : isUnlocked
-                        ? "Copy Handover Pack"
-                        : "🔒 Unlock Handover Pack"}
-                  </span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleCopyHandover}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#C9A227]/40 bg-[#15171C] px-3.5 py-2 text-xs font-mono font-semibold text-[#C9A227] transition-colors hover:bg-[#C9A227]/10 cursor-pointer shrink-0"
+              >
+                {copiedHandover ? (
+                  <Check className="h-4 w-4 text-[#10B981]" />
+                ) : isUnlocked ? (
+                  <Copy className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                <span>
+                  {copiedHandover
+                    ? "Copied Handover Pack"
+                    : isUnlocked
+                      ? "Copy Handover Pack"
+                      : "Unlock Handover Pack"}
+                </span>
+              </button>
             </div>
 
-            <div className="relative rounded-xl bg-black/95 border border-border p-4 max-h-96 overflow-hidden">
-              <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {generateClientHandoverDocument(report).slice(0, 300)}
+            <div className="rounded-md bg-[#15171C] border border-[#262932] p-4 max-h-96 overflow-y-auto overflow-x-auto">
+              <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words leading-relaxed">
+                {isUnlocked
+                  ? generateClientHandoverDocument(report)
+                  : generateClientHandoverDocument(report).slice(0, 320)}
               </pre>
 
-              <div
-                className={`relative mt-2 filter ${
-                  isUnlocked ? "blur-0" : "blur-[6px] opacity-25 select-none pointer-events-none"
-                }`}
-              >
-                <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {generateClientHandoverDocument(report).slice(300)}
-                </pre>
-              </div>
-
               {!isUnlocked && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/50 bg-primary/20 text-primary mb-3 shadow-xl">
-                    <Lock className="h-6 w-6" />
+                <div className="mt-4 rounded-md border border-[#262932] bg-[#0D0E11] p-6 text-center">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-[#C9A227]/40 bg-[#15171C] text-[#C9A227] mb-3">
+                    <Lock className="h-5 w-5" />
                   </div>
-                  <h4 className="font-display text-lg sm:text-xl font-bold text-gold-gradient">
+                  <h4 className="font-display text-lg font-bold text-[#FAF8F5]">
                     Client Handover Deliverable Pack Locked
                   </h4>
-                  <p className="mt-1.5 max-w-lg text-xs font-mono text-muted-foreground leading-relaxed">
+                  <p className="mt-1.5 mx-auto max-w-lg text-xs font-sans text-muted-foreground leading-relaxed">
                     Full white-label client handover documents and turnkey delivery packages are
                     unlocked upon purchasing the Code Patches (₹2,499/mo) or Enterprise Bundle.
                   </p>
                   <button
                     type="button"
                     onClick={() => onOpenUnlockModal?.("patch-code")}
-                    className="btn-gold mt-4 rounded-xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider text-black cursor-pointer shadow-xl flex items-center gap-2 hover:scale-[1.02] transition-transform"
+                    className="btn-gold mt-4 mx-auto rounded-md px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2"
                   >
-                    <Sparkles className="h-4 w-4" />
                     <span>Unlock Handover Pack (₹2,499/mo)</span>
                   </button>
                 </div>
@@ -444,50 +449,50 @@ export function RemediationViewer({
         </div>
       )}
 
-      {/* TAB 4: Statutory Laws */}
+      {/* TAB 4: Statutory Laws (Warm Alabaster Legal Surface) */}
       {activeTab === "statutory" && (
         <div className="mt-6 space-y-4">
-          <div className="rounded-xl border border-border/60 bg-secondary/20 p-5">
-            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary" /> GDPR Statutory Compliance Mapping
+          <div className="legal-paper rounded-md border border-[#E5DEC9] bg-[#FAF8F5] text-[#18181B] p-6">
+            <h4 className="font-display text-base font-bold text-[#18181B] flex items-center gap-2 border-b border-[#E5DEC9] pb-3">
+              <ShieldCheck className="h-4 w-4 text-[#9A7812]" /> GDPR Statutory Compliance Mapping
             </h4>
-            <div className="mt-3 space-y-2 text-xs text-muted-foreground leading-relaxed">
+            <div className="mt-3 space-y-2.5 text-xs sm:text-sm text-[#52525B] leading-relaxed">
               <p>
-                <strong className="text-foreground">Article 32 (Security of Processing):</strong>{" "}
+                <strong className="text-[#18181B]">Article 32 (Security of Processing):</strong>{" "}
                 Enforce TLS 1.3, strict HSTS preload, and encrypted data at rest. Pseudonymize log
                 structures.
               </p>
               <p>
-                <strong className="text-foreground">Article 7 (Conditions for Consent):</strong>{" "}
+                <strong className="text-[#18181B]">Article 7 (Conditions for Consent):</strong>{" "}
                 Pre-consent tracking cookies must remain disabled prior to active affirmative
                 opt-in.
               </p>
               <p>
-                <strong className="text-foreground">Article 44 (Cross-Border Transfers):</strong>{" "}
+                <strong className="text-[#18181B]">Article 44 (Cross-Border Transfers):</strong>{" "}
                 Ensure international analytics beacons use certified Data Privacy Framework (DPF)
                 participants or Standard Contractual Clauses.
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-secondary/20 p-5">
-            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary" /> Digital Personal Data Protection
+          <div className="legal-paper rounded-md border border-[#E5DEC9] bg-[#FAF8F5] text-[#18181B] p-6">
+            <h4 className="font-display text-base font-bold text-[#18181B] flex items-center gap-2 border-b border-[#E5DEC9] pb-3">
+              <ShieldCheck className="h-4 w-4 text-[#9A7812]" /> Digital Personal Data Protection
               (DPDP) Act 2023 Mapping
             </h4>
-            <div className="mt-3 space-y-2 text-xs text-muted-foreground leading-relaxed">
+            <div className="mt-3 space-y-2.5 text-xs sm:text-sm text-[#52525B] leading-relaxed">
               <p>
-                <strong className="text-foreground">Section 6 (Consent Architecture):</strong>{" "}
+                <strong className="text-[#18181B]">Section 6 (Consent Architecture):</strong>{" "}
                 Provide accessible, itemized, and clear consent notices in English and scheduled
                 languages.
               </p>
               <p>
-                <strong className="text-foreground">Section 8 (Data Fiduciary Obligations):</strong>{" "}
+                <strong className="text-[#18181B]">Section 8 (Data Fiduciary Obligations):</strong>{" "}
                 Implement technical measures to erase personal data once specified purpose is
                 fulfilled.
               </p>
               <p>
-                <strong className="text-foreground">Section 8(6) (Breach Reporting):</strong>{" "}
+                <strong className="text-[#18181B]">Section 8(6) (Breach Reporting):</strong>{" "}
                 Establish automated intrusion monitoring to notify the Data Protection Board of
                 India without delay.
               </p>
@@ -496,16 +501,16 @@ export function RemediationViewer({
         </div>
       )}
 
-      {/* TAB 5: DPA Contract Clauses */}
+      {/* TAB 5: DPA Contract Clauses (Warm Alabaster Legal Surface) */}
       {activeTab === "dpa" && (
         <div className="mt-6 space-y-4">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-            <div className="flex items-center justify-between">
+          <div className="legal-paper rounded-md border border-[#E5DEC9] bg-[#FAF8F5] text-[#18181B] p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5DEC9] pb-4">
               <div>
-                <h4 className="text-sm font-semibold text-foreground">
+                <h4 className="font-display text-base font-bold text-[#18181B]">
                   Standard Data Processing Addendum (DPA) Clause
                 </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-[#52525B] mt-0.5">
                   Statutory model clause for enterprise vendor agreements
                 </p>
               </div>
@@ -524,12 +529,13 @@ export function RemediationViewer({
                   );
                   toast.success("DPA Clause copied to clipboard");
                 }}
-                className="inline-flex items-center gap-1.5 rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary font-medium hover:bg-primary/20 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded border border-[#18181B] bg-[#18181B] px-3.5 py-1.5 font-mono text-xs text-[#FAF8F5] font-medium hover:bg-[#27272A] cursor-pointer shrink-0"
               >
-                <Copy className="h-3.5 w-3.5" /> {isUnlocked ? "Copy Clause" : "🔒 Unlock Clause"}
+                {isUnlocked ? <Copy className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                <span>{isUnlocked ? "Copy Clause" : "Unlock Clause"}</span>
               </button>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground bg-black/60 p-3.5 rounded-lg border border-border leading-relaxed font-sans">
+            <p className="mt-4 text-sm text-[#18181B] bg-white p-4 rounded border border-[#E5DEC9] leading-relaxed font-display italic">
               &quot;Processor shall process personal data solely on documented instructions from
               Controller/Data Fiduciary, implementing technical and organizational measures under
               GDPR Art 32 and DPDP Act Sec 8, ensuring zero pre-consent third-party data

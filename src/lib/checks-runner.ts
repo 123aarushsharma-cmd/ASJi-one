@@ -1,5 +1,5 @@
 import type { SiteEvidence } from "./audit.server";
-import type { CheckResult, ChecksSummary, CheckCategory } from "./checks-types";
+import type { CheckResult, ChecksSummary, CheckCategory, CheckSeverity } from "./checks-types";
 import type {
   SslCertDetails,
   DnsSecurityDetails,
@@ -13,12 +13,16 @@ export function evaluateAllChecks(
   hygiene?: HygieneProbeResult,
 ): ChecksSummary {
   const results: CheckResult[] = [];
-  const isPageBlocked = Boolean(evidence.isBlockedOrIncomplete);
-  const testedAt = new Date().toISOString();
+  const isPageBlocked = Boolean(evidence.isBlockedOrIncomplete || evidence.isWafBlocked);
+  const now = new Date();
+  const testedAtUtc = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const istDate = new Date(now.getTime() + 5.5 * 3600 * 1000);
+  const testedAtIst = istDate.toISOString().replace("T", " ").slice(0, 19) + " IST";
+  const testedAt = `${testedAtUtc} (${testedAtIst})`;
 
   // Helper to add check result
   const addCheck = (c: CheckResult) => {
-    results.push({ ...c, testedAt });
+    results.push({ ...c, testedAt, testedAtUtc, testedAtIst });
   };
 
   const html = (evidence.metaDescription || "").toLowerCase();
@@ -698,6 +702,13 @@ export function evaluateAllChecks(
   ) => {
     const matched =
       trackers.some((t) => regex.test(t)) || hosts.some((h) => regex.test(h)) || regex.test(html);
+    const matchingScript = evidence.detectedScripts?.find(
+      (s) => regex.test(s.name) || regex.test(s.scriptUrlOrSnippet),
+    );
+    const scriptProof = matchingScript
+      ? ` [Exact source: ${matchingScript.scriptUrlOrSnippet}]`
+      : "";
+
     addCheck({
       id,
       category: "Trackers & Third Parties",
@@ -712,13 +723,13 @@ export function evaluateAllChecks(
             : "PASS",
       severity: matched ? "HIGH" : "INFO",
       evidence: isPageBlocked
-        ? "Not checked – site firewall blocked the page"
+        ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction. Showing verified DNS/TLS results."
         : matched
-          ? `${vendor} script/telemetry detected on page (${company}, ${country})`
+          ? `${vendor} script/telemetry detected on page (${company}, ${country})${scriptProof}`
           : `No ${vendor} telemetry detected pre-consent`,
       lawRefs: matched ? ["EU GDPR Art. 6", "India DPDP Sec. 6"] : undefined,
       reasonIfNotChecked: isPageBlocked
-        ? "Not checked – site firewall blocked the page"
+        ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction. Verify via guided manual audit checklist."
         : undefined,
     });
   };
@@ -939,15 +950,23 @@ export function evaluateAllChecks(
     title: "Affirmative Consent Banner Presence",
     description:
       "Statutory requirement: Consent banner must exist to collect explicit prior consent.",
-    status: isPageBlocked ? "NOT_CHECKED" : hasBanner ? "PASS" : "FAIL",
+    status: isPageBlocked
+      ? "NOT_CHECKED"
+      : hasBanner || Boolean(evidence.detectedCmp)
+        ? "PASS"
+        : "FAIL",
     severity: "CRITICAL",
     evidence: isPageBlocked
-      ? "Not checked – site firewall blocked the page"
-      : hasBanner
-        ? "Consent banner detected in page DOM"
-        : "No consent banner or CMP detected in page DOM",
+      ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction."
+      : evidence.detectedCmp
+        ? `Verified CMP active: ${evidence.detectedCmp.name} (${evidence.detectedCmp.evidence})`
+        : hasBanner
+          ? "Consent banner detected in page DOM"
+          : "No consent banner or CMP detected in page DOM",
     lawRefs: ["EU GDPR Art. 7", "India DPDP Sec. 6(1)", "US CCPA § 1798.135"],
-    reasonIfNotChecked: isPageBlocked ? "Not checked – site firewall blocked the page" : undefined,
+    reasonIfNotChecked: isPageBlocked
+      ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction. Verify via guided manual audit checklist."
+      : undefined,
   });
 
   // 69. cmp-02: Equal-Prominence Reject Button
@@ -1199,15 +1218,19 @@ export function evaluateAllChecks(
       status: isPageBlocked ? "NOT_CHECKED" : !hasPolicy ? "FAIL" : matched ? "PASS" : "WARNING",
       severity,
       evidence: isPageBlocked
-        ? "Not checked – site firewall blocked the page"
-        : !hasPolicy
-          ? "Privacy notice link absent from homepage"
-          : matched
-            ? `${title} disclosure verified in page HTML`
-            : `${title} statutory disclosure pending audit`,
+        ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction."
+        : id === "notice-01" && evidence.policyDisclosures?.privacyPolicyUrl
+          ? `Verified Privacy Policy link: ${evidence.policyDisclosures.privacyPolicyUrl}`
+          : id === "notice-05" && evidence.policyDisclosures?.grievanceContact
+            ? `Verified Grievance Officer / DPO contact: ${evidence.policyDisclosures.grievanceContact}`
+            : !hasPolicy
+              ? "Privacy notice link absent from homepage"
+              : matched
+                ? `${title} disclosure verified in page HTML`
+                : `${title} statutory disclosure pending audit`,
       lawRefs,
       reasonIfNotChecked: isPageBlocked
-        ? "Not checked – site firewall blocked the page"
+        ? "Target perimeter WAF (Cloudflare/Imperva/Bot Shield) blocked automated HTML extraction. Verify via guided manual audit checklist."
         : undefined,
     });
   };

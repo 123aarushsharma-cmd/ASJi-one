@@ -21,7 +21,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
-const MASTER_ADMIN_EMAILS = ["123.aarushsharma@gmail.com", "asji.online@gmail.com"];
+const MASTER_ADMIN_EMAILS = ["123.aarushsharma@gmail.com", "hello@asjione.com"];
 
 export const isMasterAdminEmail = (email?: string | null): boolean => {
   if (!email) return false;

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { motion } from "motion/react";
 import {
   Search,
   Globe,
@@ -11,343 +12,522 @@ import {
   CheckCircle2,
   ExternalLink,
   BookOpen,
-  Filter,
-  Sparkles,
   Database,
-  ArrowUpDown,
+  ChevronRight,
+  ArrowRight,
+  ArrowUpRight,
 } from "lucide-react";
 import { fetchWorldLaws, seedWorldLawsToFirestore } from "@/lib/firestore-service";
 import { WORLD_LAWS_DATA, type WorldLaw } from "@/lib/world-laws-data";
+import { SpecularCard } from "./SpecularCard";
 
-export function WorldLawsAtlas() {
+const WORLD_LAW_TO_FRAMEWORK_ID: Record<string, string> = {
+  "india-dpdp": "ind-dpdp",
+  "eu-gdpr": "eu-gdpr",
+  "uk-gdpr": "uk-duaa",
+  "us-cpra": "us-cpra",
+  "uae-pdpl": "uae-pdpl",
+  "saudi-arabia-pdpl": "ksa-pdpl",
+  "singapore-pdpa": "sg-pdpa",
+  "brazil-lgpd": "brazil-lgpd",
+  "canada-pipeda": "canada-pipeda",
+  "australia-privacy-act": "aus-privacy",
+  "japan-appi": "jp-appi",
+  "korea-pipa": "kr-pipa",
+  "switzerland-fadp": "ch-fadp",
+  "south-africa-popia": "za-popia",
+  "nigeria-ndpa": "ng-ndpa",
+};
+
+const FRAMEWORK_ID_TO_WORLD_LAW: Record<string, string> = Object.fromEntries(
+  Object.entries(WORLD_LAW_TO_FRAMEWORK_ID).map(([lawId, fwId]) => [fwId, lawId]),
+);
+
+const CANONICAL_LAW_BY_ID = new Map(WORLD_LAWS_DATA.map((law) => [law.id, law]));
+
+function normalizeWorldLaws(items: WorldLaw[]): WorldLaw[] {
+  const byId = new Map<string, WorldLaw>();
+
+  for (const item of items) {
+    const canonical = CANONICAL_LAW_BY_ID.get(item.id);
+    if (canonical) {
+      byId.set(item.id, {
+        ...canonical,
+        ...item,
+        flag: canonical.flag,
+        maxPenalty: item.maxPenalty || canonical.maxPenalty,
+      });
+    } else {
+      byId.set(item.id, item);
+    }
+  }
+
+  for (const canonical of WORLD_LAWS_DATA) {
+    if (!byId.has(canonical.id)) {
+      byId.set(canonical.id, canonical);
+    }
+  }
+
+  const ordered: WorldLaw[] = [];
+  for (const canonical of WORLD_LAWS_DATA) {
+    const entry = byId.get(canonical.id);
+    if (entry) {
+      ordered.push(entry);
+      byId.delete(canonical.id);
+    }
+  }
+  for (const extra of byId.values()) {
+    ordered.push(extra);
+  }
+  return ordered;
+}
+
+interface WorldLawsAtlasProps {
+  selectedFramework?: string;
+  onSelectFramework?: (frameworkId: string) => void;
+}
+
+export function WorldLawsAtlas({ selectedFramework, onSelectFramework }: WorldLawsAtlasProps) {
   const [laws, setLaws] = useState<WorldLaw[]>(WORLD_LAWS_DATA);
-  const [selectedLawId, setSelectedLawId] = useState<string>("india-dpdp");
+  const [selectedLawId, setSelectedLawId] = useState<string>(
+    (selectedFramework && FRAMEWORK_ID_TO_WORLD_LAW[selectedFramework]) || "india-dpdp",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string>("ALL");
-  const [filterDpo, setFilterDpo] = useState<boolean | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       const data = await fetchWorldLaws();
       if (data && data.length > 0) {
-        setLaws(data);
+        setLaws(normalizeWorldLaws(data));
       }
     }
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (selectedFramework && FRAMEWORK_ID_TO_WORLD_LAW[selectedFramework]) {
+      setSelectedLawId(FRAMEWORK_ID_TO_WORLD_LAW[selectedFramework]);
+    }
+  }, [selectedFramework]);
+
   const handleManualSync = async () => {
     setIsSyncing(true);
     await seedWorldLawsToFirestore();
     const updated = await fetchWorldLaws();
-    setLaws(updated);
+    setLaws(normalizeWorldLaws(updated));
     setIsSyncing(false);
+  };
+
+  const handleSelectJurisdiction = (law: WorldLaw) => {
+    setSelectedLawId(law.id);
+    const frameworkId = WORLD_LAW_TO_FRAMEWORK_ID[law.id];
+    if (frameworkId && onSelectFramework) {
+      onSelectFramework(frameworkId);
+    }
   };
 
   const filteredLaws = useMemo(() => {
     return laws.filter((l) => {
       const matchesRegion = selectedRegion === "ALL" || l.region === selectedRegion;
-      const matchesDpo = filterDpo === null || l.dpoMandatory === filterDpo;
       const q = searchQuery.toLowerCase().trim();
-      if (!q) return matchesRegion && matchesDpo;
+      if (!q) return matchesRegion;
       const matchesSearch =
         l.country.toLowerCase().includes(q) ||
         l.lawName.toLowerCase().includes(q) ||
         l.acronym.toLowerCase().includes(q) ||
         l.governingBody.toLowerCase().includes(q) ||
+        l.maxPenalty.toLowerCase().includes(q) ||
         l.corePrinciples.some((p) => p.toLowerCase().includes(q)) ||
         l.keyArticles.some(
           (a) => a.topic.toLowerCase().includes(q) || a.mandate.toLowerCase().includes(q),
         );
-      return matchesRegion && matchesDpo && matchesSearch;
+      return matchesRegion && matchesSearch;
     });
-  }, [laws, selectedRegion, filterDpo, searchQuery]);
+  }, [laws, selectedRegion, searchQuery]);
 
   const activeLaw = laws.find((l) => l.id === selectedLawId) || filteredLaws[0] || laws[0];
+  const activeFrameworkId = WORLD_LAW_TO_FRAMEWORK_ID[activeLaw.id];
+  const isSyncedWithScanner = selectedFramework === activeFrameworkId;
 
   const regions = [
-    { label: "All World Laws (15)", value: "ALL" },
-    { label: "Asia-Pacific", value: "Asia-Pacific" },
-    { label: "Middle East", value: "Middle East" },
+    { label: "All 15", value: "ALL" },
+    { label: "India & Asia-Pacific", value: "Asia-Pacific" },
     { label: "Europe & UK", value: "Europe & UK" },
     { label: "Americas", value: "Americas" },
+    { label: "Middle East", value: "Middle East" },
     { label: "Africa", value: "Africa" },
   ];
 
+  const formatBreachTimeline = (hours: WorldLaw["breachNotificationHours"]) =>
+    typeof hours === "number" ? `${hours} Hours Maximum` : hours;
+
   return (
     <section
-      id="world-laws-database"
-      className="relative my-16 rounded-3xl border p-6 shadow-2xl transition-all sm:p-8 md:p-10"
-      style={{
-        backgroundColor: "#0a0a0a",
-        borderColor: "rgba(212, 175, 55, 0.3)",
-        backdropFilter: "blur(30px)",
-        boxShadow: "0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(212, 175, 55, 0.08)",
-      }}
+      id="laws-atlas"
+      className="surface-panel my-16 scroll-mt-8 rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8 md:p-10"
     >
-      {/* Background Glow */}
-      <div className="pointer-events-none absolute -top-20 -left-20 h-96 w-96 rounded-full bg-[#D4AF37]/5 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-[#D4AF37]/5 blur-3xl" />
-
       {/* Header */}
-      <div className="relative z-10 flex flex-col items-start justify-between gap-4 border-b border-[#D4AF37]/20 pb-6 lg:flex-row lg:items-center">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#262932] pb-6 lg:flex-row lg:items-center">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-4 py-1.5 font-mono text-xs font-semibold tracking-wider text-[#D4AF37] uppercase">
+          <span className="inline-flex items-center gap-2 font-mono text-xs font-semibold tracking-wider text-[#C9A227] uppercase">
             <Globe className="h-4 w-4" />
-            <span>International Statutory Standard // Database Verified</span>
-          </div>
-          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-            World Sovereign Data Protection Laws Atlas &amp; Repository
+            <span>Master Jurisdiction Directory · 15 Sovereign Statutes</span>
+          </span>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-[#FAF8F5] sm:text-3xl lg:text-4xl">
+            Sovereign Privacy &amp; Regulatory Atlas
           </h2>
-          <p className="mt-1.5 font-mono text-xs text-[#E5E5E5]/75 max-w-3xl">
-            Complete international statutory database across 15 sovereign legal systems. Fully
-            integrated into Firebase Firestore for verified, zero-hallucination compliance queries.
+          <p className="mt-1.5 font-sans text-xs sm:text-sm text-muted-foreground max-w-3xl">
+            Select any sovereign mandate below to immediately set the active audit standard in the
+            domain scanner and inspect its regulator, statutory articles, breach timeline, and
+            maximum fine ceiling.
           </p>
         </div>
 
-        {/* Database Status Controller */}
-        <div className="flex items-center gap-3">
+        {/* Repository Sync Button */}
+        <div className="flex items-center gap-3 shrink-0">
           <button
+            type="button"
             onClick={handleManualSync}
             disabled={isSyncing}
-            className="flex items-center gap-2 rounded-xl border border-[#D4AF37]/40 bg-black/80 px-4 py-2 font-mono text-xs font-bold text-[#D4AF37] hover:border-[#D4AF37] hover:bg-[#D4AF37]/15 transition-all shadow-md disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md border border-[#C9A227]/40 bg-[#0D0E11] px-4 py-2 font-mono text-xs font-bold text-[#C9A227] hover:border-[#C9A227] hover:bg-[#C9A227]/10 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Database className="h-3.5 w-3.5" />
-            <span>{isSyncing ? "Syncing Firestore..." : "Sync Firebase DB"}</span>
+            <span>{isSyncing ? "Syncing Repository..." : "Sync Statutory Repository"}</span>
           </button>
         </div>
       </div>
 
-      {/* Filters & Search Control Bar */}
-      <div className="relative z-10 mt-6 flex flex-col gap-4 border-b border-white/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Region Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          {regions.map((reg) => (
-            <button
-              key={reg.value}
-              onClick={() => setSelectedRegion(reg.value)}
-              className={`rounded-xl px-3.5 py-1.5 font-mono text-xs font-semibold transition-all ${
-                selectedRegion === reg.value
-                  ? "bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/25"
-                  : "border border-white/10 bg-white/5 text-[#E5E5E5]/70 hover:border-[#D4AF37]/40 hover:text-white"
-              }`}
-            >
-              {reg.label}
-            </button>
-          ))}
+      {/* Region Filter Tabs & Search */}
+      <div className="mt-6 flex flex-col gap-4 border-b border-[#262932] pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="tablist"
+          aria-label="Filter jurisdictions by region"
+        >
+          {regions.map((reg) => {
+            const isTabActive = selectedRegion === reg.value;
+            return (
+              <button
+                key={reg.value}
+                type="button"
+                role="tab"
+                aria-selected={isTabActive}
+                onClick={() => setSelectedRegion(reg.value)}
+                className={`relative rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
+                  isTabActive
+                    ? "text-[#0D0E11]"
+                    : "border border-[#262932] bg-[#0D0E11] text-muted-foreground hover:border-[#C9A227]/50 hover:text-foreground"
+                }`}
+              >
+                {isTabActive && (
+                  <motion.span
+                    layoutId="atlasRegionTab"
+                    transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 rounded-md bg-[#C9A227] border border-[#C9A227]"
+                  />
+                )}
+                <span className="relative z-10">{reg.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search & DPO Toggle */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[260px]">
-            <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#D4AF37]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search laws, articles, regulators, fines..."
-              className="w-full rounded-xl border border-[#D4AF37]/30 bg-black/70 py-2 pr-3 pl-9 font-mono text-xs text-white placeholder-[#E5E5E5]/40 outline-none transition-colors focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/50"
-            />
-          </div>
+        <div className="relative w-full lg:w-72">
+          <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#C9A227]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search country, law, regulator, penalty..."
+            className="w-full rounded-md border border-[#262932] bg-[#0D0E11] py-2 pr-14 pl-9 font-mono text-xs text-foreground placeholder:text-muted-foreground/60 outline-none transition-colors focus:border-[#C9A227]"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 font-mono text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Grid: Law Cards + Deep Statutory Inspector */}
-      <div className="relative z-10 mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: List of All World Laws */}
-        <div className="flex flex-col gap-3 lg:col-span-4">
-          <div className="flex items-center justify-between font-mono text-[11px] text-[#D4AF37]">
-            <span>SOVEREIGN JURISDICTIONS ({filteredLaws.length})</span>
-            <span className="text-[#E5E5E5]/50">Global Coverage</span>
-          </div>
+      {/* Unified Master Jurisdiction Card Grid */}
+      <div className="mt-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px]">
+          <span className="text-[#C9A227] uppercase tracking-wider">
+            Select Jurisdiction ({filteredLaws.length} of {laws.length})
+          </span>
+          <span className="text-muted-foreground">
+            Click a card to activate in Domain Scanner &amp; view brief below
+          </span>
+        </div>
 
-          <div className="flex flex-col gap-2.5 max-h-[660px] overflow-y-auto pr-1">
+        {filteredLaws.length === 0 ? (
+          <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-8 text-center">
+            <Scale className="mx-auto h-7 w-7 text-[#C9A227]" />
+            <p className="mt-2 font-mono text-xs text-muted-foreground">
+              No sovereign jurisdictions matched &ldquo;{searchQuery}&rdquo;
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedRegion("ALL");
+              }}
+              className="mt-3 rounded-md border border-[#C9A227]/40 bg-[#15171C] px-3 py-1.5 font-mono text-xs text-[#C9A227] cursor-pointer"
+            >
+              Reset Filter
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredLaws.map((law) => {
               const isSelected = law.id === activeLaw.id;
               return (
-                <button
+                <SpecularCard
+                  as="button"
                   key={law.id}
-                  onClick={() => setSelectedLawId(law.id)}
-                  className={`group relative flex flex-col items-start rounded-2xl border p-4 text-left transition-all ${
+                  type="button"
+                  onClick={() => handleSelectJurisdiction(law)}
+                  className={`group flex flex-col justify-between rounded-md border p-5 text-left cursor-pointer ${
                     isSelected
-                      ? "border-[#D4AF37] bg-black shadow-xl shadow-[#D4AF37]/15 ring-1 ring-[#D4AF37]/50"
-                      : "border-white/10 bg-black/40 hover:border-[#D4AF37]/40 hover:bg-black/80"
+                      ? "border-[#C9A227] bg-[#0D0E11] ring-1 ring-[#C9A227]"
+                      : "border-[#262932] bg-[#0D0E11] hover:border-[#C9A227]/60"
                   }`}
                 >
-                  <div className="flex w-full items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{law.flag}</span>
-                      <span className="font-display font-bold text-sm text-white group-hover:text-[#D4AF37] transition-colors">
-                        {law.country}
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center justify-center rounded border border-[#262932] bg-[#15171C] px-2 py-0.5 font-mono text-xs font-bold text-[#C9A227] tracking-wider">
+                        {law.flag}
+                      </span>
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                        {law.region}
                       </span>
                     </div>
-                    <span className="rounded-md border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-2 py-0.5 font-mono text-[10px] font-bold text-[#D4AF37]">
-                      {law.acronym}
-                    </span>
+
+                    <h3
+                      className={`mt-3 font-display text-base font-bold transition-colors ${
+                        isSelected ? "text-[#C9A227]" : "text-[#FAF8F5] group-hover:text-[#C9A227]"
+                      }`}
+                    >
+                      {law.country} — {law.acronym}
+                    </h3>
+
+                    <p className="mt-1 font-sans text-xs leading-relaxed text-zinc-400">
+                      {law.lawName}
+                    </p>
+
+                    <p className="mt-2.5 font-sans text-xs text-zinc-400">
+                      Regulator: <strong className="text-zinc-200">{law.governingBody}</strong>
+                    </p>
                   </div>
 
-                  <p className="mt-2 line-clamp-1 font-mono text-[11px] text-[#E5E5E5]/70">
-                    {law.lawName}
-                  </p>
+                  <div className="mt-4 space-y-2.5 border-t border-[#262932] pt-3 font-mono">
+                    <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                      <span className="text-zinc-500 uppercase text-[10px] shrink-0">
+                        Breach SLA
+                      </span>
+                      <span className="text-zinc-200 font-semibold text-right">
+                        {formatBreachTimeline(law.breachNotificationHours)}
+                      </span>
+                    </div>
 
-                  <div className="mt-3 flex w-full items-center justify-between border-t border-white/5 pt-2 font-mono text-[9.5px] text-[#E5E5E5]/50">
-                    <span className="text-[#D4AF37]/80 truncate max-w-[150px]">
-                      {law.acronym} Statutory Provisions
-                    </span>
-                    <span className="text-red-400 font-semibold">{law.region}</span>
+                    <div className="text-[11px] leading-snug">
+                      <span className="block text-[10px] uppercase text-zinc-500">
+                        Maximum Fine Ceiling
+                      </span>
+                      <span className="mt-0.5 block font-semibold text-[#EF4444]">
+                        {law.maxPenalty}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-[#262932]/80 pt-2.5 text-[11px]">
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-[#C9A227]">
+                        {isSelected ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
+                            <span className="text-[#10B981]">Active in Scanner</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Select &amp; Inspect</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </>
+                        )}
+                      </span>
+                      <span className="text-[10px] text-zinc-500">{law.status}</span>
+                    </div>
                   </div>
-
-                  {isSelected && (
-                    <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_#D4AF37]" />
-                  )}
-                </button>
+                </SpecularCard>
               );
             })}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Right Column: Deep Statutory Intelligence Dossier */}
-        <div className="relative flex flex-col rounded-2xl border border-[#D4AF37]/30 bg-black/90 p-6 shadow-inner backdrop-blur-2xl lg:col-span-8">
-          {/* Header of Active Law */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#D4AF37]/20 pb-5">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{activeLaw.flag}</span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display text-xl font-bold text-white">
-                    {activeLaw.country} — {activeLaw.acronym}
-                  </h3>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-400">
-                    {activeLaw.status}
+      {/* Selected Jurisdiction Deep Statutory Intelligence Brief (Displayed Below Grid) */}
+      <div className="legal-paper mt-8 flex flex-col rounded-md border border-[#E5DEC9] bg-[#FAF8F5] p-6 sm:p-7 text-[#18181B]">
+        {/* Header */}
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E5DEC9] pb-5">
+          <div className="flex items-start gap-3">
+            <span className="font-mono text-sm font-bold px-2.5 py-1.5 rounded border border-[#E5DEC9] bg-[#F3EFE6] text-[#18181B] shrink-0">
+              {activeLaw.flag}
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-[#18181B]">
+                  {activeLaw.country} — {activeLaw.acronym}
+                </h3>
+                <span className="rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#065F46]">
+                  {activeLaw.status}
+                </span>
+                {isSyncedWithScanner && (
+                  <span className="rounded border border-[#C9A227] bg-[#F3EFE6] px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#9A7812] uppercase">
+                    Active Scanner Law
                   </span>
-                </div>
-                <p className="font-mono text-xs text-[#D4AF37] mt-0.5">{activeLaw.lawName}</p>
+                )}
               </div>
+              <p className="font-mono text-xs text-[#9A7812] font-semibold mt-1">
+                {activeLaw.lawName}
+              </p>
             </div>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-2.5">
             <a
               href={activeLaw.officialPortal}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-[#E5E5E5] hover:border-[#D4AF37] hover:text-[#D4AF37] transition-colors"
+              className="flex items-center gap-1.5 rounded-md border border-[#E5DEC9] bg-white px-3 py-1.5 font-mono text-xs text-[#18181B] hover:border-[#C9A227] transition-colors"
             >
               <span>Official Regulator</span>
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-3 w-3 text-[#9A7812]" />
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                handleSelectJurisdiction(activeLaw);
+                document.getElementById("scan")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="btn-gold inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer"
+            >
+              <span>Scan Under {activeLaw.acronym}</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
           </div>
+        </div>
 
-          {/* Key Statutory Matrix Metrics */}
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-white/10 bg-[#121212] p-3.5 font-mono">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#E5E5E5]/50 uppercase">
-                <AlertTriangle className="h-3 w-3 text-red-400" />
-                <span>Statutory Penalty Ceiling</span>
-              </div>
-              <div className="mt-1 font-bold text-xs text-red-400 leading-tight">
-                {activeLaw.maxPenalty}
-              </div>
+        {/* Exact Regulator, Maximum Fine Ceiling, Breach Timeline & DPO Metrics */}
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-mono">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#52525B] uppercase">
+              <Building2 className="h-3 w-3 text-[#9A7812]" />
+              <span>Enforcing Regulator</span>
             </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#121212] p-3.5 font-mono">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#E5E5E5]/50 uppercase">
-                <Clock className="h-3 w-3 text-[#D4AF37]" />
-                <span>Breach Reporting Rule</span>
-              </div>
-              <div className="mt-1 font-bold text-xs text-white">
-                {typeof activeLaw.breachNotificationHours === "number"
-                  ? `${activeLaw.breachNotificationHours} Hours Maximum`
-                  : activeLaw.breachNotificationHours}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#121212] p-3.5 font-mono">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#E5E5E5]/50 uppercase">
-                <UserCheck className="h-3 w-3 text-emerald-400" />
-                <span>DPO / Encarregado</span>
-              </div>
-              <div className="mt-1 font-bold text-xs text-white">
-                {activeLaw.dpoMandatory ? "Mandatory Officer" : "Contextual / Voluntary"}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#121212] p-3.5 font-mono">
-              <div className="flex items-center gap-1.5 text-[10px] text-[#E5E5E5]/50 uppercase">
-                <Shield className="h-3 w-3 text-blue-400" />
-                <span>Child Data Age</span>
-              </div>
-              <div className="mt-1 font-bold text-xs text-white">
-                {typeof activeLaw.childrenAgeThreshold === "number"
-                  ? `Under ${activeLaw.childrenAgeThreshold} Years`
-                  : activeLaw.childrenAgeThreshold}
-              </div>
+            <div className="mt-1 font-bold text-xs text-[#18181B] leading-snug">
+              {activeLaw.governingBody}
             </div>
           </div>
 
-          {/* Statutory Summary */}
-          <div className="mt-4 rounded-xl border border-[#D4AF37]/20 bg-[#141414] p-4 font-mono text-xs text-[#E5E5E5]/80 leading-relaxed">
-            <span className="font-bold text-[#D4AF37] block mb-1 uppercase text-[10px]">
-              Statutory Architecture &amp; Extraterritorial Application:
-            </span>
-            {activeLaw.statutorySummary}
+          <div className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-mono">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#52525B] uppercase">
+              <AlertTriangle className="h-3 w-3 text-[#EF4444]" />
+              <span>Maximum Fine Ceiling</span>
+            </div>
+            <div className="mt-1 font-bold text-xs text-[#B91C1C] leading-snug">
+              {activeLaw.maxPenalty}
+            </div>
           </div>
 
-          {/* Core Principles & Key Articles */}
-          <div className="mt-5 space-y-4 max-h-[380px] overflow-y-auto pr-1">
-            <div>
-              <h4 className="font-mono text-xs font-bold text-[#D4AF37] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" />
-                Key Statutory Articles &amp; Legal Mandates:
-              </h4>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {activeLaw.keyArticles.map((article, aIdx) => (
-                  <div
-                    key={aIdx}
-                    className="rounded-xl border border-white/10 bg-[#0d0d0d] p-3 font-mono text-xs"
-                  >
-                    <div className="flex items-center justify-between text-[#D4AF37] font-bold pb-1 border-b border-white/5">
-                      <span>{article.number}</span>
-                      <span className="text-[10px] uppercase text-[#E5E5E5]/60">
-                        {article.topic}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-[#E5E5E5]/75 leading-relaxed">
-                      {article.mandate}
-                    </p>
+          <div className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-mono">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#52525B] uppercase">
+              <Clock className="h-3 w-3 text-[#9A7812]" />
+              <span>Breach Timeline</span>
+            </div>
+            <div className="mt-1 font-bold text-xs text-[#18181B] tabular-nums">
+              {formatBreachTimeline(activeLaw.breachNotificationHours)}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-mono">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#52525B] uppercase">
+              <UserCheck className="h-3 w-3 text-[#10B981]" />
+              <span>DPO &amp; Minor Age</span>
+            </div>
+            <div className="mt-1 font-bold text-xs text-[#18181B] leading-snug">
+              {activeLaw.dpoMandatory ? "Mandatory Officer" : "Contextual Officer"} ·{" "}
+              {typeof activeLaw.childrenAgeThreshold === "number"
+                ? `Under ${activeLaw.childrenAgeThreshold} Yrs`
+                : activeLaw.childrenAgeThreshold}
+            </div>
+          </div>
+        </div>
+
+        {/* Statutory Summary */}
+        <div className="mt-4 rounded-md border border-[#E5DEC9] bg-[#F3EFE6] p-4 font-sans text-xs sm:text-sm text-[#18181B] leading-relaxed">
+          <span className="font-mono font-bold text-[#9A7812] block mb-1 uppercase text-[10px]">
+            Statutory Architecture &amp; Extraterritorial Application:
+          </span>
+          {activeLaw.statutorySummary}
+        </div>
+
+        {/* Key Articles & Core Principles */}
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <h4 className="font-mono text-xs font-bold text-[#9A7812] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
+              Key Statutory Articles &amp; Legal Mandates
+            </h4>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {activeLaw.keyArticles.map((article, aIdx) => (
+                <div
+                  key={aIdx}
+                  className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-sans text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2 font-mono text-[#9A7812] font-bold pb-1.5 border-b border-[#E5DEC9]">
+                    <span>{article.number}</span>
+                    <span className="text-[10px] uppercase text-[#52525B] text-right">
+                      {article.topic}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-mono text-xs font-bold text-[#D4AF37] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                Core Sovereign Principles:
-              </h4>
-              <ul className="space-y-1.5 font-mono text-xs text-[#E5E5E5]/80">
-                {activeLaw.corePrinciples.map((principle, pIdx) => (
-                  <li
-                    key={pIdx}
-                    className="flex items-start gap-2 bg-[#121212] p-2.5 rounded-lg border border-white/5"
-                  >
-                    <span className="text-[#D4AF37] font-bold">›</span>
-                    <span>{principle}</span>
-                  </li>
-                ))}
-              </ul>
+                  <p className="mt-2 text-xs text-[#52525B] leading-relaxed">{article.mandate}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Footer Info */}
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-4 font-mono text-[10px] text-[#E5E5E5]/50">
-            <span className="flex items-center gap-1.5">
-              <Building2 className="h-3 w-3 text-[#D4AF37]" />
-              Statutory Framework: {activeLaw.lawName} ({activeLaw.acronym})
-            </span>
-            <span className="text-[#D4AF37]">
-              Synced to Compliance Database // Statutory Verification Standard
-            </span>
+          <div className="lg:col-span-5">
+            <h4 className="font-mono text-xs font-bold text-[#9A7812] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#10B981]" />
+              Core Sovereign Principles
+            </h4>
+            <ul className="space-y-2 font-sans text-xs text-[#18181B]">
+              {activeLaw.corePrinciples.map((principle, pIdx) => (
+                <li
+                  key={pIdx}
+                  className="flex items-start gap-2 bg-white p-3 rounded border border-[#E5DEC9]"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 text-[#9A7812] shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{principle}</span>
+                </li>
+              ))}
+            </ul>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-[#E5DEC9] pt-4 font-mono text-[10px] text-[#52525B]">
+          <span className="flex items-center gap-1.5">
+            <Shield className="h-3 w-3 text-[#9A7812]" />
+            Statutory Framework: {activeLaw.lawName} ({activeLaw.acronym})
+          </span>
+          <span className="text-[#9A7812] font-semibold">
+            Synced to Compliance Repository · Verified Statutory Standard
+          </span>
         </div>
       </div>
     </section>

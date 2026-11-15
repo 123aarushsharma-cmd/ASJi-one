@@ -4,11 +4,13 @@ import { detectInput } from "./audit-input";
 import {
   formatEvidence,
   gatherSiteEvidence,
-  buildEvidenceFromBrowserPayload,
+  SECURITY_HEADER_NAMES,
   type SiteEvidence,
 } from "./audit.server";
-import { findRecentAuditByTarget, saveAuditToDb } from "./db.server";
-import type { BrowserAssistedPayload } from "./browser-bookmarklet";
+import { WAF_BADGE_TEXT } from "./audit-types";
+import { saveAuditToDb } from "./db.server";
+import fs from "node:fs";
+import path from "node:path";
 import type {
   GroundingSource,
   GroundingInfo,
@@ -32,114 +34,227 @@ export type {
 };
 export { computeRadarTerminalLog };
 
-export function computeDeterministicComplianceScore(evidence: SiteEvidence): {
+interface LiveStatutoryRuleOverride {
+  id: string;
+  country?: string;
+  lawName?: string;
+  acronym?: string;
+  maxPenalty?: string;
+  governingBody?: string;
+  legalTemplateText?: string;
+}
+
+function getFirestoreRestEndpoint(): { projectId: string; databaseId: string } | null {
+  try {
+    const cfgPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (!fs.existsSync(cfgPath)) return null;
+    const raw = JSON.parse(fs.readFileSync(cfgPath, "utf-8")) as {
+      projectId?: string;
+      firestoreDatabaseId?: string;
+    };
+    if (!raw.projectId) return null;
+    return {
+      projectId: raw.projectId,
+      databaseId: raw.firestoreDatabaseId || "(default)",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLiveStatutoryRules(): Promise<LiveStatutoryRuleOverride[]> {
+  const cfg = getFirestoreRestEndpoint();
+  if (!cfg) return [];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1800);
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(cfg.projectId)}/databases/${encodeURIComponent(cfg.databaseId)}/documents/statutory_rules?pageSize=50`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      documents?: Array<{
+        name?: string;
+        fields?: Record<string, { stringValue?: string }>;
+      }>;
+    };
+    const docs = data.documents || [];
+    return docs.map((d) => {
+      const f = d.fields || {};
+      const id = f.id?.stringValue || (d.name ? d.name.split("/").pop() || "" : "");
+      return {
+        id,
+        country: f.country?.stringValue,
+        lawName: f.lawName?.stringValue,
+        acronym: f.acronym?.stringValue,
+        maxPenalty: f.maxPenalty?.stringValue,
+        governingBody: f.governingBody?.stringValue,
+        legalTemplateText: f.legalTemplateText?.stringValue,
+      };
+    });
+  } catch {
+    clearTimeout(timer);
+    return [];
+  }
+}
+
+function generateAuditRefId(host: string, score: number, timestampIso: string): string {
+  const digest = crypto
+    .createHash("sha256")
+    .update(`${host}|${score}|${timestampIso}`)
+    .digest("hex")
+    .slice(0, 6)
+    .toUpperCase();
+  return `ASJI-2026-${digest}`;
+}
+
+export function computeDeterministicComplianceScore(
+  evidence: SiteEvidence,
+  options: { politechMode?: boolean } = {},
+): {
   score: number;
   missingHeaders: string[];
+  breakdown: NonNullable<AuditReport["scoreBreakdown"]>;
 } {
   const missingHeaders = Object.entries(evidence.securityHeaders)
     .filter(([, v]) => v === null)
     .map(([k]) => k);
 
   let rawScore = 100;
+  const breakdown: NonNullable<AuditReport["scoreBreakdown"]> = [];
 
-  // 1. SSL/TLS Transport Integrity (Max Penalty -30)
-  if (!evidence.httpsUpgrade || evidence.statusCode === 0) {
-    rawScore -= 30;
+  // 1. HTTPS / TLS Enforcement (-20)
+  const tlsEnforced = Boolean(
+    evidence.httpsUpgrade &&
+    evidence.statusCode !== 0 &&
+    (!evidence.sslDetails || evidence.sslDetails.valid),
+  );
+  if (!tlsEnforced) {
+    rawScore -= 20;
   }
+  breakdown.push({
+    rule: "HTTPS / TLS Transport Enforcement",
+    delta: tlsEnforced ? 0 : -20,
+    passed: tlsEnforced,
+    detail: tlsEnforced
+      ? "HTTPS transport and valid TLS handshake verified."
+      : "HTTPS / TLS enforcement failed or certificate invalid (-20).",
+  });
 
-  // 2. Security Headers Baseline (Max Penalty -40)
-  const hsts = evidence.securityHeaders["strict-transport-security"];
-  if (!hsts) {
+  // 2. Privacy Policy or Data Notice link in live DOM (-15)
+  const hasPrivacyLink = Boolean(
+    evidence.policyDisclosures?.privacyPolicyUrl ||
+    evidence.policyLinks.some((p) => /privacy|data.?notice|data.?protection/i.test(p)),
+  );
+  if (!hasPrivacyLink) {
+    rawScore -= 15;
+  }
+  breakdown.push({
+    rule: "Live DOM Privacy Policy / Data Notice Link",
+    delta: hasPrivacyLink ? 0 : -15,
+    passed: hasPrivacyLink,
+    detail: hasPrivacyLink
+      ? `Observed notice link: ${evidence.policyDisclosures?.privacyPolicyUrl || evidence.policyLinks[0]}`
+      : "No Privacy Policy or Data Notice link detected in live DOM (-15).",
+  });
+
+  // 3. Unconsented 3P Ad/Tracking Pixels firing without CMP (-15)
+  const hasTrackingPixels =
+    evidence.trackerSignals.length > 0 ||
+    (evidence.detectedScripts && evidence.detectedScripts.length > 0) ||
+    evidence.setCookiePreConsent.length > 0;
+  const hasCmp = Boolean(evidence.detectedCmp || evidence.consentSignals.length > 0);
+  const unconsentedTracking = hasTrackingPixels && !hasCmp;
+  if (unconsentedTracking) {
+    rawScore -= 15;
+  }
+  breakdown.push({
+    rule: "Pre-Consent Third-Party Trackers & CMP Gate",
+    delta: unconsentedTracking ? -15 : 0,
+    passed: !unconsentedTracking,
+    detail: unconsentedTracking
+      ? `${evidence.trackerSignals.length} tracking SDK(s) and ${evidence.setCookiePreConsent.length} pre-consent cookie(s) active without detected CMP (-15).`
+      : hasCmp
+        ? `Consent Management Platform verified (${evidence.detectedCmp?.name || evidence.consentSignals[0]}).`
+        : "No unconsented third-party tracking scripts or pre-consent cookies observed.",
+  });
+
+  // 4. Core HTTP Security Headers (-5 per missing header, up to -20)
+  const requiredSecurityHeaders: Array<{ key: string; label: string }> = [
+    { key: "content-security-policy", label: "Content-Security-Policy" },
+    { key: "strict-transport-security", label: "Strict-Transport-Security" },
+    { key: "referrer-policy", label: "Referrer-Policy" },
+    { key: "x-frame-options", label: "X-Frame-Options" },
+  ];
+  const missingCoreHeaders = requiredSecurityHeaders
+    .filter((h) => !evidence.securityHeaders[h.key])
+    .map((h) => h.label);
+  const headerPenalty = Math.min(20, missingCoreHeaders.length * 5);
+  rawScore -= headerPenalty;
+  breakdown.push({
+    rule: "HTTP Security Headers (CSP, HSTS, Referrer-Policy, X-Frame-Options)",
+    delta: -headerPenalty,
+    passed: headerPenalty === 0,
+    detail:
+      missingCoreHeaders.length === 0
+        ? "All 4 mandatory HTTP security response headers present."
+        : `Missing ${missingCoreHeaders.length} header(s): ${missingCoreHeaders.join(", ")} (-5 each, total -${headerPenalty}).`,
+  });
+
+  // 5. DNS Email Authentication (DMARC or SPF TXT records: -10 total / -5 per missing)
+  const hasSpf = Boolean(evidence.dnsDetails?.spfRecord);
+  const hasDmarc = Boolean(evidence.dnsDetails?.dmarcRecord);
+  const dnsAuthPenalty = !hasSpf && !hasDmarc ? 10 : !hasSpf || !hasDmarc ? 5 : 0;
+  rawScore -= dnsAuthPenalty;
+  breakdown.push({
+    rule: "DNS Email Authentication (SPF & DMARC TXT Records)",
+    delta: -dnsAuthPenalty,
+    passed: dnsAuthPenalty === 0,
+    detail:
+      dnsAuthPenalty === 0
+        ? "Both SPF and DMARC TXT records verified via DoH."
+        : `Missing ${[!hasSpf && "SPF", !hasDmarc && "DMARC"].filter(Boolean).join(" and ")} TXT record(s) (-${dnsAuthPenalty}).`,
+  });
+
+  // 6. Grievance Officer / DPO / Contact disclosure (-10)
+  const hasGrievanceContact = Boolean(evidence.policyDisclosures?.grievanceContact);
+  if (!hasGrievanceContact) {
     rawScore -= 10;
-  } else {
-    const lowerHsts = hsts.toLowerCase();
-    if (!lowerHsts.includes("max-age")) rawScore -= 2;
-    if (!lowerHsts.includes("includesubdomains")) rawScore -= 2;
-    if (!lowerHsts.includes("preload")) rawScore -= 1;
+  }
+  breakdown.push({
+    rule: "Grievance Officer / DPO Contact Disclosure",
+    delta: hasGrievanceContact ? 0 : -10,
+    passed: hasGrievanceContact,
+    detail: hasGrievanceContact
+      ? `Disclosed contact / link: ${evidence.policyDisclosures?.grievanceContact}`
+      : "No Grievance Officer or Data Protection Officer contact disclosure found (-10).",
+  });
+
+  // 7. PoliTech Mode Check (-10 if active and political disclosure missing or pre-checked consent box)
+  if (options.politechMode) {
+    const missingPoliticalDisclosure = !evidence.politechSignals?.hasPoliticalAdDisclosure;
+    const hasPreCheckedBox = Boolean(evidence.politechSignals?.hasPreCheckedConsent);
+    const politechViolation = missingPoliticalDisclosure || hasPreCheckedBox;
+    if (politechViolation) {
+      rawScore -= 10;
+    }
+    breakdown.push({
+      rule: "PoliTech Ad/Publisher Disclosure & Affirmative Consent Gate",
+      delta: politechViolation ? -10 : 0,
+      passed: !politechViolation,
+      detail: politechViolation
+        ? [
+            missingPoliticalDisclosure && "Missing Political Ad / Publisher disclosure",
+            hasPreCheckedBox && "Pre-checked outreach consent checkbox detected",
+          ]
+            .filter(Boolean)
+            .join("; ") + " (-10)."
+        : "Political ad/publisher disclosure present and zero pre-checked consent checkboxes.",
+    });
   }
 
-  const csp = evidence.securityHeaders["content-security-policy"];
-  if (!csp) {
-    rawScore -= 14;
-  } else {
-    const lowerCsp = csp.toLowerCase();
-    if (!lowerCsp.includes("default-src") && !lowerCsp.includes("script-src")) rawScore -= 3;
-    if (!lowerCsp.includes("frame-ancestors")) rawScore -= 2;
-    if (lowerCsp.includes("'unsafe-inline'") || lowerCsp.includes("'unsafe-eval'")) rawScore -= 3;
-  }
-
-  const xfo = evidence.securityHeaders["x-frame-options"];
-  if (!xfo) {
-    rawScore -= 6;
-  } else {
-    const lowerXfo = xfo.toLowerCase();
-    if (!lowerXfo.includes("deny") && !lowerXfo.includes("sameorigin")) rawScore -= 2;
-  }
-
-  const xcto = evidence.securityHeaders["x-content-type-options"];
-  if (!xcto) {
-    rawScore -= 4;
-  }
-
-  const rp = evidence.securityHeaders["referrer-policy"];
-  if (!rp) {
-    rawScore -= 3;
-  }
-
-  const pp = evidence.securityHeaders["permissions-policy"];
-  if (!pp) {
-    rawScore -= 3;
-  }
-
-  // 3. Pre-Consent Cookies & Cookie Flags (Max Penalty -25)
-  const cookieCount = evidence.setCookiePreConsent.length;
-  if (cookieCount > 0 && evidence.consentSignals.length === 0) {
-    rawScore -= Math.min(20, 10 + cookieCount * 2);
-  } else if (cookieCount > 0) {
-    rawScore -= Math.min(8, cookieCount * 1.5);
-  }
-
-  const missingSecureCookies = (evidence.cookieFlagAnalysis || []).filter((f) =>
-    f.toLowerCase().includes("lacks secure"),
-  ).length;
-  const missingHttpOnlyCookies = (evidence.cookieFlagAnalysis || []).filter((f) =>
-    f.toLowerCase().includes("lacks httponly"),
-  ).length;
-  if (missingSecureCookies > 0) rawScore -= Math.min(5, missingSecureCookies * 2);
-  if (missingHttpOnlyCookies > 0) rawScore -= Math.min(4, missingHttpOnlyCookies * 1.5);
-
-  // 4. Third-Party Tracking Pixels & Telemetry (Max Penalty -18)
-  const trackerCount = evidence.trackerSignals.length;
-  if (trackerCount > 0 && evidence.consentSignals.length === 0) {
-    rawScore -= Math.min(18, 8 + trackerCount * 2.5);
-  } else if (trackerCount > 0) {
-    rawScore -= Math.min(8, trackerCount * 1.5);
-  }
-
-  // 5. Statutory Transparency Links & Disclosures (Max Penalty -12)
-  if (evidence.policyLinks.length === 0 && evidence.discoveredPolicyUrls.length === 0) {
-    rawScore -= 12;
-  } else if (evidence.policyLinks.length < 2) {
-    rawScore -= 4;
-  }
-
-  if (!evidence.securityTxt) {
-    rawScore -= 2;
-  }
-
-  // 6. Domain-specific Micro-Variance (0 to +3 pts)
-  // Provides unique exact score differentiation across domains with similar baseline headers
-  let domainHash = 0;
-  const hostStr = evidence.host || "domain";
-  for (let i = 0; i < hostStr.length; i++) {
-    domainHash = (domainHash << 5) - domainHash + hostStr.charCodeAt(i);
-    domainHash |= 0;
-  }
-  const microVariance = Math.abs(domainHash % 4); // 0, 1, 2, 3
-
-  const calculatedScore = Math.max(18, Math.min(96, Math.round(rawScore + microVariance)));
-
-  return { score: calculatedScore, missingHeaders };
+  const calculatedScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+  return { score: calculatedScore, missingHeaders, breakdown };
 }
 
 export function computeEvidenceFingerprint(evidence: SiteEvidence): string {
@@ -292,6 +407,30 @@ async function generateWithRetry(
   throw lastError;
 }
 
+function applyLiveStatutoryOverrides(
+  frameworks: AuditReport["frameworks"],
+  liveRules: LiveStatutoryRuleOverride[],
+): AuditReport["frameworks"] {
+  if (!liveRules || liveRules.length === 0) return frameworks;
+  return frameworks.map((fw) => {
+    const fwLower = fw.name.toLowerCase();
+    const match = liveRules.find(
+      (r) =>
+        (r.country && fwLower.includes(r.country.toLowerCase())) ||
+        (r.acronym && fwLower.includes(r.acronym.toLowerCase())) ||
+        (r.lawName && fwLower.includes(r.lawName.toLowerCase().slice(0, 14))),
+    );
+    if (!match) return fw;
+    return {
+      name: match.lawName
+        ? `${match.lawName}${match.acronym ? ` (${match.acronym})` : ""}`
+        : fw.name,
+      score: fw.score,
+      note: `${fw.note}${match.maxPenalty ? ` · Ceiling: ${match.maxPenalty}` : ""}${match.governingBody ? ` · Regulator: ${match.governingBody}` : ""}`,
+    };
+  });
+}
+
 function generateFallbackAuditFromEvidence(
   evidence: SiteEvidence,
   rawInput: string,
@@ -299,71 +438,85 @@ function generateFallbackAuditFromEvidence(
   checks: { label: string; value: string }[],
   sources: string[],
   limitations: string[],
+  options: { politechMode?: boolean; liveRules?: LiveStatutoryRuleOverride[] } = {},
 ): AuditReport {
-  if (evidence.isBlockedOrIncomplete) {
+  const isWaf = Boolean(evidence.isWafBlocked);
+  const now = new Date();
+  const testedAtIso = now.toISOString();
+  const testedAtUtc = testedAtIso.replace("T", " ").slice(0, 19) + " UTC";
+  const istDate = new Date(now.getTime() + 5.5 * 3600 * 1000);
+  const testedAtIst = istDate.toISOString().replace("T", " ").slice(0, 19) + " IST";
+
+  if (evidence.statusCode === 0 && !evidence.sslDetails?.valid && !isWaf) {
+    const refId = generateAuditRefId(evidence.host, 0, testedAtIso);
     return {
       target: evidence.host,
+      auditRefId: refId,
+      politechMode: Boolean(options.politechMode),
       originCountry: evidence.businessLocation.countryName,
       serverLocation: evidence.serverLocation,
       businessLocation: evidence.businessLocation,
       score: 0,
-      summary: `INCOMPLETE – site blocked automated access (${evidence.blockReason || `HTTP ${evidence.statusCode}`}). Automated inspection was blocked by the target perimeter or WAF challenge. No PASS/FAIL determination, tracker results or score calculated.`,
+      summary: `INCOMPLETE – target domain connection timed out or address could not be resolved (${evidence.blockReason || "Connection failed"}).`,
       inputKind: "url",
       evidence: [
         `HTTP Status: ${evidence.statusCode}`,
-        `Reason: ${evidence.blockReason || "Perimeter edge challenge or blocking filter active"}`,
+        `Reason: ${evidence.blockReason || "Connection timed out after 12s"}`,
         `Server location (hosting/CDN): ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
         `Business location: ${evidence.businessLocation.countryName} (${evidence.businessLocation.source || "TLD"})`,
       ],
       scanStatus: "incomplete",
       isBlockedOrIncomplete: true,
       scanMethodWorked: null,
-      finalHttpStatus: evidence.finalHttpStatus ?? evidence.statusCode,
-      attemptedMethods: evidence.attemptedMethods || ["Direct", "Rendered", "Proxy"],
-      incompleteReason: "INCOMPLETE – site blocked automated access",
-      incompleteDetails: {
-        statusCode: evidence.finalHttpStatus ?? evidence.statusCode,
-        reason: evidence.blockReason || "Perimeter edge challenge / WAF",
-      },
+      finalHttpStatus: 0,
+      attemptedMethods: evidence.attemptedMethods || ["Direct"],
+      incompleteReason: "Target domain unreachable",
+      scannedAtUtc: testedAtUtc,
+      scannedAtIst: testedAtIst,
       provenance: {
-        scannedAt: new Date().toISOString(),
+        scannedAt: testedAtUtc,
         durationMs: Date.now() - startedAt,
         model: "automated-recon-crawler",
         method: "live-http-scan",
         confidence: "low",
-        confidenceReason: "Scan incomplete: target site blocked automated diagnostic access.",
+        confidenceReason: "Scan incomplete: target site could not be reached.",
         checks: [
-          { label: "HTTP status", value: String(evidence.finalHttpStatus ?? evidence.statusCode) },
-          { label: "Access Status", value: "Blocked / Incomplete" },
-          {
-            label: "Attempted Methods",
-            value: (evidence.attemptedMethods || ["Direct", "Rendered", "Proxy"]).join(" -> "),
-          },
+          { label: "HTTP status", value: "0" },
+          { label: "Access Status", value: "Connection Failed" },
         ],
         sources: [evidence.finalUrl],
-        limitations: ["Target server or edge WAF blocked automated inspection."],
+        limitations: ["Target server or edge network unreachable."],
       },
       frameworks: [],
       criticalLeaks: [],
       fineRisk: {
         estimate: "Statutory determination deferred",
         currency: "INR",
-        rationale:
-          "Target site blocked automated analysis; statutory risk exposure could not be modeled.",
+        rationale: "Target site unreachable; statutory risk exposure could not be evaluated.",
       },
       remediation: [
         {
-          step: "Review perimeter WAF or Cloudflare security rules",
-          impact: "Permit automated diagnostic compliance verification",
+          step: "Verify domain DNS resolution and network availability",
+          impact: "Permits automated diagnostic compliance verification",
           effort: "Low",
         },
       ],
     };
   }
 
-  const { score, missingHeaders } = computeDeterministicComplianceScore(evidence);
+  const { score, missingHeaders, breakdown } = computeDeterministicComplianceScore(evidence, {
+    politechMode: options.politechMode,
+  });
 
   const criticalLeaks: AuditReport["criticalLeaks"] = [];
+
+  if (isWaf) {
+    criticalLeaks.push({
+      title: "Perimeter Bot Shield Interception",
+      severity: "medium",
+      detail: `Target domain is protected by edge perimeter defense (${evidence.blockReason || "Cloudflare / Edge Shield"}). Automated HTML scraping was intercepted; verified DNS-over-HTTPS (DoH) and TLS socket records are displayed. Complete HTML DOM audit via guided manual checklist.`,
+    });
+  }
 
   if (!evidence.httpsUpgrade) {
     criticalLeaks.push({
@@ -408,21 +561,41 @@ function generateFallbackAuditFromEvidence(
     });
   }
 
-  if (evidence.policyLinks.length === 0) {
+  if (!evidence.policyDisclosures?.privacyPolicyUrl && evidence.policyLinks.length === 0) {
     criticalLeaks.push({
-      title: "Absent or Unlinked Privacy Notice & Grievance Officer Details",
+      title: "Absent Privacy Notice Link in Live DOM",
       severity: "high",
       detail:
-        "No explicit Privacy Policy or DPDP Data Protection / Grievance Officer contact link was found on the landing page, violating DPDP Act 2023 s. 13 and GDPR Art. 13.",
+        "No explicit Privacy Policy or Data Notice link was found on the landing page, violating DPDP Act 2023 s. 5 and GDPR Art. 13.",
     });
   }
 
-  // Compute unique host hash for micro-adjustments per jurisdiction
-  let hostHash = 0;
-  const hostStr = evidence.host || "domain";
-  for (let i = 0; i < hostStr.length; i++) {
-    hostHash = (hostHash << 5) - hostHash + hostStr.charCodeAt(i);
-    hostHash |= 0;
+  if (!evidence.policyDisclosures?.grievanceContact) {
+    criticalLeaks.push({
+      title: "Absent Grievance Officer / DPO Contact Disclosure",
+      severity: "high",
+      detail:
+        "No published Data Protection Officer or DPDP Grievance Officer contact endpoint was detected on the landing page (DPDP Act 2023 s. 13).",
+    });
+  }
+
+  if (options.politechMode) {
+    if (!evidence.politechSignals?.hasPoliticalAdDisclosure) {
+      criticalLeaks.push({
+        title: "PoliTech Violation: Missing Political Ad / Publisher Disclosure",
+        severity: "high",
+        detail:
+          "No mandatory 'Paid for by' or publisher imprint disclosure was observed in the live DOM for political outreach.",
+      });
+    }
+    if (evidence.politechSignals?.hasPreCheckedConsent) {
+      criticalLeaks.push({
+        title: "PoliTech Violation: Pre-Checked Outreach Consent Box",
+        severity: "critical",
+        detail:
+          "Detected a pre-checked consent checkbox in the live DOM; non-affirmative opt-ins violate DPDP s. 6 and GDPR Art. 7.",
+      });
+    }
   }
 
   const getJurisdictionScore = (
@@ -430,15 +603,15 @@ function generateFallbackAuditFromEvidence(
     policyPenalty: number,
     cookiePenalty: number,
     headerPenalty: number,
-    offset: number,
+    _offset?: number,
   ) => {
     let s = baseScore;
     if (evidence.policyLinks.length === 0) s -= policyPenalty;
     if (evidence.setCookiePreConsent.length > 0 && evidence.consentSignals.length === 0)
       s -= cookiePenalty;
     if (missingHeaders.includes("content-security-policy")) s -= headerPenalty;
-    const variance = (Math.abs(hostHash + offset) % 5) - 2; // -2 to +2
-    return Math.max(12, Math.min(97, Math.round(s + variance)));
+    // Pure deterministic score without random or hash-based offsets
+    return Math.max(12, Math.min(98, Math.round(s)));
   };
 
   const frameworks = [
@@ -560,32 +733,69 @@ function generateFallbackAuditFromEvidence(
     },
   ];
 
+  const summary = isWaf
+    ? `${WAF_BADGE_TEXT}. Target perimeter filter (${evidence.blockReason || "Edge WAF"}) intercepted automated HTML extraction. ASJi One successfully executed real DNS-over-HTTPS (A/AAAA, CAA, SPF, DMARC) verification and TLS socket handshakes.`
+    : `Live technical audit of ${evidence.host} identified ${criticalLeaks.length} compliance findings. Security headers analysis revealed ${missingHeaders.length} missing defensive response headers (${missingHeaders.join(", ") || "none"}). ${evidence.setCookiePreConsent.length} pre-consent cookies and ${evidence.trackerSignals.length} tracking SDKs were detected on initial load.`;
+
+  const evidenceList = isWaf
+    ? [
+        `Target Domain: ${evidence.host} (HTTP ${evidence.finalHttpStatus ?? evidence.statusCode})`,
+        `Edge Defense Status: ${WAF_BADGE_TEXT}`,
+        evidence.sslDetails?.valid
+          ? `TLS Handshake: Valid (${evidence.sslDetails.protocol}, ${evidence.sslDetails.cipher}, Issuer: ${evidence.sslDetails.issuer})`
+          : "TLS Handshake: Unverified",
+        evidence.dnsDetails?.spfRecord
+          ? `DNS SPF Record (DoH): ${evidence.dnsDetails.spfRecord}`
+          : "DNS SPF Record: None published",
+        evidence.dnsDetails?.dmarcRecord
+          ? `DNS DMARC Record (DoH): ${evidence.dnsDetails.dmarcRecord}`
+          : "DNS DMARC Record: None published",
+        evidence.dnsDetails?.caaRecords && evidence.dnsDetails.caaRecords.length > 0
+          ? `DNS CAA Records (DoH): ${evidence.dnsDetails.caaRecords.join(", ")}`
+          : "DNS CAA Records: None published",
+        `Server Location: ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
+        `Business Location: ${evidence.businessLocation.countryName}`,
+        `HTML DOM Telemetry: Automated scrape gated by edge shield. Complete review via guided manual audit checklist.`,
+      ]
+    : [
+        `HTTP status: ${evidence.statusCode} (${evidence.redirectChainNote})`,
+        `Server location (hosting/CDN): ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
+        `Business location: ${evidence.businessLocation.countryName} (${evidence.businessLocation.source || "TLD"})`,
+        `Transport security: ${evidence.httpsUpgrade ? "HTTPS enforced" : "Plaintext HTTP"}`,
+        `Security headers present: ${Object.values(evidence.securityHeaders).filter(Boolean).length}/${Object.keys(evidence.securityHeaders).length}`,
+        `Security headers missing: ${missingHeaders.join(", ") || "None"}`,
+        `Pre-consent cookies observed: ${evidence.setCookiePreConsent.length}`,
+        `Tracker SDKs detected: ${evidence.trackerSignals.join(", ") || "None"}`,
+        `Consent CMP status: ${evidence.consentSignals.join(", ") || "None detected"}`,
+        `Privacy links found on landing page: ${evidence.policyLinks.length}`,
+      ];
+
+  const appliedFrameworks = applyLiveStatutoryOverrides(frameworks, options.liveRules || []);
+  const auditRefId = generateAuditRefId(evidence.host, score, testedAtIso);
+
   return {
     target: evidence.host,
+    auditRefId,
+    politechMode: Boolean(options.politechMode),
+    scoreBreakdown: breakdown,
     originCountry: evidence.businessLocation.countryName,
     serverLocation: evidence.serverLocation,
     businessLocation: evidence.businessLocation,
     scanStatus: "completed",
-    isBlockedOrIncomplete: false,
+    isBlockedOrIncomplete: isWaf,
+    isWafBlocked: isWaf,
+    wafBadge: isWaf ? WAF_BADGE_TEXT : undefined,
+    wafReason: isWaf ? evidence.blockReason : undefined,
+    scannedAtUtc: testedAtUtc,
+    scannedAtIst: testedAtIst,
     scanMethodWorked: evidence.scanMethodWorked || "Direct",
     finalHttpStatus: evidence.finalHttpStatus ?? evidence.statusCode,
     attemptedMethods: evidence.attemptedMethods || [evidence.scanMethodWorked || "Direct"],
     score,
-    summary: `Live technical audit of ${evidence.host} identified ${criticalLeaks.length} compliance gaps. Security headers analysis revealed ${missingHeaders.length} missing defensive response headers (${missingHeaders.join(", ") || "none"}). ${evidence.setCookiePreConsent.length} pre-consent cookies and ${evidence.trackerSignals.length} tracking SDKs were detected on initial load.`,
+    summary,
     inputKind: "url",
-    evidence: [
-      `HTTP status: ${evidence.statusCode} (${evidence.redirectChainNote})`,
-      `Server location (hosting/CDN): ${evidence.serverLocation.countryName} (${evidence.serverLocation.provider || "CDN"})`,
-      `Business location: ${evidence.businessLocation.countryName} (${evidence.businessLocation.source || "TLD"})`,
-      `Transport security: ${evidence.httpsUpgrade ? "HTTPS enforced" : "Plaintext HTTP"}`,
-      `Security headers present: ${Object.values(evidence.securityHeaders).filter(Boolean).length}/${Object.keys(evidence.securityHeaders).length}`,
-      `Security headers missing: ${missingHeaders.join(", ") || "None"}`,
-      `Pre-consent cookies observed: ${evidence.setCookiePreConsent.length}`,
-      `Tracker SDKs detected: ${evidence.trackerSignals.join(", ") || "None"}`,
-      `Consent CMP status: ${evidence.consentSignals.join(", ") || "None detected"}`,
-      `Privacy links found on landing page: ${evidence.policyLinks.length}`,
-    ],
-    frameworks,
+    evidence: evidenceList,
+    frameworks: appliedFrameworks,
     criticalLeaks,
     fineRisk: {
       estimate:
@@ -595,14 +805,33 @@ function generateFallbackAuditFromEvidence(
         "Statutory fine exposure calculated based on observed ePrivacy Art. 5(3) pre-consent cookie violations and missing security safeguards under GDPR Art. 32 and DPDP s. 8(5).",
     },
     remediation,
+    dnsSecurity: evidence.dnsDetails
+      ? {
+          aRecords: evidence.dnsDetails.aRecords,
+          aaaaRecords: evidence.dnsDetails.aaaaRecords,
+          spfRecord: evidence.dnsDetails.spfRecord,
+          dmarcRecord: evidence.dnsDetails.dmarcRecord,
+          caaRecords: evidence.dnsDetails.caaRecords,
+          mxRecords: evidence.dnsDetails.mxRecords,
+          nsRecords: evidence.dnsDetails.nsRecords,
+          dohProvider: evidence.dnsDetails.dohProvider,
+        }
+      : undefined,
+    sslCert: evidence.sslDetails,
+    detectedScripts: evidence.detectedScripts,
+    detectedCmp: evidence.detectedCmp,
+    policyDisclosures: evidence.policyDisclosures,
+    politechSignals: evidence.politechSignals,
+    checksSummary: evidence.checksSummary,
     provenance: {
-      scannedAt: new Date().toISOString(),
+      scannedAt: testedAtUtc,
       durationMs: Date.now() - startedAt,
-      model: "ASJi Deterministic Inspection Engine v4.2 (Live Dossier Analysis)",
+      model: "ASJi Deterministic Live Telemetry Engine v5.0",
       method: "live-http-scan",
-      confidence: "high",
-      confidenceReason:
-        "Derived directly from live HTTP response headers, SSL state, cookies, and DOM telemetry.",
+      confidence: isWaf ? "medium" : "high",
+      confidenceReason: isWaf
+        ? "WAF / Bot Shield detected on target domain. Showing cryptographically verified DNS/TLS results + guided manual checklist."
+        : "Computed via deterministic mathematical formula directly from live HTTP headers, DNS DoH, TLS handshake, and DOM signals.",
       checks,
       sources,
       limitations,
@@ -617,12 +846,13 @@ function generateFallbackAuditFromEvidence(
 export async function runAuditPipeline(
   rawInput: string,
   scanMode: "deep-grounded" | "fast-lite" = "deep-grounded",
-  bypassCache = false,
+  options: { politechMode?: boolean } = {},
 ): Promise<AuditReport> {
   const startedAt = Date.now();
+  const politechMode = Boolean(options.politechMode);
   try {
     return await withTimeout(
-      runAuditPipelineInternal(rawInput, scanMode, bypassCache, startedAt),
+      runAuditPipelineInternal(rawInput, scanMode, startedAt, politechMode),
       24000,
       "Audit pipeline reached 24s execution threshold",
     );
@@ -660,6 +890,9 @@ export async function runAuditPipeline(
           corsHeaderInfo: "Access-Control-Allow-Origin: Not set | Credentials: Not set",
           serverTech: ["Perimeter Edge / WAF Shield Active"],
           fetchErrors: ["Automated probe restricted by edge perimeter defense."],
+          isBlockedOrIncomplete: false,
+          serverLocation: detectServerLocation(detected.host || rawInput),
+          businessLocation: detectBusinessLocation(detected.host || rawInput),
         };
       }
     } else {
@@ -689,6 +922,9 @@ export async function runAuditPipeline(
         corsHeaderInfo: "Access-Control-Allow-Origin: Not set | Credentials: Not set",
         serverTech: ["Operator-Reported Infrastructure"],
         fetchErrors: [],
+        isBlockedOrIncomplete: false,
+        serverLocation: detectServerLocation(rawInput),
+        businessLocation: detectBusinessLocation(rawInput),
       };
     }
 
@@ -698,10 +934,11 @@ export async function runAuditPipeline(
       startedAt,
       [
         { label: "Target / Mode", value: evidence.host },
-        { label: "Execution Time", value: `${Date.now() - startedAt}ms (fast diagnostic runtime)` },
+        { label: "Execution Time", value: `${Date.now() - startedAt}ms (live diagnostic runtime)` },
       ],
       LAW_SOURCES,
       ["Live statutory synthesis generated for continuous compliance analysis."],
+      { politechMode },
     );
     try {
       const saved = await saveAuditToDb(fallback, rawInput);
@@ -717,12 +954,14 @@ export async function runAuditPipeline(
 async function runAuditPipelineInternal(
   rawInput: string,
   scanMode: "deep-grounded" | "fast-lite",
-  bypassCache: boolean,
   startedAt: number,
+  politechMode: boolean,
 ): Promise<AuditReport> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
   const detected = detectInput(rawInput);
+
+  const liveStatutoryRules = await fetchLiveStatutoryRules();
 
   let userContent: string;
   let targetLabel: string;
@@ -749,6 +988,7 @@ async function runAuditPipelineInternal(
         ],
         LAW_SOURCES,
         ["Target site blocked automated inspection or presented an edge challenge."],
+        { politechMode, liveRules: liveStatutoryRules },
       );
     }
 
@@ -819,66 +1059,8 @@ async function runAuditPipelineInternal(
     userContent = `INPUT TYPE: raw infrastructure / architecture description (no live scan possible)\n\n${rawInput}\n\nAudit this described stack against the applicable regimes, flag what must be verified manually, and return json.`;
   }
 
-  // Retrieve cached audit baseline for this target
-  let cachedReport: AuditReport | null = null;
-  try {
-    cachedReport = await findRecentAuditByTarget(rawInput, 0);
-  } catch {
-    /* ignore lookup error */
-  }
-
-  // Compare live research evidence with previous audit baseline
-  if (cachedReport && !bypassCache) {
-    let isUnchanged = false;
-    if (cachedReport.evidenceFingerprint) {
-      isUnchanged = cachedReport.evidenceFingerprint === currentFingerprint;
-    } else {
-      // Legacy record check: compare evidence counts
-      if (liveEvidence) {
-        const missingHeaders = Object.values(liveEvidence.securityHeaders).filter(
-          (v) => v === null,
-        ).length;
-        const cookies = liveEvidence.setCookiePreConsent.length;
-        const evStr = (cachedReport.evidence || []).join(" ");
-        if (evStr.includes(`${missingHeaders} missing`) && evStr.includes(`${cookies}`)) {
-          isUnchanged = true;
-        }
-      } else {
-        isUnchanged = true;
-      }
-    }
-
-    if (isUnchanged) {
-      // COMPANY HAS NOT CHANGED ANYTHING SINCE PREVIOUS REPORT -> KEEP RESULT EXACTLY SAME
-      const reverifiedReport: AuditReport = {
-        ...cachedReport,
-        evidenceFingerprint: currentFingerprint,
-        hasModifiedSinceLastScan: false,
-        provenance: {
-          ...cachedReport.provenance,
-          scannedAt: new Date().toISOString(),
-          durationMs: Date.now() - startedAt,
-          checks,
-          confidenceReason: `Live research completed on ${targetLabel}. Target infrastructure, security headers, and privacy notices remain unchanged since prior audit — score (${cachedReport.score}/100) and report preserved.`,
-        },
-        dbSavedAt: new Date().toISOString(),
-        radarTerminal:
-          cachedReport.radarTerminal ||
-          computeRadarTerminalLog(targetLabel, liveEvidence, cachedReport),
-      };
-      try {
-        const saved = await saveAuditToDb(reverifiedReport, rawInput);
-        reverifiedReport.dbRecordId = saved.id;
-        reverifiedReport.dbSavedAt = saved.savedAt;
-      } catch {
-        /* ignore */
-      }
-      return reverifiedReport;
-    }
-  }
-
-  // FAST-LITE MODE: High-speed automated deterministic audit directly from live network reconnaissance
-  // Bypasses LLM latency to enable instant multi-site / 50-lead bulk scanning with zero hallucination.
+  // Live-Always Telemetry Guarantee: NEVER short-circuit with stale cached results.
+  // Every scan executes a fresh inspection and pure deterministic scoring.
   if (scanMode === "fast-lite" && liveEvidence) {
     const fastReport = generateFallbackAuditFromEvidence(
       liveEvidence,
@@ -887,6 +1069,7 @@ async function runAuditPipelineInternal(
       checks,
       sources,
       limitations,
+      { politechMode, liveRules: liveStatutoryRules },
     );
     try {
       const saved = await saveAuditToDb(fastReport, rawInput);
@@ -904,6 +1087,7 @@ async function runAuditPipelineInternal(
       ? "ASJi High-Speed Inspection Engine"
       : "ASJi Autonomous Audit Engine v4.2";
   let groundingInfo: GroundingInfo | undefined;
+  let success = false;
 
   if (geminiKey) {
     const ai = new GoogleGenAI({
@@ -942,7 +1126,6 @@ async function runAuditPipelineInternal(
       },
     ];
 
-    let success = false;
     const failedCandidateIds = new Set<string>();
 
     for (const cand of candidates) {
@@ -1046,6 +1229,7 @@ async function runAuditPipelineInternal(
       checks,
       sources,
       limitations,
+      { politechMode, liveRules: liveStatutoryRules },
     );
     try {
       const saved = await saveAuditToDb(fallbackReport, rawInput);
@@ -1069,6 +1253,7 @@ async function runAuditPipelineInternal(
         checks,
         sources,
         limitations,
+        { politechMode, liveRules: liveStatutoryRules },
       );
       try {
         const saved = await saveAuditToDb(fallbackReport, rawInput);
@@ -1080,19 +1265,44 @@ async function runAuditPipelineInternal(
       return fallbackReport;
     }
     throw new Error(
-      "The audit engine is currently experiencing high demand. Please click 'Analyze Domain Compliance' to try again.",
+      "The audit engine is currently experiencing high demand. Please click 'Run Live Audit' to try again.",
     );
   }
 
+  // Pure deterministic formula (zero LLM guessing, zero Math.random())
   const deterministicResult = liveEvidence
-    ? computeDeterministicComplianceScore(liveEvidence)
+    ? computeDeterministicComplianceScore(liveEvidence, { politechMode })
     : null;
+  const textDeterministicScore = (() => {
+    const lower = rawInput.toLowerCase();
+    let s = 100;
+    if (!/\bhttps\b|\btls\b/.test(lower)) s -= 20;
+    if (!/privacy\s*policy|data\s*notice/.test(lower)) s -= 15;
+    if (
+      /tracker|analytics|pixel|gtm|meta/.test(lower) &&
+      !/consent|cmp|cookie\s*banner/.test(lower)
+    )
+      s -= 15;
+    if (!/\bcsp\b|\bhsts\b|referrer-policy|x-frame-options/.test(lower)) s -= 20;
+    if (!/\bspf\b|\bdmarc\b/.test(lower)) s -= 10;
+    if (!/grievance|dpo|data protection officer/.test(lower)) s -= 10;
+    return Math.max(0, Math.min(100, s));
+  })();
   const finalCalculatedScore = deterministicResult
-    ? Math.max(15, Math.min(96, Math.round((report.score + deterministicResult.score * 2) / 3)))
-    : Math.max(0, Math.min(100, Math.round(report.score)));
+    ? deterministicResult.score
+    : textDeterministicScore;
+  const nowIso = new Date().toISOString();
+  const auditRefId = generateAuditRefId(targetLabel || rawInput, finalCalculatedScore, nowIso);
+  const updatedFrameworks = applyLiveStatutoryOverrides(
+    Array.isArray(report.frameworks) ? report.frameworks : [],
+    liveStatutoryRules,
+  );
 
   const finalReport: AuditReport = {
     ...report,
+    auditRefId,
+    politechMode,
+    scoreBreakdown: deterministicResult?.breakdown,
     inputKind: detected.kind,
     serverLocation: liveEvidence?.serverLocation || detectServerLocation(targetLabel || rawInput),
     businessLocation:
@@ -1108,28 +1318,54 @@ async function runAuditPipelineInternal(
     ],
     evidence: Array.isArray(report.evidence) ? report.evidence : [],
     evidenceFingerprint: currentFingerprint,
-    hasModifiedSinceLastScan: cachedReport ? true : false,
-    previousScore: cachedReport ? cachedReport.score : undefined,
+    hasModifiedSinceLastScan: false,
     target: targetLabel || report.target || rawInput,
     score: finalCalculatedScore,
+    frameworks: updatedFrameworks,
     grounding: groundingInfo,
     provenance: {
-      scannedAt: new Date().toISOString(),
+      scannedAt: nowIso,
       durationMs: Date.now() - startedAt,
       model: modelUsed,
       method: detected.kind === "url" ? "live-http-scan" : "operator-supplied-text",
       confidence,
-      confidenceReason: cachedReport
-        ? `Live research detected technical infrastructure or policy updates on ${targetLabel} since prior scan. Re-evaluated compliance score from previous ${cachedReport.score}/100 to ${Math.round(report.score)}/100.`
-        : confidenceReason,
+      confidenceReason,
       checks,
       sources,
       limitations,
     },
     radarTerminal: computeRadarTerminalLog(targetLabel || report.target || rawInput, liveEvidence, {
       ...report,
-      score: Math.max(0, Math.min(100, Math.round(report.score))),
+      score: finalCalculatedScore,
     }),
+    isWafBlocked: Boolean(liveEvidence?.isWafBlocked),
+    wafBadge: liveEvidence?.isWafBlocked ? WAF_BADGE_TEXT : undefined,
+    wafReason: liveEvidence?.isWafBlocked ? liveEvidence.blockReason : undefined,
+    scannedAtUtc:
+      liveEvidence?.checksSummary?.results?.[0]?.testedAtUtc ||
+      nowIso.replace("T", " ").slice(0, 19) + " UTC",
+    scannedAtIst:
+      liveEvidence?.checksSummary?.results?.[0]?.testedAtIst ||
+      new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().replace("T", " ").slice(0, 19) +
+        " IST",
+    dnsSecurity: liveEvidence?.dnsDetails
+      ? {
+          aRecords: liveEvidence.dnsDetails.aRecords,
+          aaaaRecords: liveEvidence.dnsDetails.aaaaRecords,
+          spfRecord: liveEvidence.dnsDetails.spfRecord,
+          dmarcRecord: liveEvidence.dnsDetails.dmarcRecord,
+          caaRecords: liveEvidence.dnsDetails.caaRecords,
+          mxRecords: liveEvidence.dnsDetails.mxRecords,
+          nsRecords: liveEvidence.dnsDetails.nsRecords,
+          dohProvider: liveEvidence.dnsDetails.dohProvider,
+        }
+      : undefined,
+    sslCert: liveEvidence?.sslDetails,
+    detectedScripts: liveEvidence?.detectedScripts,
+    detectedCmp: liveEvidence?.detectedCmp,
+    policyDisclosures: liveEvidence?.policyDisclosures,
+    politechSignals: liveEvidence?.politechSignals,
+    checksSummary: liveEvidence?.checksSummary,
   };
 
   // Save automatically to backend database until user purges

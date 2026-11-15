@@ -20,8 +20,8 @@ const sizeMap = {
 export function AnimatedLogo({
   size = "md",
   className = "",
-  withGlow = true,
-  withRays = true,
+  withGlow: _withGlow = false,
+  withRays: _withRays = false,
   idSuffix = "primary",
 }: AnimatedLogoProps) {
   const sizeClass = sizeMap[size];
@@ -33,37 +33,10 @@ export function AnimatedLogo({
     <div
       className={`relative flex items-center justify-center select-none ${sizeClass} ${className}`}
     >
-      {/* Background ambient radial glow */}
-      {withGlow && (
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.35, 0.65, 0.35],
-          }}
-          transition={{
-            duration: 3.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#8A5A00] via-[#D4AF37]/50 to-[#FFE79A]/20 blur-xl pointer-events-none"
-        />
-      )}
-
-      {/* Rotating orbit rays for luxury high-tech atmosphere */}
-      {withRays && (size === "lg" || size === "xl") && (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -inset-4 pointer-events-none opacity-40"
-        >
-          <div className="h-full w-full rounded-full border border-dashed border-[#D4AF37]/40" />
-        </motion.div>
-      )}
-
       {/* Core SVG Sovereign Emblem */}
       <svg
         viewBox="0 0 512 512"
-        className="relative z-10 h-full w-full drop-shadow-[0_4px_16px_rgba(212,175,55,0.35)]"
+        className="relative z-10 h-full w-full"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >

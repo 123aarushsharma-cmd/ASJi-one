@@ -47,26 +47,29 @@ Hiring: https://asji-one.vercel.app`;
     >
       {/* RFC 9116 security.txt Display Box */}
       <LegalSection title="1. Official security.txt (RFC 9116 Standard)">
-        <p className="mb-4 text-[#E5E5E5]/90">
-          In accordance with <strong>RFC 9116</strong>, our machine-readable security contact
-          information is published at both{" "}
-          <code className="rounded bg-black/60 px-1.5 py-0.5 text-[#D4AF37]">
+        <p className="mb-4 text-[#52525B]">
+          In accordance with <strong className="text-[#18181B]">RFC 9116</strong>, our
+          machine-readable security contact information is published at both{" "}
+          <code className="rounded-sm bg-[#0D0E11] px-1.5 py-0.5 font-mono text-xs text-[#C9A227] border border-[#262932]">
             /.well-known/security.txt
           </code>{" "}
           and{" "}
-          <code className="rounded bg-black/60 px-1.5 py-0.5 text-[#D4AF37]">/security.txt</code>.
+          <code className="rounded-sm bg-[#0D0E11] px-1.5 py-0.5 font-mono text-xs text-[#C9A227] border border-[#262932]">
+            /security.txt
+          </code>
+          .
         </p>
 
-        <div className="relative overflow-hidden rounded-2xl border border-[#D4AF37]/30 bg-black/80 p-5 font-sans">
-          <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#D4AF37]">
+        <div className="relative overflow-hidden rounded-lg border border-[#262932] bg-[#0D0E11] p-5 font-sans">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#262932] pb-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#C9A227]">
               <Terminal className="h-4 w-4" />
               <span>RFC 9116 Machine-Readable Specification</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopy}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-medium text-[#D4AF37] transition-all hover:bg-[#D4AF37] hover:text-black"
+                className="btn-gold inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold cursor-pointer"
               >
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 <span>{copied ? "Copied" : "Copy Raw"}</span>
@@ -75,7 +78,7 @@ Hiring: https://asji-one.vercel.app`;
                 href="/.well-known/security.txt"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-[#E5E5E5] transition-all hover:border-[#D4AF37]/40 hover:text-[#D4AF37]"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#262932] bg-[#15171C] px-3 py-1.5 text-xs font-medium text-[#F4F4F5] transition-colors hover:border-[#C9A227] hover:text-[#C9A227]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 <span>View Endpoint</span>
@@ -83,7 +86,7 @@ Hiring: https://asji-one.vercel.app`;
             </div>
           </div>
 
-          <pre className="overflow-x-auto text-xs leading-relaxed text-[#E5E5E5]">
+          <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-[#F4F4F5]">
             <code>{rawSecurityTxt}</code>
           </pre>
         </div>
@@ -95,29 +98,30 @@ Hiring: https://asji-one.vercel.app`;
           We follow Coordinated Vulnerability Disclosure principles. When reporting a potential
           security issue, please adhere to the following guidelines:
         </p>
-        <ul className="mt-3 space-y-2 text-[#E5E5E5]/90">
-          <li className="flex items-start gap-2">
-            <span className="text-[#D4AF37]">•</span>
+        <ul className="mt-3 space-y-2 text-[#52525B]">
+          <li className="flex items-start gap-2.5">
+            <span className="font-mono text-[#9A7812] font-bold">01.</span>
             <span>
-              Send detailed vulnerability details to <strong>security@asji.law</strong> or{" "}
-              <strong>{LEGAL.contactEmail}</strong>.
+              Send detailed vulnerability details to{" "}
+              <strong className="text-[#18181B]">security@asji.law</strong> or{" "}
+              <strong className="text-[#18181B]">{LEGAL.contactEmail}</strong>.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#D4AF37]">•</span>
+          <li className="flex items-start gap-2.5">
+            <span className="font-mono text-[#9A7812] font-bold">02.</span>
             <span>
               Provide step-by-step reproduction instructions or proof-of-concept (PoC) scripts.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#D4AF37]">•</span>
+          <li className="flex items-start gap-2.5">
+            <span className="font-mono text-[#9A7812] font-bold">03.</span>
             <span>
               Allow us a reasonable timeframe (minimum 30 days) to address and remediate the issue
               before public disclosure.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#D4AF37]">•</span>
+          <li className="flex items-start gap-2.5">
+            <span className="font-mono text-[#9A7812] font-bold">04.</span>
             <span>
               Do not access or modify user data, perform denial of service (DoS/DDoS) attacks, or
               execute social engineering.
@@ -138,23 +142,24 @@ Hiring: https://asji-one.vercel.app`;
       {/* Reporting Contact Cards */}
       <LegalSection title="4. Vulnerability Response SLA">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-black/50 p-4">
-            <div className="flex items-center gap-2 font-semibold text-[#D4AF37]">
-              <Mail className="h-4 w-4" />
+          <div className="rounded-md border border-[#E5DEC9] bg-[#F4F1EA] p-4">
+            <div className="flex items-center gap-2 font-display font-bold text-[#18181B]">
+              <Mail className="h-4 w-4 text-[#9A7812]" />
               <span>Response SLA</span>
             </div>
-            <p className="mt-2 text-xs text-[#E5E5E5]/80">
-              Initial acknowledgment within <strong>24 business hours</strong>. Triage and severity
-              assessment within <strong>72 hours</strong>.
+            <p className="mt-2 text-xs text-[#52525B]">
+              Initial acknowledgment within{" "}
+              <strong className="text-[#18181B]">24 business hours</strong>. Triage and severity
+              assessment within <strong className="text-[#18181B]">72 hours</strong>.
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-black/50 p-4">
-            <div className="flex items-center gap-2 font-semibold text-[#D4AF37]">
-              <ShieldCheck className="h-4 w-4" />
+          <div className="rounded-md border border-[#E5DEC9] bg-[#F4F1EA] p-4">
+            <div className="flex items-center gap-2 font-display font-bold text-[#18181B]">
+              <ShieldCheck className="h-4 w-4 text-[#9A7812]" />
               <span>International Standards</span>
             </div>
-            <p className="mt-2 text-xs text-[#E5E5E5]/80">
+            <p className="mt-2 text-xs text-[#52525B]">
               Aligned with ISO/IEC 29147 (Vulnerability disclosure) and ISO/IEC 30111 (Vulnerability
               handling).
             </p>

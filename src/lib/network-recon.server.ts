@@ -1,8 +1,10 @@
 import dns from "node:dns/promises";
 import tls from "node:tls";
-import https from "node:https";
-import http from "node:http";
-import { URL } from "node:url";
+import {
+  assertSafePublicHost,
+  readLimitedResponseText,
+  safeExternalFetch,
+} from "./security.server";
 
 export interface SslCertDetails {
   valid: boolean;
@@ -17,11 +19,15 @@ export interface SslCertDetails {
 }
 
 export interface DnsSecurityDetails {
+  aRecords: string[];
+  aaaaRecords: string[];
   spfRecord: string | null;
   dmarcRecord: string | null;
   mxRecords: string[];
   caaRecords: string[];
+  nsRecords: string[];
   dnssecSupported: boolean;
+  dohProvider: string;
 }
 
 export interface HygieneProbeResult {
@@ -46,7 +52,9 @@ export interface ReconFetchResult {
   consentTextDetected?: string;
   methodWorked: "Direct" | "Rendered" | "Proxy" | "DNS-Only-Limited";
   isBlocked: boolean;
+  isWafBlocked: boolean;
   blockReason?: string;
+  wafBadge?: string;
   sslDetails?: SslCertDetails;
   dnsDetails?: DnsSecurityDetails;
   hygieneDetails?: HygieneProbeResult;
@@ -55,12 +63,88 @@ export interface ReconFetchResult {
 const DESKTOP_CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
+export const WAF_BADGE_TEXT =
+  "WAF / Bot Shield Detected on Target — Showing Verified DNS/TLS Results + Guided Manual Audit Checklist";
+
+interface DohAnswer {
+  name: string;
+  type: number;
+  TTL: number;
+  data: string;
+}
+
+interface DohResponse {
+  Status: number;
+  Answer?: DohAnswer[];
+  Authority?: DohAnswer[];
+}
+
 /**
- * 1. Direct fetch with full real-Chrome headers (10 s timeout)
+ * Executes a DNS-over-HTTPS (DoH) query using Cloudflare (1.1.1.1) with Google (8.8.8.8) fallback.
+ * Guarantees verifiable public DNS resolution regardless of local container DNS limitations.
+ */
+export async function queryDoh(
+  name: string,
+  type: string,
+  timeoutMs = 4500,
+): Promise<{ answers: DohAnswer[]; provider: string }> {
+  // 1. Try Cloudflare DoH (1.1.1.1)
+  const cfController = new AbortController();
+  const cfTimer = setTimeout(() => cfController.abort(), timeoutMs);
+  try {
+    const cfUrl = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`;
+    const res = await fetch(cfUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/dns-json",
+        "User-Agent": "ASJi-Compliance-Oracle/2.0",
+      },
+      signal: cfController.signal,
+    });
+    clearTimeout(cfTimer);
+    if (res.ok) {
+      const data = (await res.json()) as DohResponse;
+      if (Array.isArray(data.Answer) && data.Answer.length > 0) {
+        return { answers: data.Answer, provider: "Cloudflare DoH (1.1.1.1)" };
+      }
+    }
+  } catch {
+    clearTimeout(cfTimer);
+  }
+
+  // 2. Try Google DoH (8.8.8.8)
+  const gController = new AbortController();
+  const gTimer = setTimeout(() => gController.abort(), timeoutMs);
+  try {
+    const gUrl = `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`;
+    const res = await fetch(gUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "ASJi-Compliance-Oracle/2.0",
+      },
+      signal: gController.signal,
+    });
+    clearTimeout(gTimer);
+    if (res.ok) {
+      const data = (await res.json()) as DohResponse;
+      if (Array.isArray(data.Answer) && data.Answer.length > 0) {
+        return { answers: data.Answer, provider: "Google Public DNS DoH (8.8.8.8)" };
+      }
+    }
+  } catch {
+    clearTimeout(gTimer);
+  }
+
+  return { answers: [], provider: "DoH (No records returned)" };
+}
+
+/**
+ * 1. Direct fetch with full real-Chrome headers (12s timeout)
  */
 export async function directChromeFetch(
   targetUrl: string,
-  timeoutMs = 10000,
+  timeoutMs = 12000,
 ): Promise<{
   status: number;
   finalUrl: string;
@@ -69,17 +153,14 @@ export async function directChromeFetch(
   cookies: string[];
   error?: string;
 }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
-    const res = await fetch(targetUrl, {
+    const { response: res, finalUrl } = await safeExternalFetch(targetUrl, {
       method: "GET",
       headers: {
         "User-Agent": DESKTOP_CHROME_UA,
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Accept-Language": "en-IN,en;q=0.9",
+        "Accept-Language": "en-US,en;q=0.9,en-IN;q=0.8",
         "Accept-Encoding": "gzip, deflate, br, zstd",
         "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
         "Sec-Ch-Ua-Mobile": "?0",
@@ -90,18 +171,18 @@ export async function directChromeFetch(
         "Sec-Fetch-User": "?1",
         "Upgrade-Insecure-Requests": "1",
       },
-      redirect: "follow",
-      signal: controller.signal,
+      timeoutMs,
+      maxRedirects: 4,
+      maxBytes: 2 * 1024 * 1024,
     });
-
-    clearTimeout(timer);
 
     const headers: Record<string, string> = {};
     res.headers.forEach((val, key) => {
       headers[key.toLowerCase()] = val;
     });
 
-    // Extract cookies from set-cookie headers
+    // Extract cookies directly from set-cookie headers
+    const cookies: string[] = [];
     const headersObj = res.headers as unknown as { getSetCookie?: () => string[] };
     if (typeof headersObj.getSetCookie === "function") {
       cookies.push(...headersObj.getSetCookie());
@@ -112,16 +193,15 @@ export async function directChromeFetch(
       }
     }
 
-    const html = await res.text();
+    const html = await readLimitedResponseText(res, 2 * 1024 * 1024);
     return {
       status: res.status,
-      finalUrl: res.url || targetUrl,
+      finalUrl: finalUrl || res.url || targetUrl,
       html,
       headers,
       cookies,
     };
   } catch (err: unknown) {
-    clearTimeout(timer);
     const msg = err instanceof Error ? err.message : String(err);
     return {
       status: 0,
@@ -176,7 +256,7 @@ export async function puppeteerRemoteRender(
       body: JSON.stringify({
         url: targetUrl,
         waitForNetworkIdle: true,
-        extraWaitMs: 5000, // 5s wait
+        extraWaitMs: 4000,
         recordRequests: true,
         recordCookies: true,
         userAgent: DESKTOP_CHROME_UA,
@@ -210,50 +290,98 @@ export async function puppeteerRemoteRender(
       };
     }
     return null;
-  } catch (err: unknown) {
+  } catch {
     clearTimeout(timer);
     return null;
   }
 }
 
 /**
- * Inspects if response is blocked by perimeter WAF/Cloudflare
+ * Inspects if response was intercepted or challenged by edge perimeter WAF
  */
 export function isResponseBlocked(
   status: number,
   html: string,
   headers: Record<string, string>,
-): { isBlocked: boolean; reason?: string } {
+): { isBlocked: boolean; isWafBlocked: boolean; reason?: string } {
   if (status === 403 || status === 429 || status === 503) {
-    return { isBlocked: true, reason: `HTTP status ${status} Access Blocked / WAF Challenge` };
+    return {
+      isBlocked: true,
+      isWafBlocked: true,
+      reason: `HTTP ${status} Edge Access Blocked / WAF Challenge`,
+    };
   }
-  if (headers["cf-mitigated"] || headers["x-datadome"] || headers["x-incapsula-reason"]) {
-    return { isBlocked: true, reason: "Edge Perimeter WAF Flag detected in response headers" };
-  }
-  const lowerHtml = html.toLowerCase();
+
   if (
+    headers["cf-mitigated"] ||
+    headers["x-datadome"] ||
+    headers["x-incapsula-reason"] ||
+    headers["x-iinfo"] ||
+    (headers["cf-ray"] && (status === 403 || status === 503))
+  ) {
+    return {
+      isBlocked: true,
+      isWafBlocked: true,
+      reason: "Edge Perimeter WAF Flag detected in response headers (Cloudflare/Imperva/DataDome)",
+    };
+  }
+
+  const lowerHtml = html.toLowerCase();
+  const isChallenge =
     lowerHtml.includes("just a moment...") ||
     lowerHtml.includes("cf-chl-bypass") ||
+    lowerHtml.includes("challenges.cloudflare.com") ||
     lowerHtml.includes("enable javascript and cookies to continue") ||
     lowerHtml.includes("pardon our interruption") ||
-    lowerHtml.includes("verify you are human")
+    lowerHtml.includes("verify you are human") ||
+    lowerHtml.includes("attention required! | cloudflare") ||
+    lowerHtml.includes("checking your browser before accessing") ||
+    lowerHtml.includes("security check to access");
+
+  if (isChallenge) {
+    return {
+      isBlocked: true,
+      isWafBlocked: true,
+      reason: "Perimeter Bot Challenge page returned (Cloudflare Turnstile / Captcha)",
+    };
+  }
+
+  if (
+    status === 200 &&
+    html.length < 1200 &&
+    !lowerHtml.includes("<html") &&
+    !lowerHtml.includes("<body")
   ) {
-    return { isBlocked: true, reason: "Cloudflare/Perimeter Challenge page returned" };
+    return {
+      isBlocked: true,
+      isWafBlocked: false,
+      reason: "Incomplete HTML payload (< 1.2 KB without DOM root)",
+    };
   }
-  if (status === 200 && html.length < 1500 && !lowerHtml.includes("<html")) {
-    return { isBlocked: true, reason: "Incomplete HTML payload (< 1.5 KB without DOM root)" };
-  }
-  return { isBlocked: false };
+
+  return { isBlocked: false, isWafBlocked: false };
 }
 
 /**
- * Inspects SSL TLS Certificate directly via Node TLS socket
+ * Inspects SSL TLS Certificate directly via Node TLS socket on port 443
  */
 export async function inspectSslCertificate(hostname: string, port = 443): Promise<SslCertDetails> {
+  if (port !== 443 && port !== 8443) {
+    return { valid: false, error: "Blocked non-TLS port" };
+  }
+  try {
+    await assertSafePublicHost(hostname);
+  } catch (err) {
+    return {
+      valid: false,
+      error: err instanceof Error ? err.message : "Blocked target host",
+    };
+  }
+
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       resolve({ valid: false, error: "SSL TLS connection timed out" });
-    }, 6000);
+    }, 7000);
 
     try {
       const socket = tls.connect(
@@ -282,15 +410,17 @@ export async function inspectSslCertificate(hostname: string, port = 443): Promi
             (validToDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
 
-          const issuerStr =
+          const rawIssuer =
             typeof cert.issuer === "object"
               ? cert.issuer.O || cert.issuer.CN || JSON.stringify(cert.issuer)
               : String(cert.issuer);
+          const issuerStr = Array.isArray(rawIssuer) ? rawIssuer.join(", ") : String(rawIssuer);
 
-          const subjectStr =
+          const rawSubject =
             typeof cert.subject === "object"
               ? cert.subject.CN || JSON.stringify(cert.subject)
               : String(cert.subject);
+          const subjectStr = Array.isArray(rawSubject) ? rawSubject.join(", ") : String(rawSubject);
 
           socket.destroy();
           resolve({
@@ -320,73 +450,176 @@ export async function inspectSslCertificate(hostname: string, port = 443): Promi
 }
 
 /**
- * Resolves DNS Records (SPF, DMARC, MX, CAA)
+ * Resolves live DNS Records (A, AAAA, CAA, SPF, DMARC, MX, NS) using DoH and native Node DNS
  */
 export async function inspectDnsSecurity(domain: string): Promise<DnsSecurityDetails> {
+  const aRecords: string[] = [];
+  const aaaaRecords: string[] = [];
   let spfRecord: string | null = null;
   let dmarcRecord: string | null = null;
   const mxRecords: string[] = [];
   const caaRecords: string[] = [];
+  const nsRecords: string[] = [];
   let dnssecSupported = false;
+  let dohProvider = "Cloudflare / Google Public DoH";
 
-  // 1. TXT records for SPF & DNSSEC hint
-  try {
-    const txtRecords = await dns.resolveTxt(domain);
-    for (const chunk of txtRecords) {
-      const full = chunk.join("");
-      if (full.startsWith("v=spf1")) {
-        spfRecord = full;
+  // Clean hostname
+  const host = domain
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/\.+$/, "");
+
+  // Query DoH in parallel for A, AAAA, CAA, SPF TXT, DMARC TXT, MX, NS
+  const [aRes, aaaaRes, caaRes, txtRes, dmarcRes, mxRes, nsRes] = await Promise.all([
+    queryDoh(host, "A"),
+    queryDoh(host, "AAAA"),
+    queryDoh(host, "CAA"),
+    queryDoh(host, "TXT"),
+    queryDoh(`_dmarc.${host}`, "TXT"),
+    queryDoh(host, "MX"),
+    queryDoh(host, "NS"),
+  ]);
+
+  if (aRes.provider) dohProvider = aRes.provider;
+
+  // 1. Process A records (Type 1)
+  for (const ans of aRes.answers) {
+    if (ans.type === 1 && ans.data) {
+      aRecords.push(ans.data.replace(/"/g, "").trim());
+    }
+  }
+
+  // 2. Process AAAA records (Type 28)
+  for (const ans of aaaaRes.answers) {
+    if (ans.type === 28 && ans.data) {
+      aaaaRecords.push(ans.data.replace(/"/g, "").trim());
+    }
+  }
+
+  // 3. Process CAA records (Type 257)
+  for (const ans of caaRes.answers) {
+    if (ans.data) {
+      caaRecords.push(ans.data.replace(/"/g, "").trim());
+    }
+  }
+
+  // 4. Process SPF TXT records (Type 16)
+  for (const ans of txtRes.answers) {
+    const raw = ans.data ? ans.data.replace(/^"|"$/g, "").replace(/""/g, "") : "";
+    if (raw.toLowerCase().startsWith("v=spf1")) {
+      spfRecord = raw;
+      break;
+    }
+  }
+
+  // 5. Process DMARC TXT records (Type 16)
+  for (const ans of dmarcRes.answers) {
+    const raw = ans.data ? ans.data.replace(/^"|"$/g, "").replace(/""/g, "") : "";
+    if (raw.toLowerCase().startsWith("v=dmarc1")) {
+      dmarcRecord = raw;
+      break;
+    }
+  }
+
+  // 6. Process MX records (Type 15)
+  for (const ans of mxRes.answers) {
+    if (ans.data) {
+      mxRecords.push(ans.data.replace(/"/g, "").trim());
+    }
+  }
+
+  // 7. Process NS records (Type 2)
+  for (const ans of nsRes.answers) {
+    if (ans.data) {
+      nsRecords.push(ans.data.replace(/"/g, "").trim());
+    }
+  }
+
+  // Fallback to native Node DNS if DoH returned empty
+  if (aRecords.length === 0) {
+    try {
+      const a = await dns.resolve4(host);
+      aRecords.push(...a);
+    } catch {
+      /* ignore */
+    }
+  }
+  if (aaaaRecords.length === 0) {
+    try {
+      const aaaa = await dns.resolve6(host);
+      aaaaRecords.push(...aaaa);
+    } catch {
+      /* ignore */
+    }
+  }
+  if (!spfRecord) {
+    try {
+      const txt = await dns.resolveTxt(host);
+      for (const chunk of txt) {
+        const full = chunk.join("");
+        if (full.startsWith("v=spf1")) {
+          spfRecord = full;
+          break;
+        }
       }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore DNS lookup failure */
   }
-
-  // 2. DMARC TXT record
-  try {
-    const dmarcTxt = await dns.resolveTxt(`_dmarc.${domain}`);
-    for (const chunk of dmarcTxt) {
-      const full = chunk.join("");
-      if (full.startsWith("v=DMARC1")) {
-        dmarcRecord = full;
+  if (!dmarcRecord) {
+    try {
+      const dmarcTxt = await dns.resolveTxt(`_dmarc.${host}`);
+      for (const chunk of dmarcTxt) {
+        const full = chunk.join("");
+        if (full.startsWith("v=DMARC1")) {
+          dmarcRecord = full;
+          break;
+        }
       }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
   }
-
-  // 3. MX records
-  try {
-    const mx = await dns.resolveMx(domain);
-    mxRecords.push(...mx.map((m) => `${m.exchange} (priority ${m.priority})`));
-  } catch {
-    /* ignore */
-  }
-
-  // 4. CAA records
-  try {
-    const caa = await dns.resolveCaa(domain);
-    caaRecords.push(...caa.map((c) => `${c.issue || c.iodef || JSON.stringify(c)}`));
-  } catch {
-    /* ignore */
-  }
-
-  // 5. DNSSEC check attempt
-  try {
-    const ns = await dns.resolveNs(domain);
-    if (ns && ns.length > 0) {
-      dnssecSupported = true;
+  if (caaRecords.length === 0) {
+    try {
+      const caa = await dns.resolveCaa(host);
+      caaRecords.push(...caa.map((c) => `${c.issue || c.iodef || JSON.stringify(c)}`));
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
+  }
+  if (mxRecords.length === 0) {
+    try {
+      const mx = await dns.resolveMx(host);
+      mxRecords.push(...mx.map((m) => `${m.exchange} (priority ${m.priority})`));
+    } catch {
+      /* ignore */
+    }
+  }
+  if (nsRecords.length === 0) {
+    try {
+      const ns = await dns.resolveNs(host);
+      nsRecords.push(...ns);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (nsRecords.length > 0) {
+    dnssecSupported = true;
   }
 
   return {
+    aRecords: [...new Set(aRecords)],
+    aaaaRecords: [...new Set(aaaaRecords)],
     spfRecord,
     dmarcRecord,
-    mxRecords,
-    caaRecords,
+    mxRecords: [...new Set(mxRecords)],
+    caaRecords: [...new Set(caaRecords)],
+    nsRecords: [...new Set(nsRecords)],
     dnssecSupported,
+    dohProvider,
   };
 }
 
@@ -410,17 +643,21 @@ export async function inspectHygieneProbes(originUrl: string): Promise<HygienePr
   ): Promise<{ status: number; text?: string }> => {
     try {
       const target = new URL(path, originUrl).toString();
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(target, {
+      const { response: res } = await safeExternalFetch(target, {
         method,
         headers: { "User-Agent": DESKTOP_CHROME_UA },
-        signal: controller.signal,
+        timeoutMs: 4000,
+        maxRedirects: 2,
+        maxBytes: 256 * 1024,
       });
-      clearTimeout(timer);
       if (res.ok) {
-        const text = method === "GET" ? await res.text() : undefined;
+        const text = method === "GET" ? await readLimitedResponseText(res, 256 * 1024) : undefined;
         return { status: res.status, text };
+      }
+      try {
+        await res.body?.cancel();
+      } catch {
+        /* ignore */
       }
       return { status: res.status };
     } catch {

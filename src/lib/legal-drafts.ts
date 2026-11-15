@@ -25,12 +25,12 @@ export const interactiveLegalDrafts: LegalDraft[] = [
   {
     id: "ind-dpdp",
     tag: "IND-DPDP",
-    flag: "🇮🇳",
+    flag: "[IN]",
     jurisdiction: "India (DPDP Act 2023 & Draft Rules 2025)",
     region: "Asia-Pacific",
     governingBody: "Data Protection Board of India (DPBI) / MeitY",
     statutoryReference: "Sections 4, 5, 6, 8, 9, 11, 12, 13 & Schedule, DPDP Act 2023",
-    statutoryPenalty: "Up to ₹250 Crore (approx. $30M USD) per statutory breach",
+    statutoryPenalty: "Up to ₹250 Crore per violation",
     badge: "Sec 5 & 6 Itemized Notice Architecture",
     titleHeader:
       "Statutory Itemized Notice, Consent Architecture & Grievance Redressal Addendum // Digital Personal Data Protection Act 2023",
@@ -138,15 +138,14 @@ Failure to implement reasonable security safeguards under Section 8(5) carries s
   {
     id: "ae-pdpl",
     tag: "AE-PDPL",
-    flag: "🇦🇪",
+    flag: "[AE]",
     jurisdiction: "United Arab Emirates (Federal Decree-Law No. 45 of 2021)",
     region: "Middle East",
     governingBody:
       "UAE Data Office / Telecommunications and Digital Government Regulatory Authority (TDRA)",
     statutoryReference:
       "Articles 4, 5, 6, 7, 13, 14, 15, 18, 22 & 23, Federal Decree-Law No. 45/2021",
-    statutoryPenalty:
-      "Up to AED 15,000,000 in statutory administrative fines and operational sanctions",
+    statutoryPenalty: "Up to AED 5 Million",
     badge: "Article 5 & 6 Multilingual Notice",
     titleHeader:
       "Sovereign Data Controller Cross-Border & Multilingual Processing Notice // UAE Federal Decree-Law No. 45 of 2021 (PDPL)",
@@ -215,7 +214,7 @@ In compliance with Article 5 of the UAE PDPL, personal data is processed strictl
 --------------------------------------------------------------------------------
 4.1. Adequate Jurisdictions (Article 22): Personal data may only be transferred outside the UAE if the recipient state provides an adequate level of data protection officially recognized by the UAE Data Office.
 4.2. Standard Contractual Clauses (Article 23): In the absence of an adequacy decision, cross-border transmission of data is strictly conditioned upon binding standard contractual clauses, explicit data subject consent, and verified end-to-end payload encryption.
-4.3. Sovereign Telemetry Routing: All audit requests initiated from the UAE are routed through hardened sovereign transit nodes ensuring complete metadata isolation.
+4.3. Regional Telemetry Routing: All audit requests initiated from the UAE are routed through designated regional compliance gateways ensuring complete metadata isolation.
 
 --------------------------------------------------------------------------------
 5. STATUTORY RIGHTS OF THE DATA SUBJECT (ARTICLES 13–17)
@@ -237,22 +236,21 @@ Data Protection Officer (DPO) Contact Details:
 - Breach Notification Protocol: Mandatory reporting to the UAE Data Office within prescribed statutory deadlines in the event of any unauthorized data disclosure.
 
 PENALTIES & ENFORCEMENT:
-Violations of Federal Decree-Law No. 45/2021 are subject to administrative fines up to AED 15,000,000, temporary or permanent suspension of data processing licenses, and mandatory system audits ordered by the UAE Data Office.`,
+Violations of Federal Decree-Law No. 45/2021 are subject to administrative fines up to AED 5,000,000, temporary or permanent suspension of data processing licenses, and mandatory system audits ordered by the UAE Data Office.`,
   },
 
   // 3. EUROPE - EU GDPR & UK GDPR
   {
     id: "eu-gdpr",
     tag: "EU-GDPR",
-    flag: "🇪🇺",
+    flag: "[EU]",
     jurisdiction: "European Union & United Kingdom (GDPR / UK DPA 2018)",
     region: "Europe & UK",
     governingBody:
       "European Data Protection Board (EDPB) / National DPAs (Irish DPC, CNIL, BfDI) / UK ICO",
     statutoryReference:
       "Articles 5, 6, 12, 13, 14, 28, 30, 32, 33, 34, 44–49 & Chapter III, Regulation (EU) 2016/679",
-    statutoryPenalty:
-      "Up to €20,000,000 or 4% of total worldwide annual turnover (whichever is higher)",
+    statutoryPenalty: "Up to €20M or 4% of global annual turnover",
     badge: "Article 28 DPA & Art 30 ROPA Standard",
     titleHeader:
       "Standard Data Processing Addendum (DPA) & Privacy-by-Design Technical Disclosure // EU GDPR (Regulation 2016/679) & UK GDPR",
@@ -353,15 +351,14 @@ Infringements of the core principles of processing, data subject rights, or cros
   {
     id: "us-cpra",
     tag: "US-CPRA",
-    flag: "🇺🇸",
+    flag: "[US]",
     jurisdiction: "United States (California CCPA / CPRA & Comprehensive State Privacy Acts)",
     region: "Americas",
     governingBody:
       "California Privacy Protection Agency (CPPA) / California Attorney General / Multi-State AGs",
     statutoryReference:
       "California Civil Code § 1798.100 et seq. (CCPA as amended by CPRA), CCR Title 11 Div 6",
-    statutoryPenalty:
-      "Up to $7,500 per intentional violation; statutory private right of action for data breaches ($100–$750/consumer)",
+    statutoryPenalty: "Up to $7,500 per intentional violation",
     badge: "§ 1798.135 DNSMPI Notice Architecture",
     titleHeader:
       "Comprehensive Notice at Collection, 'Do Not Sell or Share My Info' & Global Privacy Control (GPC) Addendum // CCPA/CPRA",
@@ -461,14 +458,13 @@ Civil penalties up to $7,500 per intentional violation enforced by the Californi
   {
     id: "sg-pdpa",
     tag: "SG-PDPA",
-    flag: "🇸🇬",
+    flag: "[SG]",
     jurisdiction: "Singapore (Personal Data Protection Act 2012 / Amended 2020)",
     region: "Asia-Pacific",
     governingBody: "Personal Data Protection Commission (PDPC Singapore)",
     statutoryReference:
       "Sections 11–26 & Part VIA (Mandatory Data Breach Notification), Singapore PDPA 2012",
-    statutoryPenalty:
-      "Up to SGD $1,000,000 or 10% of annual turnover in Singapore (whichever is higher)",
+    statutoryPenalty: "Up to SGD 1M or 10% of annual turnover",
     badge: "Part IV & VIA Breach Notification Standard",
     titleHeader:
       "Statutory Personal Data Protection & Mandatory 72-Hour Data Breach Protocol // Singapore PDPA 2012 (Amended 2020)",
@@ -559,14 +555,13 @@ Under the amended PDPA, the PDPC possesses powers to impose financial penalties 
   {
     id: "br-lgpd",
     tag: "BR-LGPD",
-    flag: "🇧🇷",
+    flag: "[BR]",
     jurisdiction: "Brazil (Lei Geral de Proteção de Dados - LGPD Lei nº 13.709/2018)",
     region: "Americas",
     governingBody: "Autoridade Nacional de Proteção de Dados (ANPD Brasil)",
     statutoryReference:
       "Artigos 6º, 7º, 8º, 9º, 11, 14, 18, 41, 46, 48 & 52, Lei Federal nº 13.709/2018",
-    statutoryPenalty:
-      "Até 2% do faturamento da empresa no Brasil, limitada a R$ 50.000.000,00 por infração",
+    statutoryPenalty: "Up to 2% of revenue (capped at BRL 50M)",
     badge: "Art. 7º & 18 Brazilian Notice",
     titleHeader:
       "Termo de Tratamento de Dados Pessoais e Política de Governança // Lei Geral de Proteção de Dados (LGPD Lei nº 13.709/2018)",
@@ -669,13 +664,13 @@ As infrações às normas da LGPD sujeitam os agentes de tratamento a advertênc
   {
     id: "uk-duaa",
     tag: "UK-GDPR",
-    flag: "🇬🇧",
+    flag: "[UK]",
     jurisdiction: "United Kingdom (UK GDPR & DUAA 2026)",
     region: "Europe & UK",
     governingBody: "Information Commissioner's Office (ICO)",
     statutoryReference:
       "Data Protection Act 2018, UK GDPR, PECR 2003 & Data (Use and Access) Bill (DUAA)",
-    statutoryPenalty: "Up to £17.5M or 4% of total worldwide annual turnover, whichever is higher",
+    statutoryPenalty: "Up to £17.5M or 4% of global turnover",
     badge: "PECR & DUAA Smart Consent",
     titleHeader:
       "Statutory UK Data Protection & PECR Telemetry Compliance Protocol // Information Commissioner's Office (ICO)",
@@ -731,13 +726,13 @@ Breaches of UK GDPR and PECR obligations are subject to ICO enforcement notices 
   {
     id: "canada-pipeda",
     tag: "CA-PIPEDA",
-    flag: "🇨🇦",
+    flag: "[CA]",
     jurisdiction: "Canada (PIPEDA SC 2000 c.5 & Bill C-27 CPPA)",
     region: "Americas",
     governingBody: "Office of the Privacy Commissioner of Canada (OPC)",
     statutoryReference:
       "Personal Information Protection and Electronic Documents Act (SC 2000 c.5)",
-    statutoryPenalty: "Fines up to CAD $100,000 to CAD $25,000,000 under pending CPPA reforms",
+    statutoryPenalty: "Up to CAD $10M or 3% of global revenue",
     badge: "Schedule 1 10 Fair Info Principles",
     titleHeader:
       "Canadian Statutory Privacy Standard & Schedule 1 Compliance Instrument // Office of the Privacy Commissioner (OPC)",
@@ -792,12 +787,12 @@ Any security incident creating a real risk of significant harm (RROSH) is immedi
   {
     id: "aus-privacy",
     tag: "AU-PRIVACY",
-    flag: "🇦🇺",
+    flag: "[AU]",
     jurisdiction: "Australia (Privacy Act 1988 & 2024–2026 Reforms)",
     region: "Asia-Pacific",
     governingBody: "Office of the Australian Information Commissioner (OAIC)",
     statutoryReference: "Privacy Act 1988 (Cth) & Australian Privacy Principles (APPs 1–13)",
-    statutoryPenalty: "Up to AUD $50,000,000 or 30% of adjusted turnover (Treasury Laws Amendment)",
+    statutoryPenalty: "Up to AUD $50M",
     badge: "APP 1–13 Transparent Data Handling",
     titleHeader:
       "Australian Privacy Principles (APP) Statutory Instrument // Office of the Australian Information Commissioner",
@@ -852,12 +847,12 @@ Under the Treasury Laws Amendment, severe or repeated interferences with privacy
   {
     id: "jp-appi",
     tag: "JP-APPI",
-    flag: "🇯🇵",
+    flag: "[JP]",
     jurisdiction: "Japan (Act on the Protection of Personal Information - APPI)",
     region: "Asia-Pacific",
     governingBody: "Personal Information Protection Commission (PPC)",
     statutoryReference: "Act No. 57 of 2003 as amended (APPI)",
-    statutoryPenalty: "Corporate penalties up to ¥100,000,000 and penal sanctions on individuals",
+    statutoryPenalty: "Up to ¥100 Million corporate fine",
     badge: "PPC Cross-Border & Extraterritorial Controls",
     titleHeader:
       "Statutory Personal Information Handling Instrument // Japan Personal Information Protection Commission (PPC)",
@@ -911,12 +906,12 @@ TLS暗号化通信、アクセス制御、マルウェア対策、および従�
   {
     id: "kr-pipa",
     tag: "KR-PIPA",
-    flag: "🇰🇷",
+    flag: "[KR]",
     jurisdiction: "South Korea (Personal Information Protection Act - PIPA)",
     region: "Asia-Pacific",
     governingBody: "Personal Information Protection Commission (PIPC)",
     statutoryReference: "PIPA Act No. 10465 as amended (2023/2024 Reforms)",
-    statutoryPenalty: "Fines up to 3% of total annual revenue and statutory compensation claims",
+    statutoryPenalty: "Up to 3% of total annual revenue",
     badge: "PIPC Segregated Consent & Transfer Rules",
     titleHeader:
       "South Korean Statutory Data Governance Standard // Personal Information Protection Commission (PIPC)",
@@ -970,12 +965,12 @@ REGULATORY BODY: Personal Information Protection Commission (개인정보보호�
   {
     id: "ch-fadp",
     tag: "CH-FADP",
-    flag: "🇨🇭",
+    flag: "[CH]",
     jurisdiction: "Switzerland (Federal Act on Data Protection - FADP)",
     region: "Europe & UK",
     governingBody: "Federal Data Protection and Information Commissioner (FDPIC)",
     statutoryReference: "Federal Act on Data Protection (FADP SR 235.1)",
-    statutoryPenalty: "Criminal fines up to CHF 250,000 on responsible natural persons",
+    statutoryPenalty: "Up to CHF 250,000 personal criminal fine",
     badge: "Privacy by Design & Default (Art. 7)",
     titleHeader:
       "Swiss Federal Data Protection Statutory Charter // Federal Data Protection and Information Commissioner (FDPIC)",
@@ -1029,13 +1024,12 @@ Violations of the duty to inform, transfer rules, or confidentiality obligations
   {
     id: "ksa-pdpl",
     tag: "SA-PDPL",
-    flag: "🇸🇦",
+    flag: "[SA]",
     jurisdiction: "Saudi Arabia (Personal Data Protection Law - PDPL)",
     region: "Middle East",
     governingBody: "Saudi Data & AI Authority (SDAIA)",
     statutoryReference: "Royal Decree No. M/19 and Implementing Regulations",
-    statutoryPenalty:
-      "Fines up to SAR 5,000,000 and criminal imprisonment up to 2 years for sensitive data leaks",
+    statutoryPenalty: "Up to SAR 5 Million",
     badge: "SDAIA National Data Registry & Consent",
     titleHeader:
       "Kingdom of Saudi Arabia Statutory Personal Data Protection Instrument // Saudi Data & AI Authority (SDAIA)",
@@ -1089,12 +1083,12 @@ Penalties include statutory fines up to SAR 5,000,000 (which may be doubled for 
   {
     id: "za-popia",
     tag: "ZA-POPIA",
-    flag: "🇿🇦",
+    flag: "[ZA]",
     jurisdiction: "South Africa (Protection of Personal Information Act - POPIA)",
     region: "Africa",
     governingBody: "Information Regulator of South Africa",
     statutoryReference: "Protection of Personal Information Act 4 of 2013 (POPIA)",
-    statutoryPenalty: "Fines up to ZAR 10,000,000 or imprisonment up to 10 years",
+    statutoryPenalty: "Up to ZAR 10 Million",
     badge: "8 Lawful Processing Conditions (Sec 8–25)",
     titleHeader:
       "South African Statutory Information Protection Standard // Information Regulator (South Africa)",
@@ -1157,13 +1151,12 @@ Non-compliance carries administrative fines up to ZAR 10,000,000 or penal impris
   {
     id: "ng-ndpa",
     tag: "NG-NDPA",
-    flag: "🇳🇬",
+    flag: "[NG]",
     jurisdiction: "Nigeria (Nigeria Data Protection Act, 2023 - NDPA)",
     region: "Africa",
     governingBody: "Nigeria Data Protection Commission (NDPC)",
     statutoryReference: "Nigeria Data Protection Act, 2023 (NDPA Act No. 43 of 2023)",
-    statutoryPenalty:
-      "Higher of ₦10,000,000 or 2% of annual gross revenue (Major Data Controllers)",
+    statutoryPenalty: "Up to NGN 10M or 2% of annual gross revenue",
     badge: "NDPC Annual Audit & Lawful Consent (Sec 24/25)",
     titleHeader:
       "Statutory Data Processing & NDPC Compliance Instrument // Nigeria Data Protection Commission (NDPC)",

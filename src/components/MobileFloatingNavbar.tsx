@@ -1,103 +1,165 @@
-import { Globe, ShieldCheck, Scale, Award, Terminal } from "lucide-react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { Radar, Globe, Landmark, Crown, UserCheck } from "lucide-react";
+
+type TabId = "scanner" | "atlas" | "politech" | "pricing" | "about";
+
+const DOCK_TABS: readonly {
+  id: TabId;
+  label: string;
+  icon: typeof Radar;
+}[] = [
+  { id: "scanner", label: "Scan", icon: Radar },
+  { id: "atlas", label: "Atlas", icon: Globe },
+  { id: "politech", label: "PoliTech", icon: Landmark },
+  { id: "pricing", label: "Pricing", icon: Crown },
+  { id: "about", label: "Founder", icon: UserCheck },
+];
 
 export function MobileFloatingNavbar() {
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    } else {
+  const [activeTab, setActiveTab] = useState<TabId>("scanner");
+
+  useEffect(() => {
+    const syncFromHash = () => {
+      if (typeof window === "undefined") return;
+      const hash = window.location.hash.replace("#", "") as TabId;
+      if (["scanner", "atlas", "politech", "pricing", "about"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+
+    const handleCustomTabEvent = (e: Event) => {
+      const custom = e as CustomEvent<TabId>;
+      if (
+        custom.detail &&
+        ["scanner", "atlas", "politech", "pricing", "about"].includes(custom.detail)
+      ) {
+        setActiveTab(custom.detail);
+      }
+    };
+
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    window.addEventListener("asji:tab-change", handleCustomTabEvent);
+    return () => {
+      window.removeEventListener("hashchange", syncFromHash);
+      window.removeEventListener("asji:tab-change", handleCustomTabEvent);
+    };
+  }, []);
+
+  const handleSelectTab = (id: TabId) => {
+    setActiveTab(id);
+    if (typeof window === "undefined") return;
+
+    if (window.location.pathname !== "/") {
       window.location.href = `/#${id}`;
+      return;
     }
+
+    window.location.hash = `#${id}`;
+    window.dispatchEvent(new CustomEvent("asji:tab-change", { detail: id }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <motion.div
-      initial={{ y: 40, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed bottom-3 left-3 right-3 z-50 flex md:hidden items-center justify-around rounded-full border border-[#D4AF37]/35 px-3 py-2 backdrop-blur-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+    <motion.nav
+      aria-label="Mobile and tablet navigation dock"
+      initial={false}
       style={{
-        background: "rgba(10, 8, 7, 0.40)",
-        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.12)",
+        background:
+          "linear-gradient(135deg, rgba(28, 31, 39, 0.65) 0%, rgba(13, 14, 17, 0.54) 100%)",
+        backdropFilter: "blur(28px) saturate(190%)",
+        WebkitBackdropFilter: "blur(28px) saturate(190%)",
+        borderColor: "rgba(201, 162, 39, 0.38)",
+        boxShadow:
+          "inset 0 1px 0 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 0 rgba(201, 162, 39, 0.14), 0 18px 44px -8px rgba(0, 0, 0, 0.8), 0 0 28px -8px rgba(201, 162, 39, 0.22)",
       }}
+      className="fixed bottom-4 left-3.5 right-3.5 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[calc(100%-3rem)] md:max-w-lg z-50 flex lg:hidden items-center justify-between gap-1 rounded-2xl border px-2 py-2 overflow-hidden will-change-transform"
     >
-      <button
-        type="button"
-        onClick={() => scrollToSection("scan")}
-        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
-        title="Scanner"
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 border border-primary/40 text-primary shadow-sm backdrop-blur-md">
-          <Globe className="h-4 w-4" />
-        </div>
-        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-foreground">
-          Scan
-        </span>
-      </button>
+      {/* Top Glass Specular Rim Highlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent"
+      />
+      {/* Subtle Internal Glass Reflection */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.06] via-transparent to-[#C9A227]/[0.04]"
+      />
 
-      <button
-        type="button"
-        onClick={() => scrollToSection("capabilities")}
-        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
-        title="Capabilities"
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/15 text-foreground backdrop-blur-md">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-        </div>
-        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-foreground">
-          Shield
-        </span>
-      </button>
+      {DOCK_TABS.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <motion.button
+            key={tab.id}
+            type="button"
+            onClick={() => handleSelectTab(tab.id)}
+            aria-current={isActive ? "page" : undefined}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="relative flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1.5 px-1 cursor-pointer select-none active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#C9A227]"
+          >
+            {/* Sliding Frosted Glass Active Pill */}
+            {isActive && (
+              <motion.span
+                layoutId="mobileDockActivePill"
+                transition={{
+                  type: "spring",
+                  stiffness: 420,
+                  damping: 32,
+                  mass: 0.7,
+                }}
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(201, 162, 39, 0.24) 0%, rgba(201, 162, 39, 0.08) 100%)",
+                  boxShadow:
+                    "inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 4px 14px -4px rgba(201, 162, 39, 0.35)",
+                }}
+                className="absolute inset-0 rounded-xl border border-[#C9A227]/50"
+              />
+            )}
 
-      <button
-        type="button"
-        onClick={() => {
-          const reportEl =
-            document.getElementById("asji-letterhead-report-paper") ||
-            document.getElementById("scan");
-          reportEl?.scrollIntoView({ behavior: "smooth" });
-        }}
-        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
-        title="Results & Report"
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/25 border border-[#D4AF37]/60 text-[#E5C158] shadow-md shadow-[#D4AF37]/40 animate-pulse backdrop-blur-md">
-          <Award className="h-4 w-4" />
-        </div>
-        <span className="text-[9px] font-mono font-extrabold uppercase tracking-wider text-[#E5C158]">
-          Results
-        </span>
-      </button>
+            <motion.span
+              initial={false}
+              animate={{
+                y: isActive ? -1 : 0,
+                scale: isActive ? 1.1 : 1,
+              }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 flex items-center justify-center"
+            >
+              <Icon
+                className={`h-4 w-4 transition-colors duration-200 ${
+                  isActive ? "text-[#DFB842]" : "text-zinc-400"
+                }`}
+              />
+            </motion.span>
 
-      <button
-        type="button"
-        onClick={() =>
-          scrollToSection("laws-atlas") || window.scrollTo({ top: 600, behavior: "smooth" })
-        }
-        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
-        title="Sovereign Laws"
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/15 text-foreground backdrop-blur-md">
-          <Scale className="h-4 w-4 text-primary" />
-        </div>
-        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-foreground">
-          Laws
-        </span>
-      </button>
+            <span
+              className={`relative z-10 text-[10px] font-mono font-semibold tracking-tight transition-colors duration-200 whitespace-nowrap ${
+                isActive ? "text-[#FAF8F5]" : "text-zinc-400"
+              }`}
+            >
+              {tab.label}
+            </span>
 
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer"
-        title="Top"
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/40 border border-primary/30 text-primary backdrop-blur-md">
-          <Terminal className="h-4 w-4" />
-        </div>
-        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-foreground">
-          Top
-        </span>
-      </button>
-    </motion.div>
+            {/* Active Gold Indicator Dot */}
+            {isActive && (
+              <motion.span
+                layoutId="mobileDockActiveDot"
+                transition={{
+                  type: "spring",
+                  stiffness: 420,
+                  damping: 32,
+                  mass: 0.7,
+                }}
+                className="relative z-10 h-1.5 w-1.5 rounded-full bg-[#C9A227] shadow-[0_0_8px_rgba(201,162,39,0.85)]"
+              />
+            )}
+          </motion.button>
+        );
+      })}
+    </motion.nav>
   );
 }

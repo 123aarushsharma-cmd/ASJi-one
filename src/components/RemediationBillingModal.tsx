@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   Zap,
   Lock,
-  Sparkles,
   Building2,
   ArrowRight,
   X,
@@ -16,19 +15,20 @@ import {
   Scale,
   CheckCircle2,
   FileText,
-  Code,
   Download,
   Clock,
 } from "lucide-react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import type { AuditReport } from "@/lib/audit-types";
-import {
-  generateClientHandoverDocument,
-  generateAutomatedPatches,
-} from "@/lib/remediation-patches";
+import { generateClientHandoverDocument } from "@/lib/remediation-patches";
 import { StatutoryLegalSolutionCard } from "@/components/StatutoryLegalSolutionCard";
 import { STATUTORY_FRAMEWORKS } from "@/lib/audit-statutes";
+import {
+  checkDomainPaymentUnlock,
+  normalizeDomainName,
+  submitPaymentUnlockRequest,
+} from "@/lib/firestore-service";
 import { toast } from "sonner";
 
 type BillingTierId = "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle";
@@ -107,7 +107,7 @@ const BILLING_TIERS: TierDetails[] = [
   {
     id: "full-bundle",
     name: "Full-Spectrum Sovereign Enterprise Suite",
-    badge: "Best Value // Complete Solution",
+    badge: "Complete Enterprise Suite",
     popular: true,
     priceInr: "₹59,999",
     priceNum: 59999,
@@ -153,23 +153,39 @@ export function RemediationBillingModal({
   const [upiCopied, setUpiCopied] = useState(false);
 
   const currentTier = BILLING_TIERS.find((t) => t.id === selectedTier) || BILLING_TIERS[3];
-  const targetDomain = (report?.target || "your-domain.com")
-    .replace(/^https?:\/\//i, "")
-    .split("/")[0];
+  const targetDomain =
+    normalizeDomainName(report?.target || "your-domain.com") || "your-domain.com";
 
   const currentFramework =
     STATUTORY_FRAMEWORKS.find((f) => f.id === frameworkId) || STATUTORY_FRAMEWORKS[0];
 
   useEffect(() => {
-    if (isOpen) {
-      if (initialTier) {
-        setSelectedTier(initialTier);
-      }
-      setTxnStep("form");
-      const randomTxn = `TXN-ASJI-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
-      setGeneratedTxnId(randomTxn);
+    if (!isOpen) return;
+    if (initialTier) {
+      setSelectedTier(initialTier);
     }
-  }, [isOpen, initialTier]);
+    setGeneratedTxnId(`TXN-ASJI-${Date.now().toString().slice(-6)}`);
+    setTxnStep("form");
+
+    if (report?.target) {
+      checkDomainPaymentUnlock(targetDomain)
+        .then((res) => {
+          if (res.unlocked) {
+            const matchedTier =
+              res.tier === "patch-code" ||
+              res.tier === "dpdp-india" ||
+              res.tier === "gdpr-global" ||
+              res.tier === "full-bundle"
+                ? res.tier
+                : "full-bundle";
+            setSelectedTier(matchedTier);
+            setTxnStep("success");
+            onUnlockSuccess(matchedTier);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, initialTier, report?.target, targetDomain, onUnlockSuccess]);
 
   if (!isOpen) return null;
 
@@ -200,51 +216,72 @@ export function RemediationBillingModal({
 
   const handleStartTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanRef = (referenceId || "").trim();
-    if (!cleanRef || cleanRef.length < 8) {
-      toast.error("Invalid Transfer Reference", {
-        description: "Please enter a valid 12-digit bank UTR or IMPS reference number.",
+    const cleanRef = (referenceId || "").trim().replace(/\s+/g, "");
+    if (!/^[0-9]{12}$/.test(cleanRef)) {
+      toast.error("Invalid 12-Digit Bank UTR", {
+        description: "Please enter the exact 12-digit numeric UPI / IMPS UTR reference number.",
       });
       return;
     }
 
     setTxnStep("processing");
-    setProcessingStatus(`Connecting to banking switch for reference ${cleanRef}...`);
+    setProcessingStatus(`Registering unlock request for UTR ${cleanRef} in Firestore...`);
 
     try {
-      const txnDocId = `txn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      await setDoc(doc(db, "transactions", txnDocId), {
-        id: txnDocId,
-        referenceId: cleanRef,
+      await submitPaymentUnlockRequest({
+        userId: auth.currentUser?.uid || null,
         domain: targetDomain,
+        referenceId: cleanRef,
         tier: selectedTier,
         tierName: currentTier.name,
         priceInr: currentTier.priceInr,
         orgName: orgName.trim() || targetDomain,
         email: email.trim() || `compliance@${targetDomain}`,
         taxId: taxId.trim() || null,
-        status: "pending_verification",
-        createdAt: serverTimestamp(),
-        submittedAt: new Date().toISOString(),
       });
+
+      if (auth.currentUser?.uid) {
+        const txnDocId = `txn_${Date.now()}_${cleanRef.slice(-5)}`;
+        await setDoc(doc(db, "transactions", txnDocId), {
+          id: txnDocId,
+          userId: auth.currentUser.uid,
+          referenceId: cleanRef,
+          domain: targetDomain,
+          tier: selectedTier,
+          tierName: currentTier.name,
+          priceInr: currentTier.priceInr,
+          orgName: orgName.trim() || targetDomain,
+          email: email.trim() || `compliance@${targetDomain}`,
+          taxId: taxId.trim() || null,
+          status: "pending_verification",
+          createdAt: serverTimestamp(),
+          submittedAt: new Date().toISOString(),
+        }).catch(() => {});
+      }
     } catch (err) {
-      console.warn("Firestore transaction record note:", err);
+      console.warn("Payment unlock submission error:", err);
+      toast.error("Could not register UTR request", {
+        description: "Please check your 12-digit UTR and connection and retry.",
+      });
+      setTxnStep("form");
+      return;
     }
 
     setTimeout(() => {
-      setProcessingStatus("Registering cryptographic invoice seal with ASJi treasury...");
-    }, 1200);
+      setProcessingStatus("Preparing invoice receipt for ASJi Accounts Desk review...");
+    }, 800);
 
     setTimeout(() => {
       setTxnStep("submitted");
-      toast.success("Transaction Reference Logged", {
-        description: `UTR ${cleanRef} is awaiting banking reconciliation.`,
+      toast.success("Payment Reference Submitted", {
+        description: `UTR ${cleanRef} logged for admin verification & persistent unlock of ${targetDomain}.`,
       });
-    }, 2500);
+    }, 1600);
   };
 
   const handleCopyReceipt = async () => {
     try {
+      const sealToken = (report?.auditRefId || generatedTxnId || "ASJI-2026-SEAL").toUpperCase();
       const receiptText = `================================================================================
 ASJi ONE // ENTERPRISE SOVEREIGN TRANSACTION & TAX INVOICE
 ================================================================================
@@ -260,7 +297,7 @@ Purchasing Org  : ${orgName || "Enterprise Client"}
 Compliance Email: ${email || "compliance@domain.com"}
 Corporate Tax ID: ${taxId || "N/A (Standard Business License)"}
 Timestamp (UTC) : ${new Date().toISOString()}
-Compliance Token: ASJI-AUTH-SEAL-2026-${Math.random().toString(36).substring(2, 8).toUpperCase()}
+Compliance Token: ASJI-AUTH-SEAL-${sealToken}
 Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS Encrypted
 ================================================================================`;
       await navigator.clipboard.writeText(receiptText);
@@ -290,46 +327,42 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#08080a] text-foreground font-sans animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0D0E11] text-foreground font-sans animate-in fade-in duration-200">
       {/* Top Enterprise Security & Navigation Bar */}
-      <header className="sticky top-0 z-40 border-b border-primary/30 bg-black/90 backdrop-blur-xl px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xl">
+      <header className="sticky top-0 z-40 border-b border-[#262932] bg-[#0D0E11] px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary font-bold shadow-md">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#C9A227]/40 bg-[#15171C] text-[#C9A227] font-bold">
             <Scale className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-sm sm:text-base font-bold text-gold-gradient">
-                ASJi One Enterprise Licensing &amp; Checkout Vault
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-display text-sm sm:text-base font-bold text-[#FAF8F5]">
+                ASJi One Enterprise Licensing &amp; Settlement Vault
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-400">
-                <ShieldCheck className="h-3 w-3" /> Bank-Grade 256-Bit SSL
+              <span className="hidden sm:inline-flex items-center gap-1 rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-mono font-semibold text-[#10B981]">
+                <ShieldCheck className="h-3 w-3" /> 256-Bit TLS
               </span>
             </div>
             <p className="text-[11px] font-mono text-muted-foreground hidden md:block">
-              Licensed Target Domain: <strong className="text-foreground">{targetDomain}</strong> •
-              Jurisdiction: <strong className="text-primary">{currentFramework.label}</strong>
+              Target Domain: <strong className="text-foreground">{targetDomain}</strong> ·
+              Jurisdiction: <strong className="text-[#C9A227]">{currentFramework.label}</strong>
             </p>
           </div>
         </div>
 
-        {/* Top Trust Badges & Close */}
-        <div className="flex items-center gap-3">
-          <div className="hidden lg:flex items-center gap-2 font-mono text-[10px] text-muted-foreground border-r border-white/10 pr-4">
-            <span className="inline-flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded">
-              <ShieldCheck className="h-3 w-3 text-primary" /> ISO 27001
-            </span>
-            <span className="inline-flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded">
-              <ShieldCheck className="h-3 w-3 text-primary" /> SOC-2 Type II
-            </span>
-            <span className="inline-flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded">
-              <Lock className="h-3 w-3 text-primary" /> PCI-DSS Level 1
-            </span>
+        {/* Top Trust Standards & Close */}
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-2 font-mono text-[10px] text-muted-foreground border-r border-[#262932] pr-4">
+            <span>ISO 27001</span>
+            <span>·</span>
+            <span>SOC-2 Type II</span>
+            <span>·</span>
+            <span>PCI-DSS Level 1</span>
           </div>
 
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 rounded-xl border border-border/80 bg-secondary/40 px-3.5 py-1.5 text-xs font-mono font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-all cursor-pointer"
+            className="flex items-center gap-1.5 rounded-md border border-[#262932] bg-[#15171C] px-3.5 py-1.5 text-xs font-mono font-semibold text-muted-foreground hover:border-[#C9A227]/50 hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="h-4 w-4" />
             <span>Return to Audit</span>
@@ -342,31 +375,30 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
         {/* PROCESSING STEP */}
         {txnStep === "processing" && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-300">
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-primary/10 border-2 border-primary/50 mb-6 shadow-2xl shadow-primary/20">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-2xl animate-pulse" />
+            <div className="flex h-20 w-20 items-center justify-center rounded-md bg-[#15171C] border border-[#C9A227] mb-6">
+              <Loader2 className="h-10 w-10 animate-spin text-[#C9A227]" />
             </div>
 
-            <span className="font-mono text-xs uppercase tracking-widest text-primary font-bold">
-              Direct UPI Switch // Enterprise Compliance Synthesizer
+            <span className="font-mono text-xs uppercase tracking-widest text-[#C9A227] font-semibold">
+              Direct UPI Settlement · Enterprise Compliance Synthesizer
             </span>
 
-            <h2 className="mt-3 font-display text-3xl font-bold text-gold-gradient">
+            <h2 className="mt-3 font-display text-3xl font-bold text-[#FAF8F5]">
               Verifying Payment &amp; Synthesizing Deliverables
             </h2>
 
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Securely validating transaction reference against Reserve Bank UPI switches and
-              releasing licensed artifacts for <strong>{targetDomain}</strong>.
+              Validating transaction reference against Reserve Bank UPI switches and preparing
+              licensed deliverables for <strong>{targetDomain}</strong>.
             </p>
 
-            <div className="mt-6 rounded-2xl border border-primary/40 bg-black/80 px-6 py-4 font-mono text-xs text-muted-foreground max-w-lg shadow-xl">
-              <p className="text-emerald-400 font-semibold flex items-center justify-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <div className="mt-6 rounded-md border border-[#262932] bg-[#15171C] px-6 py-4 font-mono text-xs text-muted-foreground max-w-lg">
+              <p className="text-[#10B981] font-semibold flex items-center justify-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 {processingStatus}
               </p>
-              <p className="mt-2 text-[11px] text-muted-foreground/80 border-t border-white/10 pt-2">
-                Target: {targetDomain} • Tier: {currentTier.name} • Ref:{" "}
+              <p className="mt-2 text-[11px] text-muted-foreground border-t border-[#262932] pt-2">
+                Target: {targetDomain} · Tier: {currentTier.name} · Ref:{" "}
                 {referenceId || generatedTxnId}
               </p>
             </div>
@@ -376,52 +408,54 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
         {/* SUBMITTED STEP: PENDING ADMIN RECONCILIATION */}
         {txnStep === "submitted" && (
           <div className="py-6 animate-in fade-in duration-300 space-y-6 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center justify-center text-center border-b border-border/60 pb-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 border-2 border-amber-500/40 mb-4 shadow-xl shadow-amber-500/10">
-                <Clock className="h-10 w-10 animate-pulse" />
+            <div className="flex flex-col items-center justify-center text-center border-b border-[#262932] pb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/40 mb-4">
+                <Clock className="h-8 w-8" />
               </div>
-              <span className="font-mono text-xs uppercase tracking-wider text-amber-400 font-bold bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full">
-                UTR Recorded · Banking Switch Reconciliation Pending
+              <span className="font-mono text-xs uppercase tracking-wider text-[#F59E0B] font-bold bg-[#F59E0B]/10 border border-[#F59E0B]/40 px-3 py-1 rounded">
+                UTR Recorded · Banking Reconciliation Pending
               </span>
-              <h2 className="mt-3 font-display text-2xl sm:text-3xl font-bold text-gold-gradient">
+              <h2 className="mt-3 font-display text-2xl sm:text-3xl font-bold text-[#FAF8F5]">
                 Payment Verification Underway
               </h2>
               <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
                 Your 12-digit transaction UTR{" "}
-                <strong className="text-amber-300 font-mono">{referenceId}</strong> has been logged
-                with ASJi Accounts Desk for <strong className="text-white">{targetDomain}</strong>.
+                <strong className="text-[#F59E0B] font-mono tabular-nums">{referenceId}</strong> has
+                been logged with ASJi Accounts Desk for{" "}
+                <strong className="text-foreground">{targetDomain}</strong>.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-primary/30 bg-black/80 p-5 sm:p-6 font-mono text-xs space-y-3">
-              <div className="flex items-center gap-2 text-amber-300 font-bold border-b border-white/10 pb-2">
+            <div className="rounded-md border border-[#262932] bg-[#15171C] p-5 sm:p-6 font-mono text-xs space-y-3">
+              <div className="flex items-center gap-2 text-[#C9A227] font-bold border-b border-[#262932] pb-2">
                 <ShieldCheck className="h-4 w-4" />
                 <span>Anti-Fraud &amp; Zero-Bypass Compliance Protocol</span>
               </div>
-              <p className="text-muted-foreground leading-relaxed text-[11px]">
+              <p className="text-muted-foreground leading-relaxed text-[11px] font-sans">
                 Autonomous remediation code patches, edge middleware, and sovereign legal drafts are
-                production-grade enterprise assets. To prevent unauthorized extraction, access is
-                activated upon bank settlement confirmation (typically 15–30 minutes during banking
-                hours).
+                production-grade enterprise assets. Access is activated upon bank settlement
+                confirmation (typically 15–30 minutes during banking hours).
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-[11px]">
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-neutral-500 block">Licensed Organization:</span>
-                  <span className="text-white font-bold">{orgName || targetDomain}</span>
+                <div className="p-3 rounded-md bg-[#0D0E11] border border-[#262932]">
+                  <span className="text-muted-foreground block">Licensed Organization:</span>
+                  <span className="text-foreground font-bold">{orgName || targetDomain}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-neutral-500 block">Deliverable Tier:</span>
-                  <span className="text-amber-300 font-bold">
+                <div className="p-3 rounded-md bg-[#0D0E11] border border-[#262932]">
+                  <span className="text-muted-foreground block">Deliverable Tier:</span>
+                  <span className="text-[#C9A227] font-bold tabular-nums">
                     {currentTier.name} ({currentTier.priceInr})
                   </span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-neutral-500 block">Submitted Bank UTR:</span>
-                  <span className="text-primary font-bold">{referenceId}</span>
+                <div className="p-3 rounded-md bg-[#0D0E11] border border-[#262932]">
+                  <span className="text-muted-foreground block">Submitted Bank UTR:</span>
+                  <span className="text-[#C9A227] font-bold tabular-nums">{referenceId}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
-                  <span className="text-neutral-500 block">Delivery Email:</span>
-                  <span className="text-white font-bold">{email || "compliance@domain.com"}</span>
+                <div className="p-3 rounded-md bg-[#0D0E11] border border-[#262932]">
+                  <span className="text-muted-foreground block">Delivery Email:</span>
+                  <span className="text-foreground font-bold">
+                    {email || "compliance@domain.com"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -430,14 +464,18 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
               <button
                 type="button"
                 onClick={handleCopyReceipt}
-                className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-mono font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-md border border-[#C9A227]/40 bg-[#15171C] px-5 py-2.5 text-xs font-mono font-bold text-[#C9A227] hover:bg-[#C9A227]/10 transition-colors cursor-pointer"
               >
-                <Receipt className="h-4 w-4" />
-                <span>{receiptCopied ? "Receipt Copied ✓" : "Copy Tax Receipt"}</span>
+                {receiptCopied ? (
+                  <Check className="h-4 w-4 text-[#10B981]" />
+                ) : (
+                  <Receipt className="h-4 w-4" />
+                )}
+                <span>{receiptCopied ? "Receipt Copied" : "Copy Tax Receipt"}</span>
               </button>
               <a
-                href={`mailto:asji.online@gmail.com?subject=Expedited%20Activation%20Request%20-%20UTR%20${encodeURIComponent(referenceId)}&body=Hello%20ASJi%20Compliance%20Desk,%0A%0AI%20have%20completed%20the%20UPI%20transfer%20for%20${encodeURIComponent(targetDomain)}.%0AUTR:%20${encodeURIComponent(referenceId)}%0ATier:%20${encodeURIComponent(currentTier.name)}%0AOrganization:%20${encodeURIComponent(orgName)}%0A%0APlease%20expedite%20activation.`}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs font-mono font-bold text-black hover:from-amber-400 hover:to-amber-500 transition-all cursor-pointer shadow-lg"
+                href={`mailto:hello@asjione.com?subject=Expedited%20Activation%20Request%20-%20UTR%20${encodeURIComponent(referenceId)}&body=Hello%20ASJi%20Compliance%20Desk,%0A%0AI%20have%20completed%20the%20UPI%20transfer%20for%20${encodeURIComponent(targetDomain)}.%0AUTR:%20${encodeURIComponent(referenceId)}%0ATier:%20${encodeURIComponent(currentTier.name)}%0AOrganization:%20${encodeURIComponent(orgName)}%0A%0APlease%20expedite%20activation.`}
+                className="btn-gold inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-xs font-mono font-bold cursor-pointer"
               >
                 <span>Expedite via Email Desk</span>
                 <ArrowRight className="h-4 w-4" />
@@ -445,7 +483,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-neutral-900 px-5 py-2.5 text-xs font-mono text-muted-foreground hover:bg-neutral-800 hover:text-white transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-md border border-[#262932] bg-[#15171C] px-5 py-2.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <span>Return to Audit</span>
               </button>
@@ -456,14 +494,14 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
         {/* SUCCESS STEP (Shown when approved) */}
         {txnStep === "success" && (
           <div className="py-4 animate-in fade-in duration-300 space-y-6">
-            <div className="flex flex-col items-center justify-center text-center border-b border-border/60 pb-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500/40 mb-4 shadow-xl shadow-emerald-500/10">
-                <CheckCircle2 className="h-12 w-12" />
+            <div className="flex flex-col items-center justify-center text-center border-b border-[#262932] pb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/40 mb-4">
+                <CheckCircle2 className="h-9 w-9" />
               </div>
-              <span className="font-mono text-xs uppercase tracking-wider text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                ✓ Payment Verified // {currentTier.name} Activated
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-[#10B981] font-bold bg-[#10B981]/10 border border-[#10B981]/40 px-3 py-1 rounded">
+                <Check className="h-3.5 w-3.5" /> Payment Verified · {currentTier.name} Activated
               </span>
-              <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold text-gold-gradient">
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl font-bold text-[#FAF8F5]">
                 {selectedTier === "patch-code" && "Autonomous Remediation Code Patches Unlocked"}
                 {selectedTier === "dpdp-india" && "DPDP Act 2023 Statutory Legal Suite Unlocked"}
                 {selectedTier === "gdpr-global" && "GDPR & Multi-Sovereign Legal Pack Unlocked"}
@@ -483,10 +521,10 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
             </div>
 
             {/* Official Enterprise Tax Invoice Card */}
-            <div className="rounded-2xl border border-primary/40 bg-black/80 p-5 sm:p-7 font-mono text-xs shadow-2xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="rounded-md border border-[#262932] bg-[#15171C] p-5 sm:p-7 font-mono text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262932] pb-4">
                 <div className="flex items-center gap-2.5">
-                  <Receipt className="h-5 w-5 text-primary" />
+                  <Receipt className="h-5 w-5 text-[#C9A227]" />
                   <div>
                     <h3 className="font-bold text-sm text-foreground">
                       Official Enterprise Transaction Receipt &amp; Tax Certificate
@@ -500,11 +538,11 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                   <button
                     type="button"
                     onClick={handleCopyReceipt}
-                    className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-md border border-[#C9A227]/40 bg-[#0D0E11] px-3.5 py-1.5 text-xs font-bold text-[#C9A227] hover:bg-[#C9A227]/10 transition-colors cursor-pointer"
                   >
                     {receiptCopied ? (
                       <>
-                        <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied Receipt
+                        <Check className="h-3.5 w-3.5 text-[#10B981]" /> Copied Receipt
                       </>
                     ) : (
                       <>
@@ -516,7 +554,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                     <button
                       type="button"
                       onClick={handleDownloadPatchesBundle}
-                      className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-md border border-[#10B981]/40 bg-[#10B981]/10 px-3.5 py-1.5 text-xs font-bold text-[#10B981] hover:bg-[#10B981]/20 transition-colors cursor-pointer"
                     >
                       <Download className="h-3.5 w-3.5" /> Download Deliverable Bundle
                     </button>
@@ -525,31 +563,31 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
               </div>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-[11px]">
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="bg-[#0D0E11] p-3 rounded-md border border-[#262932]">
                   <span className="text-muted-foreground block text-[10px] uppercase">
                     Transaction Reference:
                   </span>
-                  <span className="font-bold text-primary text-xs">
+                  <span className="font-bold text-[#C9A227] text-xs tabular-nums">
                     {referenceId || generatedTxnId}
                   </span>
                 </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="bg-[#0D0E11] p-3 rounded-md border border-[#262932]">
                   <span className="text-muted-foreground block text-[10px] uppercase">
                     Licensed Domain:
                   </span>
                   <span className="font-bold text-foreground text-xs">{targetDomain}</span>
                 </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="bg-[#0D0E11] p-3 rounded-md border border-[#262932]">
                   <span className="text-muted-foreground block text-[10px] uppercase">
                     Package Tier:
                   </span>
                   <span className="font-bold text-foreground text-xs">{currentTier.name}</span>
                 </div>
-                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="bg-[#0D0E11] p-3 rounded-md border border-[#262932]">
                   <span className="text-muted-foreground block text-[10px] uppercase">
                     Beneficiary Settled:
                   </span>
-                  <span className="font-bold text-emerald-400 text-xs">
+                  <span className="font-bold text-[#10B981] text-xs">
                     {OFFICIAL_UPI_CONFIG.payeeName} ({OFFICIAL_UPI_CONFIG.vpa})
                   </span>
                 </div>
@@ -569,7 +607,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
             )}
 
             {/* Bottom Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/80 pt-6 pb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#262932] pt-6 pb-12">
               <div>
                 <h4 className="font-bold text-sm text-foreground">
                   Ready to deploy compliance fixes?
@@ -583,7 +621,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-gold rounded-xl px-8 py-3.5 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/20 flex items-center gap-2"
+                className="btn-gold rounded-md px-8 py-3.5 font-mono text-xs uppercase tracking-wider font-bold cursor-pointer flex items-center gap-2"
               >
                 <span>View &amp; Deploy in Audit Dashboard</span>
                 <ArrowRight className="h-4 w-4" />
@@ -596,41 +634,39 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
         {txnStep === "form" && (
           <div className="space-y-8 pb-16">
             {/* Header Hero */}
-            <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/10 via-black/60 to-primary/5 p-6 sm:p-8 shadow-2xl">
+            <div className="rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1 font-mono text-xs font-bold text-primary">
-                      <Sparkles className="h-3.5 w-3.5" /> Direct Bank Account Instant UPI
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 text-[#C9A227] font-semibold">
+                      <Zap className="h-3.5 w-3.5" /> Direct Bank Account Instant UPI
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-bold text-emerald-400">
-                      <Zap className="h-3.5 w-3.5" /> Tiered Instant Release
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-muted-foreground">
-                      <Building2 className="h-3.5 w-3.5" /> Enterprise B2B Ready
-                    </span>
+                    <span>·</span>
+                    <span>Tiered Instant Release</span>
+                    <span>·</span>
+                    <span>Enterprise B2B Ready</span>
                   </div>
 
-                  <h2 className="mt-3 font-display text-2xl sm:text-4xl font-bold text-gold-gradient">
+                  <h2 className="mt-3 font-display text-2xl sm:text-4xl font-bold text-[#FAF8F5]">
                     Select Your Enterprise Licensing Package
                   </h2>
 
                   <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-mono max-w-2xl leading-relaxed">
                     Choose from standalone code patches, dedicated India DPDP legal suites,
                     multi-sovereign global legal packs, or the full-spectrum code + legal enterprise
-                    bundle tailored for <strong>{targetDomain}</strong>.
+                    bundle tailored for <strong className="text-foreground">{targetDomain}</strong>.
                   </p>
                 </div>
 
-                <div className="shrink-0 rounded-2xl border border-primary/40 bg-black/80 p-4 font-mono text-xs shadow-xl text-center md:text-right">
+                <div className="shrink-0 rounded-md border border-[#262932] bg-[#0D0E11] p-4 font-mono text-xs text-center md:text-right">
                   <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                     Enterprise Licensing Mode
                   </span>
-                  <span className="text-base font-bold text-primary block mt-0.5">
+                  <span className="text-base font-bold text-[#C9A227] block mt-0.5">
                     Direct Instant Transfer
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-semibold block mt-1">
-                    ✓ Instant Automated Release
+                  <span className="text-[10px] text-[#10B981] font-semibold inline-flex items-center gap-1 mt-1">
+                    <Check className="h-3 w-3" /> Instant Automated Release
                   </span>
                 </div>
               </div>
@@ -658,14 +694,14 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                     <div
                       key={tier.id}
                       onClick={() => setSelectedTier(tier.id)}
-                      className={`relative cursor-pointer rounded-2xl border p-5 transition-all flex flex-col justify-between ${
+                      className={`relative cursor-pointer rounded-md border p-5 transition-colors flex flex-col justify-between ${
                         isSelected
-                          ? "border-primary bg-primary/10 shadow-2xl shadow-primary/15 ring-2 ring-primary/50"
-                          : "border-border/70 bg-black/40 hover:border-primary/40 hover:bg-black/70"
+                          ? "border-[#C9A227] bg-[#15171C] ring-1 ring-[#C9A227]"
+                          : "border-[#262932] bg-[#15171C] hover:border-[#C9A227]/50"
                       }`}
                     >
                       {tier.badge && (
-                        <span className="absolute -top-3 right-4 rounded-full bg-primary px-2.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider text-primary-foreground shadow-md">
+                        <span className="absolute -top-2.5 right-4 rounded bg-[#C9A227] px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider text-[#0D0E11]">
                           {tier.badge}
                         </span>
                       )}
@@ -678,19 +714,19 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                           <div
                             className={`h-5 w-5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${
                               isSelected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-muted-foreground"
+                                ? "border-[#C9A227] bg-[#C9A227] text-[#0D0E11]"
+                                : "border-[#262932]"
                             }`}
                           >
                             {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
                           </div>
                         </div>
 
-                        <div className="mt-3 font-display text-2xl font-bold text-gold-gradient">
+                        <div className="mt-3 font-display text-2xl font-bold text-[#C9A227] tabular-nums">
                           {tier.priceInr}
                         </div>
 
-                        <div className="mt-1 rounded-md bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-primary font-bold inline-block">
+                        <div className="mt-1 rounded border border-[#262932] bg-[#0D0E11] px-2 py-0.5 text-[10px] font-mono text-[#C9A227] font-bold inline-block">
                           {tier.unlockSummary}
                         </div>
 
@@ -703,15 +739,15 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         <ul className="space-y-2 text-[11px] text-muted-foreground">
                           {tier.features.map((f, i) => (
                             <li key={i} className="flex items-start gap-2">
-                              <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                              <Check className="h-3.5 w-3.5 text-[#C9A227] shrink-0 mt-0.5" />
                               <span className="leading-snug">{f}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-border/50 text-xs font-mono text-primary font-bold flex items-center justify-between">
-                        <span>{isSelected ? "Selected Package ✓" : "Choose Package"}</span>
+                      <div className="mt-4 pt-3 border-t border-[#262932] text-xs font-mono text-[#C9A227] font-bold flex items-center justify-between">
+                        <span>{isSelected ? "Selected Package" : "Choose Package"}</span>
                         <ArrowRight className="h-3.5 w-3.5" />
                       </div>
                     </div>
@@ -723,10 +759,10 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
             {/* 2-Column Checkout & Verification Layout */}
             <div className="grid gap-8 lg:grid-cols-12">
               {/* Left Column: Direct Bank Account UPI Gateway */}
-              <div className="lg:col-span-7 rounded-3xl border border-primary/40 bg-black/80 p-6 sm:p-8 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+              <div className="lg:col-span-7 rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8">
+                <div className="flex items-center justify-between border-b border-[#262932] pb-4 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#0D0E11] border border-[#262932] text-[#C9A227]">
                       <Zap className="h-5 w-5" />
                     </div>
                     <div>
@@ -734,7 +770,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         2. Direct Bank Account Instant UPI Transfer
                       </h3>
                       <span className="text-xs font-mono text-muted-foreground">
-                        Beneficiary: {OFFICIAL_UPI_CONFIG.payeeName} • Direct Settlement
+                        Beneficiary: {OFFICIAL_UPI_CONFIG.payeeName} · Direct Settlement
                       </span>
                     </div>
                   </div>
@@ -743,19 +779,21 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                     <span className="text-[10px] uppercase text-muted-foreground block">
                       Total Payable
                     </span>
-                    <span className="text-lg font-bold text-primary">{currentTier.priceInr}</span>
+                    <span className="text-lg font-bold text-[#C9A227] tabular-nums">
+                      {currentTier.priceInr}
+                    </span>
                   </div>
                 </div>
 
                 {/* QR & Bank Details Box */}
-                <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl border border-white/10 bg-neutral-950 p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6 rounded-md border border-[#262932] bg-[#0D0E11] p-5 sm:p-6">
                   {/* QR Code Container */}
                   <div className="flex flex-col items-center shrink-0">
-                    <div className="p-3 rounded-2xl bg-white border-2 border-primary/60 shadow-xl">
+                    <div className="p-3 rounded-md bg-[#FAF8F5] border border-[#E5DEC9]">
                       <img
                         src={qrCodeUrl}
                         alt={`UPI QR Code for ${OFFICIAL_UPI_CONFIG.payeeName}`}
-                        className="w-44 h-44 object-contain rounded-lg"
+                        className="w-44 h-44 object-contain"
                         loading="lazy"
                       />
                     </div>
@@ -766,33 +804,33 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
 
                   {/* Account Details */}
                   <div className="flex-1 w-full space-y-3.5 font-mono text-xs">
-                    <div className="bg-black/70 p-3.5 rounded-xl border border-white/10">
+                    <div className="bg-[#15171C] p-3.5 rounded-md border border-[#262932]">
                       <span className="text-[10px] text-muted-foreground block uppercase font-bold">
                         Official Beneficiary Name:
                       </span>
-                      <strong className="text-base text-white tracking-wide block mt-0.5">
+                      <strong className="text-base text-foreground tracking-wide block mt-0.5">
                         {OFFICIAL_UPI_CONFIG.payeeName}
                       </strong>
                     </div>
 
-                    <div className="bg-black/70 p-3.5 rounded-xl border border-white/10">
-                      <div className="flex items-center justify-between">
+                    <div className="bg-[#15171C] p-3.5 rounded-md border border-[#262932]">
+                      <div className="flex items-center justify-between gap-2">
                         <div>
                           <span className="text-[10px] text-muted-foreground block uppercase font-bold">
                             Direct Bank Instant UPI ID:
                           </span>
-                          <strong className="text-sm text-primary break-all block mt-0.5">
+                          <strong className="text-sm text-[#C9A227] break-all block mt-0.5">
                             {OFFICIAL_UPI_CONFIG.vpa}
                           </strong>
                         </div>
                         <button
                           type="button"
                           onClick={handleCopyUpiId}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/15 hover:bg-primary/25 border border-primary/40 py-1.5 px-3 rounded-lg transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#C9A227] bg-[#0D0E11] hover:border-[#C9A227] border border-[#262932] py-1.5 px-3 rounded transition-colors cursor-pointer shrink-0"
                         >
                           {upiCopied ? (
                             <>
-                              <Check className="h-3.5 w-3.5 text-emerald-400" /> Copied
+                              <Check className="h-3.5 w-3.5 text-[#10B981]" /> Copied
                             </>
                           ) : (
                             <>
@@ -805,16 +843,14 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
 
                     {/* Supported Apps List */}
                     <div>
-                      <span className="text-[10px] text-neutral-400 block mb-1">
+                      <span className="text-[10px] text-muted-foreground block mb-1">
                         Supported Payment Apps:
                       </span>
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         {["Google Pay", "PhonePe", "Paytm", "BHIM UPI", "Cred", "Amazon Pay"].map(
-                          (app) => (
-                            <span
-                              key={app}
-                              className="text-[10px] rounded-md bg-neutral-900 border border-white/10 px-2.5 py-0.5 text-neutral-300"
-                            >
+                          (app, idx) => (
+                            <span key={app}>
+                              {idx > 0 && <span className="mr-2">·</span>}
                               {app}
                             </span>
                           ),
@@ -826,7 +862,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                     <div className="pt-1">
                       <a
                         href={upiPayUri}
-                        className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 underline font-semibold"
+                        className="inline-flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-[#DFB842] underline font-semibold"
                       >
                         <Smartphone className="h-3.5 w-3.5" /> Open in installed UPI app on device
                         <ExternalLink className="h-3 w-3" />
@@ -837,29 +873,29 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
 
                 {/* ISO Trust Seals */}
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center font-mono text-[10px] text-muted-foreground">
-                  <div className="bg-white/5 border border-white/5 p-2 rounded-xl">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400 mx-auto mb-1" />
+                  <div className="bg-[#0D0E11] border border-[#262932] p-2.5 rounded-md">
+                    <ShieldCheck className="h-4 w-4 text-[#10B981] mx-auto mb-1" />
                     <span>ISO/IEC 27001</span>
                   </div>
-                  <div className="bg-white/5 border border-white/5 p-2 rounded-xl">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400 mx-auto mb-1" />
+                  <div className="bg-[#0D0E11] border border-[#262932] p-2.5 rounded-md">
+                    <ShieldCheck className="h-4 w-4 text-[#10B981] mx-auto mb-1" />
                     <span>SOC-2 Type II</span>
                   </div>
-                  <div className="bg-white/5 border border-white/5 p-2 rounded-xl">
-                    <Lock className="h-4 w-4 text-primary mx-auto mb-1" />
+                  <div className="bg-[#0D0E11] border border-[#262932] p-2.5 rounded-md">
+                    <Lock className="h-4 w-4 text-[#C9A227] mx-auto mb-1" />
                     <span>PCI-DSS Level 1</span>
                   </div>
-                  <div className="bg-white/5 border border-white/5 p-2 rounded-xl">
-                    <FileText className="h-4 w-4 text-amber-400 mx-auto mb-1" />
+                  <div className="bg-[#0D0E11] border border-[#262932] p-2.5 rounded-md">
+                    <FileText className="h-4 w-4 text-[#C9A227] mx-auto mb-1" />
                     <span>GST/Tax Deductible</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Billing Information & Instant Unlock Form */}
-              <div className="lg:col-span-5 rounded-3xl border border-primary/40 bg-black/80 p-6 sm:p-8 shadow-2xl flex flex-col justify-between">
+              <div className="lg:col-span-5 rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+                  <div className="flex items-center justify-between border-b border-[#262932] pb-4 mb-5">
                     <div>
                       <h3 className="font-display text-lg font-bold text-foreground">
                         3. Enterprise Verification
@@ -868,7 +904,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         Provide transaction UTR for automated release
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
+                    <span className="text-[10px] font-mono text-[#F59E0B] flex items-center gap-1">
                       <Lock className="h-3 w-3" /> Anti-Fraud Verification
                     </span>
                   </div>
@@ -886,7 +922,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                           placeholder={targetDomain || "Acme Corporation Pvt Ltd"}
                           value={orgName}
                           onChange={(e) => setOrgName(e.target.value)}
-                          className="w-full rounded-xl border border-border bg-background/90 pl-10 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none font-sans"
+                          className="w-full rounded-md border border-[#262932] bg-[#0D0E11] pl-10 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-[#C9A227] focus:outline-none font-sans"
                         />
                       </div>
                     </div>
@@ -901,7 +937,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         placeholder="legal.compliance@domain.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background/90 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none font-sans"
+                        className="w-full rounded-md border border-[#262932] bg-[#0D0E11] px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-[#C9A227] focus:outline-none font-sans"
                       />
                     </div>
 
@@ -914,7 +950,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         placeholder="e.g. 07AAAAA0000A1Z5"
                         value={taxId}
                         onChange={(e) => setTaxId(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background/90 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none font-mono"
+                        className="w-full rounded-md border border-[#262932] bg-[#0D0E11] px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-[#C9A227] focus:outline-none font-mono"
                       />
                     </div>
 
@@ -923,7 +959,7 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         <label className="block text-[11px] font-medium text-muted-foreground">
                           Bank UTR / 12-Digit Transfer Reference *
                         </label>
-                        <span className="text-[10px] text-amber-400">
+                        <span className="text-[10px] text-[#C9A227]">
                           From your UPI payment app
                         </span>
                       </div>
@@ -933,29 +969,29 @@ Security Seals  : ISO/IEC 27001 Certified • SOC-2 Type II Attested • PCI-DSS
                         placeholder="e.g. 423987123984"
                         value={referenceId}
                         onChange={(e) => setReferenceId(e.target.value)}
-                        className="w-full rounded-xl border border-primary/50 bg-background/90 px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none font-mono font-bold"
+                        className="w-full rounded-md border border-[#C9A227]/60 bg-[#0D0E11] px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-[#C9A227] focus:outline-none font-mono font-bold tabular-nums"
                       />
                     </div>
 
                     <div className="pt-3">
                       <button
                         type="submit"
-                        className="btn-gold w-full flex items-center justify-center gap-2 rounded-xl py-3.5 px-6 font-mono text-xs uppercase tracking-wider font-bold text-black cursor-pointer shadow-xl shadow-primary/25 hover:scale-[1.01] transition-transform"
+                        className="btn-gold w-full flex items-center justify-center gap-2 rounded-md py-3.5 px-6 font-mono text-xs uppercase tracking-wider font-bold cursor-pointer"
                       >
                         <ShieldCheck className="h-4 w-4" />
-                        <span>Submit Bank UTR for Reconciliation ({currentTier.priceInr})</span>
+                        <span>Submit UTR for Verification ({currentTier.priceInr})</span>
                         <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
                   </form>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 text-[10.5px] font-mono text-muted-foreground text-center space-y-1">
-                  <p className="flex items-center justify-center gap-1.5 text-emerald-400 font-semibold">
+                <div className="mt-6 pt-4 border-t border-[#262932] text-[10.5px] font-mono text-muted-foreground text-center space-y-1">
+                  <p className="flex items-center justify-center gap-1.5 text-[#10B981] font-semibold">
                     <ShieldCheck className="h-3.5 w-3.5" /> 100% Tax Deductible Corporate Legal
-                    &amp; Security R&amp;D Expense
+                    &amp; Security Expense
                   </p>
-                  <p className="text-muted-foreground/80">
+                  <p className="text-muted-foreground">
                     Includes official signed ASJi compliance certificate &amp; tax invoice.
                   </p>
                 </div>

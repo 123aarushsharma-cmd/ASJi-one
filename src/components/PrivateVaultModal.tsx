@@ -145,49 +145,49 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
   return (
     <div
       id="private_vault_modal_overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D0E11]/90 p-4 animate-in fade-in duration-200"
     >
       <div
         id="private_vault_modal_container"
-        className="relative w-full max-w-3xl rounded-2xl border border-white/10 bg-[#0d1117] p-6 shadow-2xl text-foreground flex flex-col max-h-[88vh]"
+        className="relative w-full max-w-3xl rounded-md border border-[#262932] bg-[#15171C] p-6 text-[#F4F4F5] flex flex-col max-h-[88vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10">
+        <div className="flex items-center justify-between pb-4 border-b border-[#262932]">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+            <div className="p-2.5 rounded-md bg-[#0D0E11] border border-[#262932] text-[#C9A227]">
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold font-display text-white">
-                  Private Sovereign Vault
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-lg font-bold font-display text-[#F4F4F5]">
+                  Private Compliance Vault
                 </h2>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/40 font-bold">
                   Encrypted Firestore
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-[#A1A1AA]">
                 Dedicated ledger for {user?.email || "Authenticated User"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+            aria-label="Close Vault"
+            className="p-1.5 rounded-md border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 pt-4 pb-2 border-b border-white/5 text-xs font-medium flex-wrap">
+        <div className="flex items-center gap-2 pt-4 pb-3 border-b border-[#262932] text-xs font-medium flex-wrap">
           <button
             onClick={() => setActiveTab("audits")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-md transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === "audits"
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
+                ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                : "border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227]/60"
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
@@ -195,10 +195,10 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
           </button>
           <button
             onClick={() => setActiveTab("notices")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-md transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === "notices"
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
+                ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                : "border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227]/60"
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -206,10 +206,10 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
           </button>
           <button
             onClick={() => setActiveTab("sync")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-md transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === "sync"
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
+                ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                : "border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227]/60"
             }`}
           >
             <Database className="w-3.5 h-3.5" />
@@ -217,10 +217,10 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
           </button>
           <button
             onClick={() => setActiveTab("privacy")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-md transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === "privacy"
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "text-muted-foreground hover:text-white hover:bg-white/5"
+                ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                : "border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227]/60"
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -231,16 +231,16 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-              <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-xs">Synchronizing private records from Firestore...</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[#A1A1AA]">
+              <RefreshCw className="w-6 h-6 animate-spin text-[#C9A227]" />
+              <p className="text-xs font-mono">Synchronizing private records from Firestore...</p>
             </div>
           ) : activeTab === "audits" ? (
             audits.length === 0 ? (
-              <div className="text-center py-12 px-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01]">
-                <Shield className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium text-white">No Private Audits Recorded Yet</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+              <div className="text-center py-12 px-4 rounded-md border border-dashed border-[#262932] bg-[#0D0E11]">
+                <Shield className="w-8 h-8 text-[#71717A] mx-auto mb-2" />
+                <p className="text-sm font-medium text-[#F4F4F5]">No Private Audits Recorded Yet</p>
+                <p className="text-xs text-[#A1A1AA] mt-1 max-w-sm mx-auto">
                   When you execute a statutory scan while signed in, your full evidence dossier and
                   verdict are saved here privately.
                 </p>
@@ -250,28 +250,28 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                 {audits.map((a) => (
                   <div
                     key={a.id}
-                    className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all flex items-center justify-between gap-4"
+                    className="p-3.5 rounded-md border border-[#262932] bg-[#0D0E11] hover:border-[#C9A227]/60 transition-colors flex items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                        className={`w-9 h-9 rounded-md flex items-center justify-center font-mono font-bold text-xs shrink-0 tabular-nums border ${
                           a.score >= 80
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/40"
                             : a.score >= 50
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              ? "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/40"
+                              : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/40"
                         }`}
                       >
                         {a.score}
                       </div>
                       <div className="truncate">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm text-white truncate">{a.domain}</p>
-                          <span className="text-[10px] text-muted-foreground border border-white/10 px-1.5 py-0.5 rounded">
-                            {a.verdict}
-                          </span>
+                          <p className="font-semibold text-sm text-[#F4F4F5] truncate">
+                            {a.domain}
+                          </p>
+                          <span className="text-[11px] font-mono text-[#A1A1AA]">{a.verdict}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
+                        <div className="flex items-center gap-3 text-[11px] font-mono text-[#71717A] mt-0.5">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {new Date(a.createdAt).toLocaleDateString()}
@@ -287,14 +287,14 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                             onSelectAudit(a);
                             onClose();
                           }}
-                          className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs hover:bg-primary/20 font-medium transition-colors"
+                          className="px-2.5 py-1.5 rounded-md bg-[#15171C] border border-[#262932] text-[#C9A227] text-xs hover:border-[#C9A227] font-medium transition-colors cursor-pointer"
                         >
                           View
                         </button>
                       )}
                       <button
                         onClick={() => handleDeleteAudit(a.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="p-1.5 rounded-md text-[#71717A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors cursor-pointer"
                         title="Delete from Vault"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -306,28 +306,30 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
             )
           ) : activeTab === "notices" ? (
             notices.length === 0 ? (
-              <div className="text-center py-12 px-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01]">
-                <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium text-white">No Legal Charters Saved Yet</p>
+              <div className="text-center py-12 px-4 rounded-md border border-dashed border-[#262932] bg-[#0D0E11]">
+                <FileText className="w-8 h-8 text-[#71717A] mx-auto mb-2" />
+                <p className="text-sm font-medium text-[#F4F4F5]">No Legal Charters Saved Yet</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {notices.map((n) => (
                   <div
                     key={n.id}
-                    className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02] flex items-center justify-between gap-4"
+                    className="p-3.5 rounded-md border border-[#262932] bg-[#0D0E11] flex items-center justify-between gap-4"
                   >
                     <div>
-                      <p className="font-semibold text-sm text-white">{n.title}</p>
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
+                      <p className="font-semibold text-sm text-[#F4F4F5]">{n.title}</p>
+                      <div className="flex items-center gap-3 text-[11px] font-mono text-[#A1A1AA] mt-0.5">
                         <span>Domain: {n.domain || "Global"}</span>
+                        <span aria-hidden="true">·</span>
                         <span>Regime: {n.lawId}</span>
+                        <span aria-hidden="true">·</span>
                         <span>{new Date(n.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <button
                       onClick={() => handleDeleteNotice(n.id)}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      className="p-1.5 rounded-md text-[#71717A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -337,14 +339,14 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
             )
           ) : activeTab === "sync" ? (
             <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-3">
+              <div className="p-4 rounded-md border border-[#262932] bg-[#0D0E11] space-y-3">
                 <div className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-primary" />
-                  <h4 className="font-semibold text-sm text-white">
+                  <Cloud className="w-4 h-4 text-[#C9A227]" />
+                  <h4 className="font-semibold text-sm text-[#F4F4F5]">
                     Cloud Database Synchronization
                   </h4>
                 </div>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-[#A1A1AA] leading-relaxed">
                   ASJi One is integrated with Google Cloud Firestore. Synchronize the
                   15-jurisdiction World Sovereign Laws Database directly to your Firestore instance.
                 </p>
@@ -353,7 +355,7 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                     <button
                       onClick={handleSyncWorldLaws}
                       disabled={isSyncing}
-                      className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-primary/20"
+                      className="btn-gold px-4 py-2 rounded-md font-semibold flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
                       {isSyncing
@@ -367,52 +369,53 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
           ) : (
             /* DATA PRIVACY & RIGHTS (DPDP ACT 2023 / GDPR) */
             <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 space-y-3">
-                <h4 className="font-bold text-sm text-emerald-300 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-emerald-400" />
+              <div className="p-4 rounded-md border border-[#262932] bg-[#0D0E11] space-y-3">
+                <h4 className="font-bold text-sm text-[#10B981] flex items-center gap-2">
+                  <Download className="w-4 h-4" />
                   Download My Personal Data (JSON Export)
                 </h4>
-                <p className="text-emerald-100/80 leading-relaxed">
-                  In compliance with Section 11 of the Digital Personal Data Protection Act, 2023 &
-                  GDPR Article 15/20, you have the right to request a complete machine-readable copy
-                  of your profile, audit records, saved legal charters, and consent records.
+                <p className="text-[#A1A1AA] leading-relaxed">
+                  In compliance with Section 11 of the Digital Personal Data Protection Act, 2023
+                  &amp; GDPR Article 15/20, you have the right to request a complete
+                  machine-readable copy of your profile, audit records, saved legal charters, and
+                  consent records.
                 </p>
                 <button
                   onClick={handleDownloadMyData}
                   disabled={isExporting}
-                  className="px-4 py-2 rounded-xl border border-emerald-500/50 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-md border border-[#10B981]/40 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   {isExporting ? "Exporting Data..." : "Download My Data (.json)"}
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 space-y-3">
-                <h4 className="font-bold text-sm text-rose-300 flex items-center gap-2">
-                  <Trash2 className="w-4 h-4 text-rose-400" />
+              <div className="p-4 rounded-md border border-[#262932] bg-[#0D0E11] space-y-3">
+                <h4 className="font-bold text-sm text-[#EF4444] flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
                   Delete My Account &amp; Data (Right to Erasure)
                 </h4>
-                <p className="text-rose-100/80 leading-relaxed">
-                  Under Section 12 of India DPDP Act 2023 & GDPR Article 17, you have the statutory
-                  right to withdraw consent and request the permanent erasure of your personal data,
-                  saved scan reports, and user credentials.
+                <p className="text-[#A1A1AA] leading-relaxed">
+                  Under Section 12 of India DPDP Act 2023 &amp; GDPR Article 17, you have the
+                  statutory right to withdraw consent and request the permanent erasure of your
+                  personal data, saved scan reports, and user credentials.
                 </p>
 
                 {!showDeleteConfirm ? (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="px-4 py-2 rounded-xl border border-rose-500/50 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-semibold flex items-center gap-2 transition-all cursor-pointer"
+                    className="px-4 py-2 rounded-md border border-[#EF4444]/40 bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete My Account &amp; Data
                   </button>
                 ) : (
-                  <div className="p-3.5 rounded-xl border border-rose-500/60 bg-black/80 space-y-3 animate-in fade-in">
-                    <div className="flex items-center gap-2 text-rose-400 font-bold">
+                  <div className="p-3.5 rounded-md border border-[#EF4444]/50 bg-[#15171C] space-y-3 animate-in fade-in">
+                    <div className="flex items-center gap-2 text-[#EF4444] font-bold">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
                       <span>Confirm Permanent Account &amp; Data Erasure</span>
                     </div>
-                    <p className="text-muted-foreground text-[11px]">
+                    <p className="text-[#A1A1AA] text-[11px]">
                       This action cannot be undone. All your private scan history, saved legal
                       charters, and account credentials will be immediately purged from Firestore.
                     </p>
@@ -420,13 +423,13 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
                       <button
                         onClick={handleConfirmDeleteAccount}
                         disabled={isDeletingAccount}
-                        className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-md bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-xs transition-colors cursor-pointer"
                       >
                         {isDeletingAccount ? "Erasing Data..." : "Yes, Permanently Erase All Data"}
                       </button>
                       <button
                         onClick={() => setShowDeleteConfirm(false)}
-                        className="px-3.5 py-1.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-md border border-[#262932] bg-[#0D0E11] hover:border-[#C9A227] text-[#F4F4F5] text-xs transition-colors cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -439,14 +442,14 @@ export function PrivateVaultModal({ isOpen, onClose, onSelectAudit }: PrivateVau
         </div>
 
         {/* Footer */}
-        <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+        <div className="pt-3 border-t border-[#262932] flex items-center justify-between text-xs text-[#A1A1AA]">
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
             <span>DPDP Act 2023 &amp; GDPR Compliant Ledger</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-md border border-[#262932] bg-[#0D0E11] hover:border-[#C9A227] text-[#F4F4F5] font-medium transition-colors cursor-pointer"
           >
             Close Vault
           </button>

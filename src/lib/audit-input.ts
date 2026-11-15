@@ -14,16 +14,57 @@ const URL_LIKE =
 
 const IP_LIKE = /^(https?:\/\/)?(\d{1,3}\.){3}\d{1,3}(:\d{2,5})?(\/[^\s]*)?$/;
 
+const DANGEROUS_INPUT_PATTERN =
+  /<\s*\/?\s*script\b|<\s*\/?\s*(?:iframe|object|embed|svg|img|style|link|meta|body)\b|\b(?:javascript|vbscript|data)\s*:|\bon[a-z]+\s*=/i;
+
+function stripControlAndBidiChars(value: string): string {
+  let clean = "";
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    // Keep printable ASCII / Unicode except control chars (< 32, 127) and directional overrides
+    if (
+      code === 127 ||
+      (code < 32 && code !== 10 && code !== 13 && code !== 9) ||
+      (code >= 0x200b && code <= 0x200f) ||
+      (code >= 0x202a && code <= 0x202e) ||
+      code === 0xfeff
+    ) {
+      continue;
+    }
+    clean += value[i];
+  }
+  return clean;
+}
+
+/**
+ * Strict pre-processing sanitizer for domain and compliance telemetry inputs.
+ * Strips control/zero-width characters, HTML/script tags, and unsafe URI schemes.
+ */
+export function sanitizeAuditInput(raw: string): string {
+  const withoutControls = stripControlAndBidiChars(raw);
+  const withoutTags = withoutControls.replace(/<[^>]*>/g, "");
+  const withoutSchemes = withoutTags.replace(/\b(?:javascript|vbscript|data)\s*:/gi, "");
+  return withoutSchemes.trim();
+}
+
 /** Detects whether the submitted value is a single website URL or raw infrastructure text. */
 export function detectInput(raw: string): DetectedInput {
-  const value = raw.trim();
+  const value = sanitizeAuditInput(raw);
   const singleToken = value.split(/\s+/).length === 1 && !value.includes("\n");
 
   if (singleToken && (URL_LIKE.test(value) || IP_LIKE.test(value))) {
     const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
     try {
       const parsed = new URL(withScheme);
-      return { kind: "url", url: parsed.toString(), host: parsed.hostname, value };
+      if (parsed.username || parsed.password) {
+        return { kind: "text", value };
+      }
+      const host = parsed.hostname
+        .toLowerCase()
+        .replace(/^\[|\]$/g, "")
+        .replace(/\.+$/, "");
+      const canonicalUrl = `https://${host}`;
+      return { kind: "url", url: canonicalUrl, host, value };
     } catch {
       /* fall through to text */
     }
@@ -34,13 +75,85 @@ export function detectInput(raw: string): DetectedInput {
 
 export type ValidationResult = { ok: true; detected: DetectedInput } | { ok: false; error: string };
 
+const BLOCKED_INTERNAL_SUFFIXES = [
+  ".local",
+  ".localhost",
+  ".internal",
+  ".intranet",
+  ".corp",
+  ".home",
+  ".lan",
+  ".arpa",
+  ".localdomain",
+];
+
+function isPrivateOrMetadataHost(rawHost: string): boolean {
+  const host = rawHost
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
+  if (
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "metadata" ||
+    host === "metadata.google.internal" ||
+    host === "metadata.goog" ||
+    host === "instance-data"
+  ) {
+    return true;
+  }
+  if (BLOCKED_INTERNAL_SUFFIXES.some((suffix) => host.endsWith(suffix))) {
+    return true;
+  }
+  // IPv4 private, loopback, CGNAT (100.64/10), link-local/metadata (169.254/16), multicast/reserved
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const parts = host.split(".").map((n) => Number.parseInt(n, 10));
+    if (parts.some((n) => Number.isNaN(n) || n > 255)) return true;
+    const [a, b] = parts;
+    if (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    ) {
+      return true;
+    }
+  }
+  // IPv6 loopback / link-local / unique local / mapped private IPv4
+  if (host.includes(":")) {
+    if (
+      host === "::" ||
+      host === "::1" ||
+      /^(fe[89ab]|fc|fd|ff)/i.test(host) ||
+      host.startsWith("::ffff:")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Client + server shared validation for the analyze form. */
 export function validateAuditInput(raw: string): ValidationResult {
-  const value = raw.trim();
+  const trimmedRaw = stripControlAndBidiChars(raw).trim();
+  if (DANGEROUS_INPUT_PATTERN.test(trimmedRaw)) {
+    return {
+      ok: false,
+      error:
+        "Security guard blocked unsafe HTML tags, scripts, or URI schemes. Enter a public domain name.",
+    };
+  }
+
+  const value = sanitizeAuditInput(trimmedRaw);
   if (value.length < 3)
-    return { ok: false, error: "Enter a website URL or describe your infrastructure." };
+    return { ok: false, error: "Enter a public website domain or infrastructure summary." };
   if (value.length > 8000)
-    return { ok: false, error: "Input is too long — keep it under 8000 characters." };
+    return { ok: false, error: "Input exceeds the 8,000-character inspection limit." };
 
   const singleToken = value.split(/\s+/).length === 1 && !value.includes("\n");
   const looksLikeAttemptedUrl =
@@ -51,20 +164,19 @@ export function validateAuditInput(raw: string): ValidationResult {
   if (detected.kind === "url") {
     const parsed = new URL(detected.url!);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return { ok: false, error: "Only http and https URLs can be scanned." };
+      return { ok: false, error: "Only public http and https domains may be inspected." };
     }
-    const host = parsed.hostname.toLowerCase();
-    const isPrivate =
-      host === "localhost" ||
-      host.endsWith(".local") ||
-      /^127\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-    if (isPrivate) {
+    if (parsed.username || parsed.password) {
+      return { ok: false, error: "URLs containing embedded credentials are prohibited." };
+    }
+    if (parsed.port && parsed.port !== "80" && parsed.port !== "443") {
+      return { ok: false, error: "Non-standard ports cannot be scanned." };
+    }
+    if (isPrivateOrMetadataHost(parsed.hostname)) {
       return {
         ok: false,
-        error: "Private or local addresses can't be scanned. Use a public website URL.",
+        error:
+          "Private network ranges (192.168.x.x, 127.0.0.1, localhost, or metadata endpoints) are blocked to prevent SSRF.",
       };
     }
     return { ok: true, detected };
@@ -74,7 +186,7 @@ export function validateAuditInput(raw: string): ValidationResult {
     return {
       ok: false,
       error:
-        "That doesn't look like a valid URL. Try something like https://example.com — or paste full infrastructure details instead.",
+        "Invalid public domain format. Enter a reachable domain such as https://example.com or a technical architecture summary.",
     };
   }
 
@@ -82,7 +194,7 @@ export function validateAuditInput(raw: string): ValidationResult {
     return {
       ok: false,
       error:
-        "Add more detail — paste a full URL, or describe hosting, databases, analytics and data flows.",
+        "Provide a valid domain (e.g., example.com) or at least 40 characters detailing hosting, telemetry, and data flows.",
     };
   }
 

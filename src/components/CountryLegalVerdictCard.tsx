@@ -13,6 +13,7 @@ import {
   Filter,
   ArrowRight,
   Info,
+  RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { AuditReport } from "@/lib/audit-types";
@@ -72,37 +73,40 @@ export function CountryLegalVerdictCard({
   }, [countryVerdicts, passedCountries, failedCountries, filterMode, searchQuery]);
 
   return (
-    <div className="surface-panel p-5 sm:p-7 border-primary/40 relative overflow-hidden">
+    <div className="rounded-md border border-[#262932] bg-[#15171C] p-5 sm:p-7 relative overflow-hidden">
       {/* Top Banner & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#262932] pb-5">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-0.5 font-mono text-[11px] font-semibold text-primary">
+          <div className="flex items-center gap-2.5 flex-wrap text-xs font-mono">
+            <span className="inline-flex items-center gap-1.5 text-[#C9A227] uppercase tracking-wider font-semibold">
               <Globe2 className="h-3.5 w-3.5" />
               Sovereign Jurisdictions Analysis
             </span>
-            <span className="font-mono text-xs text-muted-foreground">
-              Target: <strong className="text-foreground">{report.target}</strong>
+            <span aria-hidden="true" className="text-[#52525B]">
+              ·
+            </span>
+            <span className="text-[#A1A1AA]">
+              Target Domain: <strong className="text-[#F4F4F5]">{report.target}</strong>
             </span>
           </div>
-          <h2 className="mt-2 font-display text-xl sm:text-2xl font-bold text-gold-gradient">
-            Country-by-Country Legal Pass vs. Wholly Fail Audit
+          <h2 className="mt-2 font-display text-xl sm:text-2xl font-bold text-[#F4F4F5]">
+            Country-by-Country Legal Pass vs. Fail Audit
           </h2>
-          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-            Statutory legal determination evaluating whether this website fully complies with or
-            wholly violates each sovereign nation's enacted privacy and cyber statutes.
+          <p className="text-xs text-[#A1A1AA] mt-1 max-w-2xl leading-relaxed">
+            Statutory legal determination evaluating whether this domain complies with or violates
+            each sovereign nation&apos;s enacted privacy and cyber statutes.
           </p>
         </div>
 
-        {/* Global Verdict Ratio Badge */}
+        {/* Global Verdict Ratio Filter Buttons */}
         <div className="flex flex-wrap items-center gap-2 font-mono text-xs self-start md:self-auto">
           <button
             type="button"
             onClick={() => setFilterMode("PASS")}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 sm:px-3.5 sm:py-2 transition-all cursor-pointer text-xs ${
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 sm:px-3.5 sm:py-2 transition-colors cursor-pointer text-xs tabular-nums ${
               filterMode === "PASS"
-                ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold ring-1 ring-emerald-500/50"
-                : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                ? "border-[#10B981] bg-[#10B981]/15 text-[#10B981] font-bold"
+                : "border-[#262932] bg-[#0D0E11] text-[#10B981] hover:border-[#10B981]/60"
             }`}
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -112,10 +116,10 @@ export function CountryLegalVerdictCard({
           <button
             type="button"
             onClick={() => setFilterMode("FAIL")}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 sm:px-3.5 sm:py-2 transition-all cursor-pointer text-xs ${
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 sm:px-3.5 sm:py-2 transition-colors cursor-pointer text-xs tabular-nums ${
               filterMode === "FAIL"
-                ? "border-rose-500 bg-rose-500/20 text-rose-300 font-bold ring-1 ring-rose-500/50"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20"
+                ? "border-[#EF4444] bg-[#EF4444]/15 text-[#EF4444] font-bold"
+                : "border-[#262932] bg-[#0D0E11] text-[#EF4444] hover:border-[#EF4444]/60"
             }`}
           >
             <XCircle className="h-3.5 w-3.5" />
@@ -126,14 +130,14 @@ export function CountryLegalVerdictCard({
 
       {/* Filter Tabs and Search Bar */}
       <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center rounded-xl border border-border/80 bg-secondary/30 p-1 font-mono text-xs overflow-x-auto max-w-full">
+        <div className="flex items-center rounded-md border border-[#262932] bg-[#0D0E11] p-1 font-mono text-xs overflow-x-auto max-w-full">
           <button
             type="button"
             onClick={() => setFilterMode("ALL")}
-            className={`px-3 py-1 rounded-lg transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-sm transition-colors cursor-pointer shrink-0 whitespace-nowrap tabular-nums ${
               filterMode === "ALL"
-                ? "bg-primary text-primary-foreground font-bold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                : "text-[#A1A1AA] hover:text-[#F4F4F5]"
             }`}
           >
             All Nations ({countryVerdicts.length})
@@ -141,10 +145,10 @@ export function CountryLegalVerdictCard({
           <button
             type="button"
             onClick={() => setFilterMode("PASS")}
-            className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap tabular-nums ${
               filterMode === "PASS"
-                ? "bg-emerald-500 text-black font-bold"
-                : "text-emerald-400 hover:text-emerald-300"
+                ? "bg-[#10B981] text-[#0D0E11] font-bold"
+                : "text-[#10B981] hover:bg-[#10B981]/10"
             }`}
           >
             <CheckCircle2 className="h-3 w-3" />
@@ -153,10 +157,10 @@ export function CountryLegalVerdictCard({
           <button
             type="button"
             onClick={() => setFilterMode("FAIL")}
-            className={`px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap tabular-nums ${
               filterMode === "FAIL"
-                ? "bg-rose-500 text-white font-bold"
-                : "text-rose-400 hover:text-rose-300"
+                ? "bg-[#EF4444] text-white font-bold"
+                : "text-[#EF4444] hover:bg-[#EF4444]/10"
             }`}
           >
             <XCircle className="h-3 w-3" />
@@ -165,13 +169,13 @@ export function CountryLegalVerdictCard({
         </div>
 
         <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#71717A]" />
           <input
             type="text"
             placeholder="Search country or statute..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-border bg-background/80 pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none font-sans"
+            className="w-full rounded-md border border-[#262932] bg-[#0D0E11] pl-9 pr-3 py-1.5 text-xs text-[#F4F4F5] placeholder:text-[#71717A] focus:border-[#C9A227] focus:outline-none font-sans"
           />
         </div>
       </div>
@@ -192,6 +196,7 @@ export function CountryLegalVerdictCard({
         <AnimatePresence mode="popLayout">
           {filteredList.map((c) => {
             const isFlipped = !!flippedCards[c.id];
+            const isoCode = `[${c.flag.replace(/[[\]\s]/g, "").toUpperCase()}]`;
 
             return (
               <motion.div
@@ -206,10 +211,10 @@ export function CountryLegalVerdictCard({
                   },
                 }}
                 exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
-                className={`relative rounded-2xl border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between card-hover cursor-pointer ${
+                className={`relative rounded-md border p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between cursor-pointer bg-[#0D0E11] ${
                   c.passed
-                    ? "border-emerald-500/40 bg-emerald-950/10 hover:border-emerald-500/70 glow-pass"
-                    : "border-rose-500/40 bg-rose-950/10 hover:border-rose-500/70 glow-fail"
+                    ? "border-[#262932] hover:border-[#10B981]/60"
+                    : "border-[#262932] hover:border-[#EF4444]/60"
                 }`}
                 onClick={() => toggleFlip(c.id)}
               >
@@ -223,20 +228,23 @@ export function CountryLegalVerdictCard({
                   {!isFlipped ? (
                     /* Front Face: Executive Statutory Verdict */
                     <div style={{ backfaceVisibility: "hidden" }} className="w-full">
-                      {/* Top Header: Flag + Country + Verdict Badge */}
+                      {/* Top Header: ISO Code + Country + Verdict Badge */}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-2xl" role="img" aria-label={c.country}>
-                            {c.flag}
+                        <div className="flex items-start gap-2.5">
+                          <span
+                            className="inline-flex shrink-0 items-center justify-center rounded border border-[#262932] bg-[#15171C] px-2 py-1 font-mono text-xs font-bold text-[#C9A227]"
+                            aria-label={c.country}
+                          >
+                            {isoCode}
                           </span>
                           <div>
-                            <h3 className="font-display font-bold text-base text-foreground flex items-center gap-1.5">
+                            <h3 className="font-display font-bold text-base text-[#F4F4F5] flex items-center gap-1.5 flex-wrap">
                               {c.country}
-                              <span className="text-[10px] font-mono font-normal text-muted-foreground">
+                              <span className="text-[11px] font-mono font-normal text-[#71717A]">
                                 ({c.region})
                               </span>
                             </h3>
-                            <p className="text-[11px] font-mono text-primary/90 mt-0.5">
+                            <p className="text-[11px] font-mono text-[#C9A227] mt-0.5">
                               {c.statuteName}
                             </p>
                           </div>
@@ -245,10 +253,10 @@ export function CountryLegalVerdictCard({
                         {/* Statutory Verdict Badge */}
                         <div className="flex items-center gap-1.5 self-start sm:self-auto">
                           <span
-                            className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1 ${
+                            className={`shrink-0 rounded border px-2 py-1 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1 whitespace-nowrap ${
                               c.passed
-                                ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-300"
-                                : "border-rose-500/60 bg-rose-500/20 text-rose-300"
+                                ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                                : "border-[#EF4444]/40 bg-[#EF4444]/10 text-[#EF4444]"
                             }`}
                           >
                             {c.passed ? (
@@ -265,35 +273,30 @@ export function CountryLegalVerdictCard({
                           <button
                             type="button"
                             onClick={(e) => toggleFlip(c.id, e)}
-                            className="rounded-full border border-border/70 bg-black/50 p-1 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="rounded border border-[#262932] bg-[#15171C] p-1.5 text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227] cursor-pointer transition-colors"
                             title="Flip card for statute citations"
+                            aria-label="Flip card for statute citations"
                           >
-                            ↺
+                            <RotateCcw className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
 
                       {/* Primary Reason for Pass or Fail */}
-                      <div
-                        className={`mt-3.5 rounded-xl border p-3 text-xs leading-relaxed ${
-                          c.passed
-                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-                            : "border-rose-500/20 bg-rose-500/10 text-rose-200"
-                        }`}
-                      >
+                      <div className="mt-3.5 rounded-md border border-[#262932] bg-[#15171C] p-3 text-xs leading-relaxed">
                         <div className="flex items-start gap-2">
                           {c.passed ? (
-                            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <ShieldCheck className="h-4 w-4 text-[#10B981] shrink-0 mt-0.5" />
                           ) : (
-                            <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                            <ShieldAlert className="h-4 w-4 text-[#EF4444] shrink-0 mt-0.5" />
                           )}
                           <div>
-                            <strong className="block font-semibold mb-0.5">
+                            <strong className="block font-semibold text-[#F4F4F5] mb-0.5">
                               {c.passed
-                                ? "Why it Passes in this Country:"
-                                : "Why it Wholly Fails under National Law:"}
+                                ? "Why it Passes in this Jurisdiction:"
+                                : "Why it Fails under National Law:"}
                             </strong>
-                            <span className="text-[11.5px] opacity-90">
+                            <span className="text-[11.5px] text-[#A1A1AA]">
                               {c.passed ? c.passJustification : c.primaryViolation}
                             </span>
                           </div>
@@ -303,14 +306,14 @@ export function CountryLegalVerdictCard({
                       {/* Violated Articles (if failed) */}
                       {!c.passed && c.violatedArticles && c.violatedArticles.length > 0 && (
                         <div className="mt-3">
-                          <span className="text-[10px] font-mono text-rose-400 font-semibold block uppercase tracking-wider mb-1">
+                          <span className="text-[10px] font-mono text-[#EF4444] font-semibold block uppercase tracking-wider mb-1">
                             Statutory Sections in Breach:
                           </span>
                           <div className="flex flex-wrap gap-1.5">
                             {c.violatedArticles.map((art, idx) => (
                               <span
                                 key={idx}
-                                className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-mono text-rose-300"
+                                className="rounded border border-[#262932] bg-[#15171C] px-2 py-0.5 text-[10.5px] font-mono text-[#F4F4F5]"
                               >
                                 {art}
                               </span>
@@ -320,19 +323,19 @@ export function CountryLegalVerdictCard({
                       )}
 
                       {/* Authority & Fine Cap */}
-                      <div className="mt-3.5 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
+                      <div className="mt-3.5 pt-3 border-t border-[#262932] grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
                         <div>
-                          <span className="text-muted-foreground block text-[10px]">
+                          <span className="text-[#71717A] block text-[10px]">
                             Statutory Framework:
                           </span>
-                          <span className="font-semibold text-foreground">{c.statuteName}</span>
+                          <span className="font-semibold text-[#F4F4F5]">{c.statuteName}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground block text-[10px]">
+                          <span className="text-[#71717A] block text-[10px]">
                             Max Statutory Liability:
                           </span>
                           <span
-                            className={`font-semibold ${c.passed ? "text-muted-foreground" : "text-amber-400"}`}
+                            className={`font-semibold ${c.passed ? "text-[#A1A1AA]" : "text-[#F59E0B]"}`}
                           >
                             {c.maxPenalty}
                           </span>
@@ -349,44 +352,45 @@ export function CountryLegalVerdictCard({
                       className="w-full flex flex-col justify-between py-1 font-mono text-xs"
                     >
                       <div>
-                        <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                          <span className="text-primary font-bold text-xs flex items-center gap-1.5">
+                        <div className="flex items-center justify-between border-b border-[#262932] pb-2">
+                          <span className="text-[#C9A227] font-bold text-xs flex items-center gap-1.5">
                             <Scale className="h-3.5 w-3.5" />
-                            {c.country} Statutory Dossier
+                            {isoCode} {c.country} Statutory Dossier
                           </span>
                           <button
                             type="button"
                             onClick={(e) => toggleFlip(c.id, e)}
-                            className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded border border-border/60 bg-black/60"
+                            className="inline-flex items-center gap-1 text-[10px] text-[#A1A1AA] hover:text-[#F4F4F5] px-2 py-1 rounded border border-[#262932] bg-[#15171C] cursor-pointer"
                           >
-                            Flip Back ↺
+                            <RotateCcw className="h-3 w-3" />
+                            Flip Back
                           </button>
                         </div>
 
                         <div className="mt-3 space-y-2.5 text-[11px]">
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase">
+                            <span className="text-[#71717A] block text-[10px] uppercase">
                               Governing Regulatory Authority:
                             </span>
-                            <span className="text-foreground font-bold">{c.governingBody}</span>
+                            <span className="text-[#F4F4F5] font-bold">{c.governingBody}</span>
                           </div>
 
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase">
+                            <span className="text-[#71717A] block text-[10px] uppercase">
                               Territorial Extraterritoriality Scope:
                             </span>
-                            <span className="text-foreground font-medium">
+                            <span className="text-[#F4F4F5] font-medium">
                               Applies to all inbound digital services targeting {c.country}{" "}
                               residents.
                             </span>
                           </div>
 
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase">
+                            <span className="text-[#71717A] block text-[10px] uppercase">
                               Statutory Audit Classification:
                             </span>
                             <span
-                              className={`font-semibold ${c.passed ? "text-emerald-400" : "text-rose-400"}`}
+                              className={`font-semibold ${c.passed ? "text-[#10B981]" : "text-[#EF4444]"}`}
                             >
                               {c.passed
                                 ? "Full Statutory Clearance Verified"
@@ -396,10 +400,10 @@ export function CountryLegalVerdictCard({
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[10px]">
-                        <span className="text-muted-foreground">Click to flip card back</span>
-                        <span className="text-primary font-semibold">
-                          ASJi Sovereign Intelligence
+                      <div className="mt-4 pt-3 border-t border-[#262932] flex items-center justify-between text-[10px]">
+                        <span className="text-[#71717A]">Click to return to summary</span>
+                        <span className="text-[#C9A227] font-semibold">
+                          ASJi Statutory Intelligence
                         </span>
                       </div>
                     </div>
@@ -408,8 +412,8 @@ export function CountryLegalVerdictCard({
 
                 {/* Bottom Action */}
                 {!c.passed && onOpenRemediationModal && (
-                  <div className="mt-4 pt-2 flex items-center justify-between border-t border-white/5">
-                    <span className="text-[10.5px] text-muted-foreground">
+                  <div className="mt-4 pt-2.5 flex items-center justify-between border-t border-[#262932]">
+                    <span className="text-[11px] text-[#A1A1AA]">
                       Remediation available for {c.country}
                     </span>
                     <button
@@ -418,7 +422,7 @@ export function CountryLegalVerdictCard({
                         e.stopPropagation();
                         onOpenRemediationModal();
                       }}
-                      className="text-[11px] font-mono text-primary hover:text-primary/80 font-semibold flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] font-mono text-[#C9A227] hover:text-[#DFB842] font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       Unlock Legal Patch
                       <ArrowRight className="h-3 w-3" />
@@ -432,8 +436,8 @@ export function CountryLegalVerdictCard({
       </motion.div>
 
       {filteredList.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground text-xs font-mono">
-          No countries found matching "{searchQuery}".
+        <div className="text-center py-12 text-[#71717A] text-xs font-mono">
+          No jurisdictions found matching &ldquo;{searchQuery}&rdquo;.
         </div>
       )}
     </div>

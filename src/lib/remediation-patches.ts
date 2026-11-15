@@ -323,7 +323,7 @@ Hiring: https://${domain}/careers
  * Creates a client handover text document ready to be sent to paying customers.
  */
 export function generateClientHandoverDocument(report: AuditReport): string {
-  const domain = (report.target || "Target Node").replace(/^https?:\/\//i, "").split("/")[0];
+  const domain = (report.target || "target-domain.com").replace(/^https?:\/\//i, "").split("/")[0];
   const shield = evaluateIntermediaryShield(report);
   const patches = generateAutomatedPatches(report);
 

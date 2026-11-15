@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Check,
   Copy,
@@ -10,27 +10,53 @@ import {
   Search,
   Shield,
   ShieldAlert,
-  Terminal,
   Lock,
-  Sparkles,
-  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { interactiveLegalDrafts, type LegalDraft } from "@/lib/legal-drafts";
+
+const FRAMEWORK_TO_DRAFT_ID: Record<string, string> = {
+  "ind-dpdp": "ind-dpdp",
+  "eu-gdpr": "eu-gdpr",
+  "uk-duaa": "uk-duaa",
+  "us-cpra": "us-cpra",
+  "uae-pdpl": "ae-pdpl",
+  "ksa-pdpl": "ksa-pdpl",
+  "sg-pdpa": "sg-pdpa",
+  "brazil-lgpd": "br-lgpd",
+  "canada-pipeda": "canada-pipeda",
+  "aus-privacy": "aus-privacy",
+  "jp-appi": "jp-appi",
+  "kr-pipa": "kr-pipa",
+  "ch-fadp": "ch-fadp",
+  "za-popia": "za-popia",
+  "ng-ndpa": "ng-ndpa",
+};
 
 interface SovereignLegalMatrixProps {
   onOpenRemediationModal?: () => void;
   isUnlocked?: boolean;
+  selectedFramework?: string;
 }
 
 export function SovereignLegalMatrix({
   onOpenRemediationModal,
   isUnlocked = false,
+  selectedFramework,
 }: SovereignLegalMatrixProps) {
-  const [selectedId, setSelectedId] = useState<string>("ind-dpdp");
+  const [selectedId, setSelectedId] = useState<string>(
+    (selectedFramework && FRAMEWORK_TO_DRAFT_ID[selectedFramework]) || "ind-dpdp",
+  );
   const [activeRegion, setActiveRegion] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"document" | "articles">("document");
   const [copied, setCopied] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (selectedFramework && FRAMEWORK_TO_DRAFT_ID[selectedFramework]) {
+      setSelectedId(FRAMEWORK_TO_DRAFT_ID[selectedFramework]);
+    }
+  }, [selectedFramework]);
 
   const filteredDrafts = useMemo(() => {
     return interactiveLegalDrafts.filter((draft) => {
@@ -142,65 +168,53 @@ export function SovereignLegalMatrix({
   };
 
   const regions = [
-    { label: "All 15 Sovereign Regimes", value: "ALL" },
-    { label: "🇮🇳 India (DPDP)", value: "Asia-Pacific" },
-    { label: "🇪🇺 Europe & UK (GDPR/DUAA)", value: "Europe & UK" },
-    { label: "🌎 Americas (CPRA / LGPD / PIPEDA)", value: "Americas" },
-    { label: "🇦🇪 Middle East (UAE / KSA)", value: "Middle East" },
-    { label: "🌍 Africa (NDPA / POPIA)", value: "Africa" },
+    { label: "All 15", value: "ALL" },
+    { label: "India & Asia-Pacific", value: "Asia-Pacific" },
+    { label: "Europe & UK", value: "Europe & UK" },
+    { label: "Americas", value: "Americas" },
+    { label: "Middle East", value: "Middle East" },
+    { label: "Africa", value: "Africa" },
   ];
 
   return (
     <section
       id="legal-matrix"
-      className="relative my-16 rounded-3xl border p-6 shadow-2xl transition-all sm:p-8 md:p-10"
-      style={{
-        backgroundColor: "#0d0d0d",
-        borderColor: "rgba(212, 175, 55, 0.22)",
-        backdropFilter: "blur(30px)",
-        boxShadow: "0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.05)",
-      }}
+      className="surface-panel my-16 rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8 md:p-10"
     >
-      {/* Background Accent Glow */}
-      <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#D4AF37]/5 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-[#D4AF37]/5 blur-3xl" />
-
       {/* Section Header */}
-      <div className="relative z-10 flex flex-col items-start justify-between gap-4 border-b border-[#D4AF37]/15 pb-6 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-[#262932] pb-6 sm:flex-row sm:items-center">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3.5 py-1 font-mono text-[11px] font-semibold tracking-wider text-[#D4AF37] uppercase">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] font-semibold tracking-wider text-[#C9A227] uppercase">
             <Shield className="h-3.5 w-3.5" />
             <span>15 Sovereign Data Protection Regimes</span>
-          </div>
-          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-[#E5E5E5] sm:text-3xl">
-            Sovereign Legal Drafting Sandbox &amp; Compliance Matrix
+          </span>
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-[#FAF8F5] sm:text-3xl">
+            Sovereign Legal Drafting &amp; Compliance Matrix
           </h2>
-          <p className="mt-1 font-mono text-xs text-[#E5E5E5]/70">
-            Tailored 2-to-4 line statutory disclosures &amp; turnkey legal drafting templates across
-            15 sovereign jurisdictions: India, UAE, Saudi Arabia, EU, UK, USA, Canada, Brazil,
-            Singapore, Japan, South Korea, Switzerland, Australia, South Africa, and Nigeria.
+          <p className="mt-1 font-sans text-xs text-muted-foreground">
+            Tailored statutory disclosures and turnkey legal drafting templates across 15 sovereign
+            jurisdictions: India, UAE, Saudi Arabia, EU, UK, USA, Canada, Brazil, Singapore, Japan,
+            South Korea, Switzerland, Australia, South Africa, and Nigeria.
           </p>
         </div>
 
-        {/* Console Signature Badge */}
-        <div className="flex items-center gap-2 rounded-lg border border-[#D4AF37]/20 bg-black/60 px-3 py-1.5 font-mono text-[10px] text-[#D4AF37]/90 backdrop-blur-md">
-          <Terminal className="h-3.5 w-3.5 animate-pulse text-[#D4AF37]" />
-          <span>ASJi LAW-TECH SUITE // 15 SOVEREIGN PROTOCOLS</span>
-        </div>
+        <span className="font-mono text-[11px] text-[#C9A227] whitespace-nowrap">
+          ASJi Statutory Repository · 15 Regimes
+        </span>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="relative z-10 mt-6 flex flex-col gap-4 border-b border-[#D4AF37]/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Region Pills */}
+      <div className="mt-6 flex flex-col gap-4 border-b border-[#262932] pb-6 lg:flex-row lg:items-center lg:justify-between">
+        {/* Region Filter Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           {regions.map((reg) => (
             <button
               key={reg.value}
               onClick={() => setActiveRegion(reg.value)}
-              className={`rounded-xl px-3.5 py-1.5 font-mono text-xs font-semibold transition-all duration-150 cursor-pointer ${
+              className={`rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
                 activeRegion === reg.value
-                  ? "border border-[#D4AF37] bg-[#D4AF37] text-black shadow-md shadow-[#D4AF37]/20"
-                  : "border border-white/10 bg-white/5 text-[#E5E5E5]/70 hover:border-[#D4AF37]/40 hover:text-white"
+                  ? "border border-[#C9A227] bg-[#C9A227] text-[#0D0E11]"
+                  : "border border-[#262932] bg-[#0D0E11] text-muted-foreground hover:border-[#C9A227]/50 hover:text-foreground"
               }`}
             >
               {reg.label}
@@ -210,18 +224,18 @@ export function SovereignLegalMatrix({
 
         {/* Search Box */}
         <div className="relative min-w-[260px] max-w-sm">
-          <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#D4AF37]/60" />
+          <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[#C9A227]/70" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search clauses, articles, penalties..."
-            className="w-full rounded-xl border border-[#D4AF37]/20 bg-black/60 py-2 pr-3 pl-9 font-mono text-xs text-[#E5E5E5] placeholder-[#E5E5E5]/40 outline-none transition-all focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/50"
+            className="w-full rounded-md border border-[#262932] bg-[#0D0E11] py-2 pr-3 pl-9 font-mono text-xs text-foreground placeholder:text-muted-foreground/60 outline-none transition-colors focus:border-[#C9A227]"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 font-mono text-[10px] text-[#E5E5E5]/50 hover:text-white cursor-pointer"
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 font-mono text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
             >
               Clear
             </button>
@@ -230,16 +244,14 @@ export function SovereignLegalMatrix({
       </div>
 
       {/* Main Grid Partition */}
-      <div className="relative z-10 mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Column: 15 Sovereign Law Selection Cards */}
         <div className="flex flex-col gap-3 lg:col-span-4">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-[11px] uppercase tracking-widest text-[#D4AF37]/80">
-              Select Statutory Framework ({filteredDrafts.length} of 15)
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[#C9A227]">
+              Select Jurisdiction ({filteredDrafts.length} of 15)
             </p>
-            <span className="font-mono text-[10px] text-[#E5E5E5]/50">
-              Official 2025/2026 Standards
-            </span>
+            <span className="font-mono text-[10px] text-muted-foreground">2025/2026 Standards</span>
           </div>
 
           <div className="flex flex-col gap-2.5 max-h-[560px] overflow-y-auto pr-1">
@@ -252,64 +264,60 @@ export function SovereignLegalMatrix({
                     setSelectedId(draft.id);
                     setCopied(false);
                   }}
-                  className={`group relative flex cursor-pointer flex-col items-start rounded-2xl border p-4 text-left transition-all duration-200 ${
+                  className={`group flex cursor-pointer flex-col items-start rounded-md border p-4 text-left transition-colors ${
                     isSelected
-                      ? "border-[#D4AF37] bg-black/90 shadow-xl shadow-[#D4AF37]/15 ring-1 ring-[#D4AF37]/50"
-                      : "border-[#D4AF37]/15 bg-black/40 hover:border-[#D4AF37]/40 hover:bg-black/70"
+                      ? "border-[#C9A227] bg-[#0D0E11] ring-1 ring-[#C9A227]"
+                      : "border-[#262932] bg-[#0D0E11] hover:border-[#C9A227]/50"
                   }`}
                 >
-                  {/* Selection Indicator Pill */}
-                  <div className="flex w-full items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base">{draft.flag}</span>
+                  <div className="flex w-full items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border border-[#262932] bg-[#15171C] text-[#FAF8F5]">
+                        {draft.flag}
+                      </span>
                       <span
-                        className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase ${
+                        className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase ${
                           isSelected
-                            ? "bg-[#D4AF37] text-black"
-                            : "bg-[#D4AF37]/10 text-[#D4AF37] group-hover:bg-[#D4AF37]/20"
+                            ? "bg-[#C9A227] text-[#0D0E11]"
+                            : "bg-[#15171C] text-[#C9A227] border border-[#262932]"
                         }`}
                       >
                         {draft.tag}
                       </span>
                     </div>
-                    <span className="font-mono text-[9.5px] text-[#E5E5E5]/60 truncate max-w-[130px]">
+                    <span className="font-mono text-[10px] text-muted-foreground text-right leading-snug">
                       {draft.badge}
                     </span>
                   </div>
 
                   <h3
-                    className={`mt-2 font-display text-sm font-semibold transition-colors ${
-                      isSelected ? "text-[#D4AF37]" : "text-[#E5E5E5] group-hover:text-white"
+                    className={`mt-2.5 font-display text-sm font-semibold transition-colors ${
+                      isSelected ? "text-[#C9A227]" : "text-[#FAF8F5] group-hover:text-[#C9A227]"
                     }`}
                   >
                     {draft.jurisdiction}
                   </h3>
 
-                  <p className="mt-1 line-clamp-2 font-mono text-[11px] leading-relaxed text-[#E5E5E5]/70">
+                  <p className="mt-1 font-sans text-xs leading-relaxed text-muted-foreground">
                     {draft.titleHeader}
                   </p>
 
-                  <div className="mt-2.5 flex w-full items-center justify-between border-t border-white/5 pt-2 font-mono text-[9.5px] text-[#E5E5E5]/50">
-                    <span className="text-[#D4AF37]/80 truncate max-w-[160px]">
-                      {draft.titleHeader}
+                  <div className="mt-3 w-full border-t border-[#262932] pt-2.5 font-mono text-[11px] leading-snug">
+                    <span className="block text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                      Maximum Penalty
                     </span>
-                    <span className="text-rose-400 font-medium">
-                      Penalty: {draft.statutoryPenalty.split(" ")[0]}{" "}
-                      {draft.statutoryPenalty.split(" ")[1]}
+                    <span className="mt-0.5 block font-semibold text-[#EF4444]">
+                      {draft.statutoryPenalty}
                     </span>
                   </div>
-
-                  {isSelected && (
-                    <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_#D4AF37]" />
-                  )}
                 </button>
               );
             })}
 
             {filteredDrafts.length === 0 && (
-              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 text-center">
-                <ShieldAlert className="mx-auto h-8 w-8 text-[#D4AF37]/60" />
-                <p className="mt-2 font-mono text-xs text-[#E5E5E5]/70">
+              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-6 text-center">
+                <ShieldAlert className="mx-auto h-8 w-8 text-[#C9A227]" />
+                <p className="mt-2 font-mono text-xs text-muted-foreground">
                   No statutory frameworks matched &ldquo;{searchQuery}&rdquo;
                 </p>
                 <button
@@ -317,7 +325,7 @@ export function SovereignLegalMatrix({
                     setSearchQuery("");
                     setActiveRegion("ALL");
                   }}
-                  className="mt-3 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 font-mono text-xs text-[#D4AF37] cursor-pointer"
+                  className="mt-3 rounded border border-[#C9A227]/40 bg-[#15171C] px-3 py-1 font-mono text-xs text-[#C9A227] cursor-pointer"
                 >
                   Reset Filter
                 </button>
@@ -326,46 +334,48 @@ export function SovereignLegalMatrix({
           </div>
         </div>
 
-        {/* Right Column: 2-to-4 Line Statutory Excerpt & Unlock Action Pane */}
-        <div className="relative flex flex-col rounded-2xl border border-[#D4AF37]/20 bg-black/80 p-5 shadow-inner backdrop-blur-2xl sm:p-6 lg:col-span-8">
-          {/* Top Bar of Document Preview */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D4AF37]/15 pb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">{activeDraft.flag}</span>
+        {/* Right Column: Legal Brief & Remediation Surface on Warm Alabaster (#FAF8F5) */}
+        <div className="legal-paper flex flex-col rounded-md border border-[#E5DEC9] bg-[#FAF8F5] p-5 sm:p-7 text-[#18181B] lg:col-span-8">
+          {/* Top Bar of Legal Document Preview */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5DEC9] pb-4">
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-xs font-bold px-2 py-1 rounded border border-[#E5DEC9] bg-[#F3EFE6] text-[#18181B]">
+                {activeDraft.flag}
+              </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-[#D4AF37] uppercase tracking-wider">
-                    {activeDraft.tag} // {activeDraft.jurisdiction}
+                  <span className="font-mono text-xs font-bold text-[#9A7812] uppercase tracking-wider">
+                    {activeDraft.tag} · {activeDraft.jurisdiction}
                   </span>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.2 font-mono text-[9px] text-emerald-400">
-                    Statutory Compliant
+                  <span className="rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#065F46]">
+                    Statutory Standard
                   </span>
                 </div>
-                <p className="font-mono text-[10px] text-[#E5E5E5]/60">
+                <p className="font-mono text-[11px] text-[#52525B] mt-0.5">
                   Statutory Reference: {activeDraft.statutoryReference}
                 </p>
               </div>
             </div>
 
             {/* View Mode Switcher */}
-            <div className="flex items-center rounded-xl border border-white/10 bg-black/60 p-1">
+            <div className="flex items-center rounded-md border border-[#E5DEC9] bg-[#F3EFE6] p-1">
               <button
                 onClick={() => setViewMode("document")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-mono text-xs transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded px-3 py-1 font-mono text-xs transition-colors cursor-pointer ${
                   viewMode === "document"
-                    ? "bg-[#D4AF37] font-bold text-black shadow-sm"
-                    : "text-[#E5E5E5]/70 hover:text-white"
+                    ? "bg-[#18181B] font-bold text-[#FAF8F5]"
+                    : "text-[#52525B] hover:text-[#18181B]"
                 }`}
               >
                 <FileText className="h-3 w-3" />
-                <span>Statutory Excerpt (2-4 Lines)</span>
+                <span>Statutory Excerpt</span>
               </button>
               <button
                 onClick={() => setViewMode("articles")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-mono text-xs transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded px-3 py-1 font-mono text-xs transition-colors cursor-pointer ${
                   viewMode === "articles"
-                    ? "bg-[#D4AF37] font-bold text-black shadow-sm"
-                    : "text-[#E5E5E5]/70 hover:text-white"
+                    ? "bg-[#18181B] font-bold text-[#FAF8F5]"
+                    : "text-[#52525B] hover:text-[#18181B]"
                 }`}
               >
                 <Scale className="h-3 w-3" />
@@ -375,51 +385,51 @@ export function SovereignLegalMatrix({
           </div>
 
           {/* Quick Statutory Metadata Ribbon */}
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 rounded-xl border border-[#D4AF37]/15 bg-black/60 p-3 font-mono text-xs">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-md border border-[#E5DEC9] bg-[#F3EFE6]/60 p-3.5 font-mono text-xs">
             <div>
-              <span className="text-[10px] uppercase text-[#E5E5E5]/50 block">
+              <span className="text-[10px] uppercase text-[#52525B] block">
                 Statutory Reference
               </span>
-              <span className="text-[#D4AF37] font-semibold text-[11px] line-clamp-1">
+              <span className="text-[#18181B] font-semibold text-[11px] leading-snug block mt-0.5">
                 {activeDraft.statutoryReference}
               </span>
             </div>
             <div>
-              <span className="text-[10px] uppercase text-[#E5E5E5]/50 block">
+              <span className="text-[10px] uppercase text-[#52525B] block">
                 Maximum Statutory Exposure
               </span>
-              <span className="text-rose-400 font-semibold text-[11px] line-clamp-1">
+              <span className="text-[#B91C1C] font-semibold text-[11px] leading-snug block mt-0.5">
                 {activeDraft.statutoryPenalty}
               </span>
             </div>
-            <div>
-              <span className="text-[10px] uppercase text-[#E5E5E5]/50 block">
+            <div className="sm:col-span-2 lg:col-span-1">
+              <span className="text-[10px] uppercase text-[#52525B] block">
                 Jurisdiction Region
               </span>
-              <span className="text-[#E5E5E5] font-semibold text-[11px] line-clamp-1">
-                {activeDraft.region} // {activeDraft.badge}
+              <span className="text-[#18181B] font-semibold text-[11px] leading-snug block mt-0.5">
+                {activeDraft.region} · {activeDraft.badge}
               </span>
             </div>
           </div>
 
           {/* Action Toolbar */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#D4AF37]/10 pb-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#E5DEC9] pb-3">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] text-[#E5E5E5]/60">Statutory Actions:</span>
+              <span className="font-mono text-[11px] text-[#52525B]">Actions:</span>
               <button
                 onClick={() => handleDownload("md")}
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-mono text-[11px] text-[#E5E5E5] hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] transition-all"
+                className="flex cursor-pointer items-center gap-1.5 rounded border border-[#E5DEC9] bg-white px-2.5 py-1.5 font-mono text-[11px] text-[#18181B] hover:border-[#C9A227] transition-colors"
                 title="Download as Markdown"
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-3 w-3 text-[#9A7812]" />
                 <span>Download (.md)</span>
               </button>
               <button
                 onClick={() => handleDownload("txt")}
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-mono text-[11px] text-[#E5E5E5] hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] transition-all"
+                className="flex cursor-pointer items-center gap-1.5 rounded border border-[#E5DEC9] bg-white px-2.5 py-1.5 font-mono text-[11px] text-[#18181B] hover:border-[#C9A227] transition-colors"
                 title="Download as Text"
               >
-                <FileCode className="h-3 w-3" />
+                <FileCode className="h-3 w-3 text-[#9A7812]" />
                 <span>Text (.txt)</span>
               </button>
             </div>
@@ -427,15 +437,15 @@ export function SovereignLegalMatrix({
             {/* Copy Action Button */}
             <button
               onClick={handleCopy}
-              className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
+              className={`flex cursor-pointer items-center gap-2 rounded border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
                 copied
-                  ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-400 shadow-md shadow-emerald-500/10"
-                  : "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37] hover:border-[#D4AF37] hover:bg-[#D4AF37]/20"
+                  ? "border-[#10B981] bg-[#10B981]/10 text-[#065F46]"
+                  : "border-[#18181B] bg-[#18181B] text-[#FAF8F5] hover:bg-[#27272A]"
               }`}
             >
               {copied ? (
                 <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <Check className="h-3.5 w-3.5 text-[#10B981]" />
                   <span>Copied Statutory Excerpt</span>
                 </>
               ) : (
@@ -447,47 +457,46 @@ export function SovereignLegalMatrix({
             </button>
           </div>
 
-          {/* View Content Area: 2-to-4 Line Statutory Notice View */}
+          {/* View Content Area: Statutory Notice View */}
           {viewMode === "document" ? (
             <div className="mt-4 flex flex-col gap-4">
-              {/* 2 to 4 Line Statutory Executive Notice */}
-              <div className="rounded-xl border border-primary/40 bg-gradient-to-br from-[#121212] to-black p-4 font-mono">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Scale className="h-3.5 w-3.5 text-primary" />
-                    Statutory Legal Excerpt (Tailored 2–4 Line Notice):
+              {/* Statutory Executive Notice */}
+              <div className="rounded-md border border-[#E5DEC9] bg-white p-5">
+                <div className="flex items-center justify-between border-b border-[#E5DEC9] pb-2 mb-3">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#9A7812] flex items-center gap-1.5">
+                    <Scale className="h-3.5 w-3.5" />
+                    Statutory Notice Excerpt
                   </span>
-                  <span className="text-[9.5px] text-muted-foreground">
-                    Section {activeDraft.statutoryReference.split(",")[0]}
+                  <span className="font-mono text-[10px] text-[#52525B]">
+                    {activeDraft.statutoryReference.split(",")[0]}
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed text-foreground font-sans italic bg-black/40 p-3 rounded-lg border border-white/5">
+                <p className="text-sm leading-relaxed text-[#18181B] font-display italic">
                   &ldquo;{conciseExcerpt}&rdquo;
                 </p>
               </div>
 
-              {/* Unlocked Complete Draft vs Blurred Preview with Transaction CTA */}
+              {/* Unlocked Complete Draft vs Preview with Generate Statutory Pack CTA */}
               {isUnlocked ? (
-                <div className="relative mt-2 overflow-x-auto rounded-xl border border-white/10 bg-[#080808] p-4 font-mono text-xs leading-relaxed text-[#E5E5E5] max-h-[360px] overflow-y-auto">
+                <div className="overflow-x-auto rounded-md border border-[#E5DEC9] bg-white p-5 font-mono text-xs leading-relaxed text-[#18181B] max-h-[360px] overflow-y-auto">
                   <pre className="whitespace-pre-wrap">{activeDraft.bodyText}</pre>
                 </div>
               ) : (
-                <div className="relative mt-2 rounded-xl border border-primary/30 bg-black/70 p-5 overflow-hidden">
-                  {/* Blurred Text Teaser */}
-                  <div className="select-none blur-[3.5px] opacity-40 font-mono text-[11px] leading-relaxed text-muted-foreground max-h-24 overflow-hidden">
-                    <p>{activeDraft.bodyText.slice(0, 450)}</p>
+                <div className="rounded-md border border-[#E5DEC9] bg-[#F3EFE6] p-5 space-y-4">
+                  <div className="select-none opacity-60 font-mono text-[11px] leading-relaxed text-[#52525B] max-h-24 overflow-hidden">
+                    <p>{activeDraft.bodyText.slice(0, 420)}...</p>
                   </div>
 
-                  {/* Transaction & Unlock Callout */}
-                  <div className="relative z-10 -mt-16 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-primary/40 bg-black/90 p-4 shadow-xl backdrop-blur-md">
+                  {/* Statutory Pack CTA */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-md border border-[#262932] bg-[#15171C] p-5 text-[#FAF8F5]">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <h4 className="font-display text-sm font-bold text-gold-gradient">
-                          Unlock Complete Unredacted Legal Draft &amp; Contract Pack
+                        <Lock className="h-4 w-4 text-[#C9A227]" />
+                        <h4 className="font-display text-base font-bold text-[#FAF8F5]">
+                          Complete Unredacted Legal Draft &amp; Contract Pack
                         </h4>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Includes full bilingual clauses, DPO appointment agreements, and Data
                         Protection Board filing dossiers.
                       </p>
@@ -496,10 +505,10 @@ export function SovereignLegalMatrix({
                     <button
                       type="button"
                       onClick={() => onOpenRemediationModal && onOpenRemediationModal()}
-                      className="btn-gold flex items-center gap-2 rounded-xl px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-black cursor-pointer shadow-lg shadow-primary/20 shrink-0"
+                      className="btn-gold flex items-center gap-2 rounded-md px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0"
                     >
-                      <Zap className="h-3.5 w-3.5" />
-                      <span>Initiate Transaction &amp; Unlock Suite</span>
+                      <span>Generate Statutory Pack</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
@@ -507,49 +516,49 @@ export function SovereignLegalMatrix({
             </div>
           ) : (
             <div className="mt-4 flex-1 flex flex-col gap-3 max-h-[440px] overflow-y-auto pr-1">
-              <div className="rounded-xl border border-[#D4AF37]/20 bg-black/60 p-3 font-mono text-xs text-[#D4AF37]">
+              <div className="rounded-md border border-[#E5DEC9] bg-[#F3EFE6] p-3 font-mono text-xs font-bold text-[#18181B]">
                 Key Statutory Articles &amp; Enforcement Directives for {activeDraft.jurisdiction}:
               </div>
               {activeDraft.keyArticles.map((article, idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl border border-white/10 bg-[#121212] p-3.5 font-mono transition-all hover:border-[#D4AF37]/30"
+                  className="rounded-md border border-[#E5DEC9] bg-white p-3.5 font-sans transition-colors hover:border-[#C9A227]"
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
-                    <span className="font-bold text-[#E5E5E5] text-xs flex items-center gap-2">
-                      <Scale className="h-3.5 w-3.5 text-[#D4AF37]" />
+                  <div className="flex items-center justify-between gap-2 border-b border-[#E5DEC9] pb-2">
+                    <span className="font-display font-bold text-[#18181B] text-sm flex items-center gap-2">
+                      <Scale className="h-3.5 w-3.5 text-[#9A7812]" />
                       {article.title}
                     </span>
-                    <span className="rounded-md border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-2 py-0.5 text-[10px] font-bold text-[#D4AF37]">
+                    <span className="rounded border border-[#E5DEC9] bg-[#F3EFE6] px-2 py-0.5 font-mono text-[10px] font-bold text-[#9A7812]">
                       {article.ref}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-[#E5E5E5]/75 leading-relaxed">{article.desc}</p>
+                  <p className="mt-2 text-xs text-[#52525B] leading-relaxed">{article.desc}</p>
                 </div>
               ))}
 
-              <div className="rounded-xl border border-rose-500/20 bg-rose-950/10 p-3.5 font-mono text-xs text-rose-200">
-                <div className="flex items-center gap-2 font-bold text-rose-400 mb-1">
-                  <ShieldAlert className="h-4 w-4 text-rose-400" />
+              <div className="rounded-md border border-[#EF4444]/40 bg-[#FEF2F2] p-3.5 font-mono text-xs text-[#7F1D1D]">
+                <div className="flex items-center gap-2 font-bold text-[#EF4444] mb-1">
+                  <ShieldAlert className="h-4 w-4" />
                   <span>Statutory Penalty &amp; Regulatory Sanctions Ceiling</span>
                 </div>
-                <p className="text-rose-300/80 leading-relaxed">
+                <p className="leading-relaxed">
                   {activeDraft.statutoryPenalty}. Non-compliance with mandatory notice, consent, or
-                  data breach protocols is subject to direct statutory enforcement and
-                  administrative penalties.
+                  data breach protocols is subject to statutory enforcement and administrative
+                  penalties.
                 </p>
               </div>
             </div>
           )}
 
           {/* Footer Bar */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3 font-mono text-[10px] text-[#E5E5E5]/50">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#E5DEC9] pt-3 font-mono text-[10px] text-[#52525B]">
             <span className="flex items-center gap-1.5">
-              <Globe className="h-3 w-3 text-[#D4AF37]" />
-              Cryptographically Verified Against 15 Sovereign International Regimes
+              <Globe className="h-3 w-3 text-[#9A7812]" />
+              Verified Against 15 Sovereign International Regimes
             </span>
-            <span className="text-[#D4AF37]/70">
-              ASJi SOVEREIGN LAW-TECH AUTOMATION // VERIFIED STATUTORY INSTRUMENTS
+            <span className="text-[#9A7812] font-semibold">
+              ASJi Law-Tech Standard · Statutory Instruments
             </span>
           </div>
         </div>

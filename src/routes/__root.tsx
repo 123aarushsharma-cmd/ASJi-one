@@ -7,13 +7,16 @@ import {
   useLocation,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { AlertTriangle } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsent } from "@/components/CookieConsent";
+import { GrievancePortalModal } from "@/components/GrievancePortalModal";
 import { SovereignInspectionGuard } from "@/components/SovereignInspectionGuard";
 import { AuthProvider } from "@/lib/auth-context";
 import { MobileFloatingNavbar } from "@/components/MobileFloatingNavbar";
@@ -40,9 +43,10 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const errorMessage = error instanceof Error ? error.message : String(error || "");
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -60,22 +64,22 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-lg text-center">
-        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 border border-primary/30 text-primary mb-3">
-          <span className="text-xl">⚠️</span>
+    <div className="flex min-h-screen items-center justify-center bg-[#0D0E11] px-4">
+      <div className="max-w-lg text-center rounded-xl border border-[#262932] bg-[#15171C] p-8">
+        <div className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/40 text-[#C9A227] mb-3">
+          <AlertTriangle className="h-5 w-5" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground font-display">
+        <h1 className="text-2xl font-bold tracking-tight text-[#FAF8F5] font-display">
           Session Restored
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-[#A1A1AA]">
           The compliance scanner encountered a temporary context reload. Click below to resume your
           audit session immediately.
         </p>
 
-        {error?.message && (
-          <div className="mt-4 p-3 bg-black/60 border border-white/10 rounded-xl text-left text-xs font-mono text-muted-foreground overflow-x-auto max-h-24">
-            <code>{error.message}</code>
+        {errorMessage && (
+          <div className="mt-4 p-3 bg-[#0D0E11] border border-[#262932] rounded-lg text-left text-xs font-mono text-[#A1A1AA] overflow-x-auto max-h-24">
+            <code>{errorMessage}</code>
           </div>
         )}
 
@@ -85,13 +89,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 cursor-pointer"
+            className="inline-flex items-center justify-center rounded-lg bg-[#C9A227] px-5 py-2.5 text-sm font-semibold text-[#0D0E11] transition-colors hover:bg-[#DFB842] cursor-pointer"
           >
             Reload Scanner
           </button>
           <button
             onClick={handleHardReset}
-            className="inline-flex items-center justify-center rounded-xl border border-input bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent cursor-pointer"
+            className="inline-flex items-center justify-center rounded-lg border border-[#262932] bg-[#0D0E11] px-5 py-2.5 text-sm font-semibold text-[#FAF8F5] transition-colors hover:border-[#C9A227]/50 cursor-pointer"
           >
             Fresh Session
           </button>
@@ -116,10 +120,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Inspect tracking cookies, consent mechanisms, and server security headers across 15 sovereign global jurisdictions with ASJi One.",
       },
       {
+        name: "referrer",
+        content: "strict-origin-when-cross-origin",
+      },
+      {
         name: "robots",
         content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
       },
-      { name: "author", content: "ASJi Law & Legal Engineering" },
+      { name: "author", content: "ASJi Web and Legal Solution" },
       { property: "og:site_name", content: "ASJi One" },
       {
         property: "og:title",
@@ -151,7 +159,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400&display=swap",
         crossOrigin: "anonymous",
       },
       {
@@ -168,11 +176,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="w-full max-w-full overflow-x-hidden min-h-screen bg-background">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className="w-full max-w-full overflow-x-hidden min-h-screen bg-background"
+    >
       <head>
         <HeadContent />
       </head>
-      <body className="w-full max-w-full overflow-x-hidden min-h-screen bg-background text-foreground antialiased">
+      <body
+        suppressHydrationWarning
+        className="w-full max-w-full overflow-x-hidden min-h-screen bg-background text-foreground antialiased"
+      >
         {children}
         <Scripts />
       </body>
@@ -201,7 +216,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 6 }}
@@ -214,6 +229,7 @@ function RootComponent() {
           </motion.div>
         </AnimatePresence>
         <CookieConsent />
+        <GrievancePortalModal />
         <SovereignInspectionGuard />
         <MobileFloatingNavbar />
       </AuthProvider>

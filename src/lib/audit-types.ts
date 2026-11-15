@@ -24,7 +24,7 @@ export type AuditProvenance = {
 export type JurisdictionVerdictItem = {
   jurisdiction: string;
   statute: string;
-  status: "[🟩 PASS]" | "[🟥 FAIL]";
+  status: "[PASS]" | "[FAIL]";
   pass: boolean;
   triggerRules: string[];
   findings: string[];
@@ -32,7 +32,7 @@ export type JurisdictionVerdictItem = {
 
 export type CrossBorderAnalysis = {
   routingLedgerStatus: "COMPLIANT" | "NON-COMPLIANT";
-  routingLedgerDisplay: "[COMPLIANT]" | "[🟥 NON-COMPLIANT]";
+  routingLedgerDisplay: "[COMPLIANT]" | "[NON-COMPLIANT]";
   anomalyCaptureLog: string;
   isCompliant: boolean;
   packetDestinationNote: string;
@@ -110,6 +110,7 @@ export type AuditReport = {
   scanStatus?: "completed" | "incomplete";
   scanMethodWorked?: ScanMethodWorked | null;
   finalHttpStatus?: number;
+  attemptedMethods?: string[];
   isBlockedOrIncomplete?: boolean;
   isLimitedScan?: boolean;
   limitedScanDetails?: LimitedScanDetails;
@@ -121,6 +122,14 @@ export type AuditReport = {
     attemptedMethods?: string[];
   };
   score: number;
+  auditRefId?: string;
+  politechMode?: boolean;
+  scoreBreakdown?: {
+    rule: string;
+    delta: number;
+    passed: boolean;
+    detail: string;
+  }[];
   summary: string;
   inputKind: "url" | "text";
   evidence: string[];
@@ -140,4 +149,54 @@ export type AuditReport = {
   fineRisk: { estimate: string; currency: string; rationale: string };
   remediation: { step: string; impact: string; effort: string }[];
   radarTerminal?: RadarTerminalData;
+  isWafBlocked?: boolean;
+  wafBadge?: string;
+  wafReason?: string;
+  scannedAtUtc?: string;
+  scannedAtIst?: string;
+  dnsSecurity?: {
+    aRecords: string[];
+    aaaaRecords: string[];
+    spfRecord: string | null;
+    dmarcRecord: string | null;
+    caaRecords: string[];
+    mxRecords: string[];
+    nsRecords: string[];
+    dohProvider: string;
+  };
+  sslCert?: {
+    valid: boolean;
+    issuer?: string;
+    subject?: string;
+    validFrom?: string;
+    validTo?: string;
+    daysRemaining?: number;
+    protocol?: string;
+    cipher?: string;
+  };
+  detectedScripts?: {
+    name: string;
+    category: string;
+    scriptUrlOrSnippet: string;
+    privacyRisk: string;
+  }[];
+  detectedCmp?: {
+    name: string;
+    evidence: string;
+    isStandardCmp: boolean;
+  } | null;
+  policyDisclosures?: {
+    privacyPolicyUrl?: string;
+    cookiePolicyUrl?: string;
+    termsUrl?: string;
+    grievanceContact?: string;
+  };
+  politechSignals?: {
+    hasPoliticalAdDisclosure: boolean;
+    hasPreCheckedConsent: boolean;
+  };
+  checksSummary?: import("./checks-types").ChecksSummary;
 };
+
+export const WAF_BADGE_TEXT =
+  "WAF / Bot Shield Detected on Target — Showing Verified DNS/TLS Results + Guided Manual Audit Checklist";

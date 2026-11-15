@@ -264,6 +264,184 @@
         }
       },
       "required": ["sender", "content"]
+    },
+    "AuditScanLog": {
+      "title": "AuditScanLog",
+      "description": "Live deterministic telemetry audit record with unique ASJI-2026 certificate reference",
+      "type": "object",
+      "properties": {
+        "audit_ref_id": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Unique certificate reference ID (ASJI-2026-XXXX)"
+        },
+        "domain": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "Normalized scanned domain"
+        },
+        "framework": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Primary governing privacy framework"
+        },
+        "politech_mode": {
+          "type": "boolean",
+          "description": "Whether PoliTech political ad and consent audit checks were enabled"
+        },
+        "compliance_score": {
+          "type": "number",
+          "description": "Deterministic rule-based 0-100 compliance score"
+        },
+        "verdict": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Overall verdict classification"
+        },
+        "findings": {
+          "type": "array",
+          "description": "Detected statutory and technical findings"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Exact UTC ISO timestamp of live inspection"
+        }
+      },
+      "required": ["audit_ref_id", "domain", "compliance_score", "findings", "created_at"]
+    },
+    "PaymentUnlock": {
+      "title": "PaymentUnlock",
+      "description": "Domain payment reference submission and verified domain remediation unlock status",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "domain": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "Normalized target domain"
+        },
+        "referenceId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "12-digit UPI UTR or authorized transaction reference"
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["patch-code", "dpdp-india", "gdpr-global", "full-bundle"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "verified", "rejected"]
+        },
+        "created_at": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "domain", "tier", "status"]
+    },
+    "StatutoryRule": {
+      "title": "StatutoryRule",
+      "description": "Live editable 15-nation statutory rule metadata and legal template text",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "lawName": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "acronym": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "maxPenalty": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "governingBody": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "legalTemplateText": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "country", "lawName", "maxPenalty", "governingBody"]
+    },
+    "GrievanceTicket": {
+      "title": "GrievanceTicket",
+      "description": "DPDP Section 13 & GDPR Article 15-17 Data Principal request and grievance ticket",
+      "type": "object",
+      "properties": {
+        "ticketId": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "requestType": {
+          "type": "string",
+          "enum": ["Access", "Correction", "Erasure", "Grievance"]
+        },
+        "fullName": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "domainRef": {
+          "type": "string",
+          "maxLength": 253
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["OPEN", "RESOLVED"]
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["ticketId", "requestType", "fullName", "email", "summary", "status", "createdAt"]
+    },
+    "ConsentRecord": {
+      "title": "ConsentRecord",
+      "description": "Non-identifying cookie and telemetry consent ledger record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "choice": {
+          "type": "string",
+          "enum": ["Accepted", "Rejected", "Managed", "ScanAuthorized"]
+        },
+        "policyVersion": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "choice", "policyVersion", "createdAt"]
     }
   },
   "firestore": {
@@ -290,6 +468,26 @@
     "/laws/{lawId}": {
       "schema": "WorldLaw",
       "description": "Public repository of verified global data protection statutory frameworks"
+    },
+    "/audit_scans/{scanId}": {
+      "schema": "AuditScanLog",
+      "description": "Live telemetry audit scan history indexed by ASJI-2026 certificate reference"
+    },
+    "/payment_unlocks/{unlockId}": {
+      "schema": "PaymentUnlock",
+      "description": "Domain payment verification requests and verified domain unlock tokens"
+    },
+    "/statutory_rules/{ruleId}": {
+      "schema": "StatutoryRule",
+      "description": "Live editable 15-nation statutory rules and legal templates"
+    },
+    "/grievance_tickets/{ticketId}": {
+      "schema": "GrievanceTicket",
+      "description": "Submitted DPDP & GDPR Data Principal grievance and rights requests"
+    },
+    "/consent_records/{recordId}": {
+      "schema": "ConsentRecord",
+      "description": "Cookie consent and telemetry authorization ledger"
     }
   }
 }

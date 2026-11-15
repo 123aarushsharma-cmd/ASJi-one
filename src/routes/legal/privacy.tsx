@@ -98,8 +98,8 @@ export const Route = createFileRoute("/legal/privacy")({
       </LegalSection>
 
       <LegalSection title="6. Designated Grievance Officer Section">
-        <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2 font-mono text-xs text-foreground">
-          <p className="font-bold text-sm text-gold-gradient">
+        <div className="p-5 rounded-md border border-[#E5DEC9] bg-[#F4F1EA] space-y-2 font-mono text-xs text-[#18181B]">
+          <p className="font-display font-bold text-sm text-[#9A7812]">
             Statutory Grievance Redressal Officer
           </p>
           <p>
@@ -110,7 +110,10 @@ export const Route = createFileRoute("/legal/privacy")({
           </p>
           <p>
             <strong>Email Endpoint:</strong>{" "}
-            <a href={`mailto:${LEGAL.grievanceOfficer.email}`} className="text-primary underline">
+            <a
+              href={`mailto:${LEGAL.grievanceOfficer.email}`}
+              className="text-[#9A7812] font-semibold underline hover:text-[#18181B]"
+            >
               {LEGAL.grievanceOfficer.email}
             </a>
           </p>

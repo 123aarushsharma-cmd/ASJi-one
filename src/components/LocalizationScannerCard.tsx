@@ -7,9 +7,9 @@ import {
   FileText,
   Languages,
   Search,
-  Sparkles,
   X,
-  Zap,
+  ArrowRight,
+  Globe,
 } from "lucide-react";
 import type { AuditReport } from "@/lib/audit.functions";
 import {
@@ -210,27 +210,21 @@ export function LocalizationScannerCard({
   };
 
   return (
-    <div className="surface-panel relative overflow-hidden rounded-2xl p-6 sm:p-8">
-      {/* Background Decorative Gradient */}
-      <div
-        className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
-        aria-hidden="true"
-      />
-
+    <div className="surface-panel rounded-md border border-[#262932] bg-[#15171C] p-6 sm:p-8">
       {/* Header Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/15 text-primary shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[#C9A227]/40 bg-[#0D0E11] text-[#C9A227]">
             <Languages className="h-6 w-6" />
           </div>
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-display text-xl text-gold-gradient">
+              <h3 className="font-display text-xl font-bold text-[#FAF8F5]">
                 Global &amp; Regional Language Notice Scanner
               </h3>
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                Multi-Lingual Compliance Engine
+              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#C9A227]">
+                · Multi-Lingual Compliance Engine
               </span>
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -244,7 +238,7 @@ export function LocalizationScannerCard({
         <div className="flex items-center gap-3 self-start sm:self-auto">
           <div className="text-right">
             <div className="text-xs font-semibold text-muted-foreground">Localization Index</div>
-            <div className="font-display text-2xl font-bold text-foreground">
+            <div className="font-display text-2xl font-bold text-[#FAF8F5] tabular-nums">
               {localizationData.detectedCount}{" "}
               <span className="text-xs font-normal text-muted-foreground">
                 / {localizationData.totalChecked} Languages
@@ -252,10 +246,10 @@ export function LocalizationScannerCard({
             </div>
           </div>
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-xl border font-sans text-sm font-bold shadow-sm ${
+            className={`flex h-12 w-12 items-center justify-center rounded-md border font-mono text-sm font-bold tabular-nums ${
               localizationData.localizationScore >= 70
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                : "border-amber-500/40 bg-amber-500/10 text-amber-400"
+                ? "border-[#10B981]/50 bg-[#10B981]/10 text-[#10B981]"
+                : "border-[#F59E0B]/50 bg-[#F59E0B]/10 text-[#F59E0B]"
             }`}
           >
             {localizationData.localizationScore}%
@@ -265,25 +259,25 @@ export function LocalizationScannerCard({
 
       <div className="gold-rule my-5" />
 
-      {/* HIGH-RISK STATUTORY WARNING BANNERS (Refined Amber Styling) */}
+      {/* HIGH-RISK STATUTORY WARNING BANNER */}
       {localizationData.isHighRiskIndiaGap && (
-        <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-950/20 p-5">
+        <div className="mb-6 rounded-md border border-[#F59E0B]/40 bg-[#0D0E11] p-5">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/50 bg-amber-500/15 text-amber-400">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="flex-1 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h4 className="font-display text-base font-bold text-amber-300">
+                <h4 className="font-display text-base font-bold text-[#FAF8F5]">
                   Regional Notice Coverage Needed — DPDP Act 2023 Section 5(3)
                 </h4>
-                <span className="rounded border border-amber-500/40 bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                  STATUTORY NOTICE MANDATE
+                <span className="rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#F59E0B]">
+                  Statutory Notice Mandate
                 </span>
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Target domain operates in India (
-                <span className="font-sans font-bold text-foreground">{report.target}</span>), but
+                <span className="font-mono font-bold text-foreground">{report.target}</span>), but
                 lacks privacy policy disclosures in key Indian regional languages (Hindi, Tamil,
                 Telugu, Bengali, Marathi). Under Section 5(3) of the Digital Personal Data
                 Protection Act 2023, Data Fiduciaries must make privacy notices available in English
@@ -292,10 +286,10 @@ export function LocalizationScannerCard({
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
                   onClick={onOpenRemediationModal}
-                  className="inline-flex items-center gap-2 rounded-xl border border-primary/50 bg-primary/20 px-4 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/30"
+                  className="btn-gold inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-mono font-bold cursor-pointer"
                 >
-                  <Zap className="h-4 w-4" />
-                  Generate Multilingual Notices with Remediation Token
+                  <span>Generate Multilingual Statutory Pack</span>
+                  <ArrowRight className="h-4 w-4" />
                 </button>
                 <span className="text-[11px] text-muted-foreground">
                   Includes full 22-language statutory DPDP notice bundle
@@ -309,12 +303,12 @@ export function LocalizationScannerCard({
       {/* Filter Tabs & Search Controls */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Category Tabs */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-black/60 p-1">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-[#262932] bg-[#0D0E11] p-1">
           <button
             onClick={() => setActiveTab("all")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "all"
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-[#C9A227] text-[#0D0E11]"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -322,29 +316,25 @@ export function LocalizationScannerCard({
           </button>
           <button
             onClick={() => setActiveTab("indian")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "indian"
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-[#C9A227] text-[#0D0E11]"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <span>🇮🇳 Indian Regional Core</span>
-            <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[10px]">
-              {indianDetected}/5
-            </span>
+            <span className="font-mono text-[10px]">[IN]</span>
+            <span>Indian Regional Core ({indianDetected}/5)</span>
           </button>
           <button
             onClick={() => setActiveTab("global")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "global"
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-[#C9A227] text-[#0D0E11]"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <span>🌐 Global Enterprise</span>
-            <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[10px]">
-              {globalDetected}/5
-            </span>
+            <Globe className="h-3.5 w-3.5" />
+            <span>Global Enterprise ({globalDetected}/5)</span>
           </button>
         </div>
 
@@ -356,67 +346,67 @@ export function LocalizationScannerCard({
             placeholder="Search language or code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-border bg-black/80 py-1.5 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-md border border-[#262932] bg-[#0D0E11] py-1.5 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-[#C9A227] focus:outline-none"
           />
         </div>
       </div>
 
       {/* DYNAMIC LOCALIZATION MATRIX GRID */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {filteredResults.map((item) => {
           const isBaseline = item.lang.category === "baseline";
           return (
             <div
               key={item.lang.code}
-              className={`relative flex flex-col justify-between rounded-xl border p-4 transition-all ${
+              className={`flex flex-col justify-between rounded-md border p-4 transition-colors ${
                 item.detected
-                  ? "border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_12px_rgba(16,185,129,0.08)]"
+                  ? "border-[#10B981]/40 bg-[#0D0E11]"
                   : isBaseline
-                    ? "border-border bg-secondary/30"
-                    : "border-amber-500/30 bg-amber-950/10"
+                    ? "border-[#262932] bg-[#0D0E11]"
+                    : "border-[#F59E0B]/40 bg-[#0D0E11]"
               }`}
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-2xl" role="img" aria-label={item.lang.name}>
-                      {item.lang.flag}
+                    <span className="font-mono text-xs font-bold px-2 py-1 rounded border border-[#262932] bg-[#15171C] text-[#FAF8F5]">
+                      [{item.lang.flag}]
                     </span>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-display text-sm font-bold text-foreground">
+                        <span className="font-display text-sm font-bold text-[#FAF8F5]">
                           {item.lang.nativeName}
                         </span>
                         <span className="text-xs text-muted-foreground">({item.lang.name})</span>
                       </div>
-                      <span className="font-sans font-medium text-[10px] uppercase text-muted-foreground">
-                        Code: {item.lang.code}
+                      <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                        ISO: {item.lang.code}
                       </span>
                     </div>
                   </div>
 
                   {/* Status Indicator Badge */}
                   {item.detected ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
-                      <Check className="h-3 w-3 text-emerald-400" />
+                    <span className="inline-flex items-center gap-1 rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#10B981]">
+                      <Check className="h-3 w-3" />
                       Detected
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                      <AlertTriangle className="h-3 w-3 text-amber-400" />
+                    <span className="inline-flex items-center gap-1 rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#F59E0B]">
+                      <AlertTriangle className="h-3 w-3" />
                       Missing
                     </span>
                   )}
                 </div>
 
                 {/* Signals / Evidence Detail */}
-                <div className="mt-3 border-t border-border/50 pt-2.5 text-[11px]">
+                <div className="mt-3 border-t border-[#262932] pt-2.5 text-[11px]">
                   {item.detected ? (
-                    <div className="space-y-1 text-emerald-300/90">
-                      <p className="flex items-center gap-1 font-semibold text-emerald-400">
+                    <div className="space-y-1 text-[#10B981]">
+                      <p className="flex items-center gap-1 font-semibold">
                         <CheckCircle2 className="h-3 w-3" /> Compliance Signals Verified:
                       </p>
-                      <ul className="list-disc space-y-0.5 pl-4 font-sans font-medium text-[10px] text-muted-foreground">
+                      <ul className="list-disc space-y-0.5 pl-4 font-sans text-[10px] text-muted-foreground">
                         {item.matchedSignals.slice(0, 2).map((sig, idx) => (
                           <li key={idx}>{sig}</li>
                         ))}
@@ -424,10 +414,10 @@ export function LocalizationScannerCard({
                     </div>
                   ) : (
                     <div className="space-y-1 text-muted-foreground">
-                      <p className="font-medium text-amber-400/90">Statutory disclosure missing</p>
+                      <p className="font-medium text-[#F59E0B]">Statutory disclosure missing</p>
                       <p className="text-[10px]">
                         Target path:{" "}
-                        <code className="text-foreground font-sans font-semibold">
+                        <code className="text-foreground font-mono font-semibold">
                           /{item.lang.code}/privacy
                         </code>
                       </p>
@@ -437,18 +427,18 @@ export function LocalizationScannerCard({
               </div>
 
               {/* Bottom Card Footer with Interactive Notice Generator Action */}
-              <div className="mt-3 flex items-center justify-between border-t border-border/30 pt-2 text-[10px] text-muted-foreground">
-                <span className="capitalize">
+              <div className="mt-3 flex items-center justify-between border-t border-[#262932] pt-2 text-[10px] text-muted-foreground">
+                <span className="font-mono uppercase">
                   {item.lang.category === "indian"
-                    ? "🇮🇳 Indian Core"
+                    ? "[IN] Regional"
                     : item.lang.category === "global"
-                      ? "🌐 Global Core"
+                      ? "[GLOBAL] Core"
                       : "Baseline"}
                 </span>
 
                 <button
                   onClick={() => setSelectedNoticeLang(item.lang)}
-                  className="flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                  className="flex items-center gap-1.5 rounded border border-[#C9A227]/40 bg-[#15171C] px-2.5 py-1 text-xs font-mono font-semibold text-[#C9A227] transition-colors hover:bg-[#C9A227] hover:text-[#0D0E11] cursor-pointer"
                 >
                   <FileText className="h-3 w-3" />
                   {item.detected ? "View Notice" : "Generate Notice"}
@@ -459,35 +449,34 @@ export function LocalizationScannerCard({
         })}
       </div>
 
-      {/* STATUTORY NOTICE GENERATOR MODAL */}
+      {/* STATUTORY NOTICE GENERATOR MODAL (WARM ALABASTER LEGAL SURFACE) */}
       {selectedNoticeLang && activeNoticeTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-primary/40 bg-card p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 sm:p-6 animate-in fade-in">
+          <div className="legal-paper relative w-full max-w-2xl max-h-[88vh] overflow-y-auto overflow-x-hidden rounded-md border border-[#E5DEC9] bg-[#FAF8F5] text-[#18181B] p-5 sm:p-6">
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-border/60 pb-4">
+            <div className="flex items-start justify-between border-b border-[#E5DEC9] pb-4">
               <div className="flex items-center gap-3">
-                <span className="text-3xl" role="img" aria-label={selectedNoticeLang.name}>
-                  {selectedNoticeLang.flag}
+                <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded border border-[#E5DEC9] bg-[#F3EFE6] text-[#18181B]">
+                  [{selectedNoticeLang.flag}]
                 </span>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-display text-lg font-bold text-foreground">
+                    <h3 className="font-display text-lg font-bold text-[#18181B]">
                       {selectedNoticeLang.nativeName} ({selectedNoticeLang.name})
                     </h3>
-                    <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="rounded border border-[#E5DEC9] bg-[#F3EFE6] px-2 py-0.5 font-mono text-[10px] font-bold text-[#9A7812]">
                       {activeNoticeTemplate.actName}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Auto-generated statutory privacy policy notice for{" "}
-                    {report.target || "your domain"}
+                  <p className="text-xs text-[#52525B]">
+                    Generated statutory privacy notice for {report.target || "your domain"}
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={() => setSelectedNoticeLang(null)}
-                className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="rounded p-1 text-[#52525B] hover:bg-[#E5DEC9]/50 hover:text-[#18181B] cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -495,33 +484,35 @@ export function LocalizationScannerCard({
 
             {/* Content Body */}
             <div className="my-4 space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+              <div className="flex items-center justify-between text-xs font-semibold text-[#52525B]">
                 <span>Statutory Draft Text:</span>
-                <span className="font-sans font-semibold text-[10px] text-emerald-400">
-                  ✓ Formatted for Web &amp; Mobile Integration
+                <span className="font-mono text-[10px] text-[#047857]">
+                  Formatted for Web &amp; Mobile Integration
                 </span>
               </div>
 
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-border bg-black/80 p-4 font-sans text-xs leading-relaxed text-foreground">
-                <p className="mb-2 font-bold text-primary">{activeNoticeTemplate.title}</p>
-                <pre className="whitespace-pre-wrap font-sans text-xs text-muted-foreground">
+              <div className="max-h-64 overflow-y-auto rounded-md border border-[#E5DEC9] bg-white p-4 font-sans text-xs leading-relaxed text-[#18181B]">
+                <p className="mb-2 font-display font-bold text-sm text-[#9A7812]">
+                  {activeNoticeTemplate.title}
+                </p>
+                <pre className="whitespace-pre-wrap font-sans text-xs text-[#52525B]">
                   {activeNoticeTemplate.text}
                 </pre>
               </div>
             </div>
 
             {/* Footer / Revenue Generation CTAs */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/60 pt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-[#E5DEC9] pt-4">
               <button
                 onClick={handleCopyNotice}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-secondary/80 px-4 py-2 text-xs font-semibold text-foreground transition-all hover:bg-secondary"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#18181B] bg-[#18181B] px-4 py-2 text-xs font-mono font-semibold text-[#FAF8F5] transition-colors hover:bg-[#27272A] cursor-pointer"
               >
                 {copiedNotice ? (
-                  <Check className="h-4 w-4 text-emerald-400" />
+                  <Check className="h-4 w-4 text-[#10B981]" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
-                {copiedNotice ? "Copied to Clipboard!" : "Copy Draft Text"}
+                {copiedNotice ? "Copied to Clipboard" : "Copy Draft Text"}
               </button>
 
               <button
@@ -529,10 +520,10 @@ export function LocalizationScannerCard({
                   setSelectedNoticeLang(null);
                   if (onOpenRemediationModal) onOpenRemediationModal();
                 }}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90"
+                className="btn-gold inline-flex items-center justify-center gap-2 rounded-md px-5 py-2 text-xs font-mono font-bold cursor-pointer"
               >
-                <Sparkles className="h-4 w-4" />
-                Export Certified 22-Language Bundle (1 Token)
+                <span>Generate 22-Language Statutory Bundle</span>
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>

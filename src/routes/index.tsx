@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -18,100 +18,95 @@ import {
   Shield,
   XCircle,
   Scale,
+  Lock,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadReportAsPdf } from "@/lib/pdf-export";
-import { motion } from "motion/react";
-import logo from "@/assets/asji-logo.jpg.asset.json";
-import { AnimatedLogo } from "@/components/AnimatedLogo";
-import { STATUTORY_FRAMEWORKS } from "@/lib/audit-statutes";
+import { motion, AnimatePresence } from "motion/react";
+import { TopNavbar } from "@/components/TopNavbar";
+import { SovereignTelemetryGlobe } from "@/components/SovereignTelemetryGlobe";
+import { HeroOrbitalRadar } from "@/components/HeroOrbitalRadar";
+import { StatutoryTicker } from "@/components/StatutoryTicker";
+import { SpecularCard } from "@/components/SpecularCard";
+import { WorldLawsAtlas } from "@/components/WorldLawsAtlas";
+import { PoliTechPage } from "@/components/pages/PoliTechPage";
+import { PricingPage } from "@/components/pages/PricingPage";
+import { AboutPage } from "@/components/pages/AboutPage";
+import { LegalModal } from "@/components/LegalModal";
 import { ScanLoader } from "@/components/ScanLoader";
 import { ScoreWheel } from "@/components/ScoreWheel";
-import { LinkedInShareButton } from "@/components/LinkedInShareButton";
-import { GroundedSearchCard } from "@/components/GroundedSearchCard";
-import { FineExposureCard } from "@/components/FineExposureCard";
-import { CountryLegalVerdictCard } from "@/components/CountryLegalVerdictCard";
 import { LocalizationScannerCard } from "@/components/LocalizationScannerCard";
 import { ASJiLetterheadReport } from "@/components/ASJiLetterheadReport";
-import { ASJiVectorLogo } from "@/components/ASJiVectorLogo";
 import { RemediationBillingModal } from "@/components/RemediationBillingModal";
 import { RemediationViewer } from "@/components/RemediationViewer";
 import { IntermediaryShieldCard } from "@/components/IntermediaryShieldCard";
 import { SovereignLegalMatrix } from "@/components/SovereignLegalMatrix";
-import { WorldLawsAtlas } from "@/components/WorldLawsAtlas";
 import { StatutoryLegalSolutionCard } from "@/components/StatutoryLegalSolutionCard";
 import { StatutoryGrievanceNotice } from "@/components/StatutoryGrievanceNotice";
 import type { RetentionOption } from "@/components/AutoDeletionSecurity";
 import { Footer } from "@/components/Footer";
-import { detectInput, validateAuditInput } from "@/lib/audit-input";
-import { auditCompliance, purgeDatabase, type AuditReport } from "@/lib/audit.functions";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { AUTHORISATION_NOTICE, LEGAL, LEGAL_PAGES, NOT_LEGAL_ADVICE } from "@/lib/legal";
+import { detectInput, sanitizeAuditInput, validateAuditInput } from "@/lib/audit-input";
+import {
+  ITEMIZED_DATA_PROCESSING_NOTICE_CONTENT,
+  ITEMIZED_DATA_PROCESSING_NOTICE_TITLE,
+} from "@/lib/legal";
+import { auditCompliance, type AuditReport } from "@/lib/audit.functions";
 import { useAuth } from "@/lib/auth-context";
-import { saveUserAudit } from "@/lib/firestore-service";
+import {
+  checkDomainPaymentUnlock,
+  lookupAuditScanByRefId,
+  normalizeDomainName,
+  saveAuditScan,
+  saveConsentRecord,
+  saveUserAudit,
+  type AuditScanRecord,
+} from "@/lib/firestore-service";
+import { STATUTORY_FRAMEWORKS } from "@/lib/audit-statutes";
+
+const SCAN_RATE_LIMIT_MAX = 6;
+const SCAN_RATE_LIMIT_WINDOW_MS = 60_000;
+const SCAN_TIMESTAMPS_KEY = "asji_scan_timestamps";
+
+function getRecentScanTimestamps(now: number): number[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SCAN_TIMESTAMPS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((ts): ts is number => typeof ts === "number" && Number.isFinite(ts))
+      .filter((ts) => now - ts < SCAN_RATE_LIMIT_WINDOW_MS)
+      .sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+}
+
+function recordScanTimestamp(now: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    const recent = getRecentScanTimestamps(now);
+    recent.push(now);
+    localStorage.setItem(SCAN_TIMESTAMPS_KEY, JSON.stringify(recent.slice(-SCAN_RATE_LIMIT_MAX)));
+  } catch {
+    // ignore storage errors
+  }
+}
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "ASJi One" },
-      {
-        name: "description",
-        content: "Global Data privacy Compliance fixer",
-      },
-      { property: "og:title", content: "ASJi One" },
-      {
-        property: "og:description",
-        content: "Global Data privacy Compliance fixer",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "ASJi One" },
-      {
-        name: "twitter:description",
-        content: "Global Data privacy Compliance fixer",
-      },
-    ],
-  }),
+  head: () => ({}),
   component: Index,
 });
 
 type Phase = "idle" | "scanning" | "result";
 
-const SEVERITY_STYLES: Record<string, string> = {
-  critical: "border-destructive/50 text-destructive",
-  high: "border-destructive/40 text-destructive",
-  medium: "border-primary/40 text-primary",
-  low: "border-border text-muted-foreground",
-};
-
-const reportContainerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.05,
-    },
-  },
-};
-
-const reportItemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.38,
-      ease: [0.16, 1, 0.3, 1] as const,
-    },
-  },
-};
-
 function Index() {
   const { user, recordUserConsent } = useAuth();
+  const [activeTab, setActiveTab] = useState<
+    "scanner" | "atlas" | "politech" | "pricing" | "about"
+  >("scanner");
   const [input, setInput] = useState("");
   const [selectedFramework, setSelectedFramework] = useState<string>("ind-dpdp");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -124,16 +119,65 @@ function Index() {
     "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle"
   >("full-bundle");
   const [unlockedTiers, setUnlockedTiers] = useState<string[]>([]);
-  const [showDetailedAnnexes, setShowDetailedAnnexes] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [politechMode, setPolitechMode] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [retentionMode, setRetentionMode] = useState<RetentionOption>("5min");
-  const [scanMode, setScanMode] = useState<"deep-grounded" | "fast-lite">("deep-grounded");
+  const [scanMode] = useState<"deep-grounded" | "fast-lite">("deep-grounded");
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  // Certificate Lookup State
+  const [showCertLookup, setShowCertLookup] = useState(false);
+  const [certLookupInput, setCertLookupInput] = useState("");
+  const [certLookupLoading, setCertLookupLoading] = useState(false);
+  const [certLookupResult, setCertLookupResult] = useState<AuditScanRecord | null>(null);
+  const [certLookupError, setCertLookupError] = useState<string | null>(null);
+
+  // Mobile accordion state for hero subheadline
+  const [heroExpanded, setHeroExpanded] = useState(false);
+
+  // Legal Modal State
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalTitle, setLegalModalTitle] = useState("");
+  const [legalModalContent, setLegalModalContent] = useState("");
+
   const scanRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const runAudit = useServerFn(auditCompliance);
-  const purgeDbServer = useServerFn(purgeDatabase);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "") as
+        "scanner" | "atlas" | "politech" | "pricing" | "about";
+      if (["scanner", "atlas", "politech", "pricing", "about"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    const handleCustomTabChange = (e: Event) => {
+      const custom = e as CustomEvent<"scanner" | "atlas" | "politech" | "pricing" | "about">;
+      if (
+        custom.detail &&
+        ["scanner", "atlas", "politech", "pricing", "about"].includes(custom.detail)
+      ) {
+        setActiveTab(custom.detail);
+      }
+    };
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("asji:tab-change", handleCustomTabChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("asji:tab-change", handleCustomTabChange);
+    };
+  }, []);
+
+  const handleTabSwitch = (id: "scanner" | "atlas" | "politech" | "pricing" | "about") => {
+    setActiveTab(id);
+    if (typeof window !== "undefined") {
+      window.location.hash = `#${id}`;
+      window.dispatchEvent(new CustomEvent("asji:tab-change", { detail: id }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const handleDownloadReportPdf = async () => {
     const paperElement = document.getElementById("asji-letterhead-report-paper");
@@ -168,46 +212,31 @@ function Index() {
     setError(null);
     try {
       sessionStorage.clear();
-      purgeDbServer();
     } catch {
       // ignore
     }
   };
 
-  // Restore unlock state for scanned domain if verified by admin in Firestore or previously authorized
   useEffect(() => {
-    if (report?.target) {
-      const domain = report.target
-        .replace(/^https?:\/\//i, "")
-        .split("/")[0]
-        .toLowerCase();
-      try {
-        const storedTiers = JSON.parse(
-          localStorage.getItem(`asji_unlocked_tiers_${domain}`) || "[]",
-        );
-        const isDomainUnlocked = localStorage.getItem(`asji_unlocked_${domain}`) === "true";
-        if (storedTiers.length > 0) {
-          setUnlockedTiers(storedTiers);
-        } else if (isDomainUnlocked) {
-          setUnlockedTiers(["full-bundle"]);
-        }
-      } catch {
-        // ignore
-      }
+    setUnlockedTiers([]);
+    if (!report?.target) return;
 
-      // Live verification against Master Sovereign License Registry in Firestore
-      getDoc(doc(db, "licenses", domain))
-        .then((snap) => {
-          if (snap.exists() && snap.data()?.active) {
-            const data = snap.data();
-            const grantedTier = data.tier || "full-bundle";
-            setUnlockedTiers((prev) => Array.from(new Set([...prev, grantedTier, "full-bundle"])));
-          }
-        })
-        .catch(() => {
-          // Graceful fallback for offline sandbox
-        });
-    }
+    const domain = normalizeDomainName(report.target);
+    if (!domain) return;
+
+    let cancelled = false;
+    checkDomainPaymentUnlock(domain)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.unlocked && res.tiers.length > 0) {
+          setUnlockedTiers(res.tiers);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, [report]);
 
   const isCodePatchesUnlocked =
@@ -235,7 +264,7 @@ function Index() {
     if (phase !== "scanning") return;
     setProgress(0);
     const id = setInterval(() => {
-      setProgress((p) => (p >= 94 ? p : p + Math.random() * 4 + 1));
+      setProgress((p) => (p >= 94 ? p : Math.min(94, p + 3.5)));
     }, 220);
     return () => clearInterval(id);
   }, [phase]);
@@ -254,88 +283,100 @@ function Index() {
     }
   }, [phase]);
 
-  const trimmed = input.trim();
+  useEffect(() => {
+    const syncRateLimit = () => {
+      const now = Date.now();
+      const recent = getRecentScanTimestamps(now);
+      if (recent.length >= SCAN_RATE_LIMIT_MAX) {
+        const secs = Math.max(1, Math.ceil((recent[0] + SCAN_RATE_LIMIT_WINDOW_MS - now) / 1000));
+        setCooldownRemaining(secs);
+      } else {
+        setCooldownRemaining(0);
+      }
+    };
+    syncRateLimit();
+    if (cooldownRemaining <= 0) return;
+    const timer = setInterval(syncRateLimit, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  const trimmed = sanitizeAuditInput(input);
   const detected = trimmed.length >= 3 ? detectInput(trimmed) : null;
   const liveCheck = trimmed.length >= 3 ? validateAuditInput(trimmed) : null;
 
   const startScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    const value = input.trim();
-    if (phase === "scanning" || cooldownRemaining > 0) return;
+    if (phase === "scanning") return;
 
-    if (!agreed) {
+    const now = Date.now();
+    const recentScans = getRecentScanTimestamps(now);
+    if (recentScans.length >= SCAN_RATE_LIMIT_MAX) {
+      const waitSeconds = Math.max(
+        1,
+        Math.ceil((recentScans[0] + SCAN_RATE_LIMIT_WINDOW_MS - now) / 1000),
+      );
+      setCooldownRemaining(waitSeconds);
       setError(
-        "I agree to the Privacy Policy and consent to processing of my data for the website scan.",
+        `Institutional rate-limit guard active (max ${SCAN_RATE_LIMIT_MAX} telemetry scans per minute). Please wait ${waitSeconds}s before initiating the next inspection.`,
       );
       return;
     }
 
-    // Rate Limiting: Max 5 scans per hour
-    const now = Date.now();
-    const scansRaw = localStorage.getItem("asji_scan_timestamps") || "[]";
-    let scans: number[] = [];
-    try {
-      scans = JSON.parse(scansRaw);
-    } catch {
-      scans = [];
-    }
-    const recentScans = scans.filter((ts) => now - ts < 3600 * 1000);
-    if (recentScans.length >= 5) {
-      setError("Rate limit exceeded: Maximum 5 scans allowed per hour under security policy.");
+    if (!agreed) {
+      setError(
+        "Authorization required: confirm inspection authority and review the Itemized Data Processing Notice below.",
+      );
       return;
     }
 
-    const validation = validateAuditInput(value);
+    const validation = validateAuditInput(input);
     if (!validation.ok) {
       setError(validation.error);
       return;
     }
 
+    const cleanValue = validation.detected.value;
+    setInput(cleanValue);
     setError(null);
-
-    // Save scan timestamp for rate limiting & start 10s cooldown
-    recentScans.push(now);
-    try {
-      localStorage.setItem("asji_scan_timestamps", JSON.stringify(recentScans));
-    } catch {
-      // safe fallback
+    recordScanTimestamp(now);
+    const updatedScans = getRecentScanTimestamps(now);
+    if (updatedScans.length >= SCAN_RATE_LIMIT_MAX) {
+      setCooldownRemaining(
+        Math.max(1, Math.ceil((updatedScans[0] + SCAN_RATE_LIMIT_WINDOW_MS - now) / 1000)),
+      );
     }
 
-    setCooldownRemaining(10);
-    const cdInterval = setInterval(() => {
-      setCooldownRemaining((c) => {
-        if (c <= 1) {
-          clearInterval(cdInterval);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-
-    // Record user consent in Firestore
     await recordUserConsent("2025.1", "website_scan_consent");
+    saveConsentRecord("ScanAuthorized", undefined, "2025.1", cleanValue).catch(() => {});
 
     const label =
-      validation.detected.kind === "url"
-        ? validation.detected.host!
-        : "your infrastructure description";
+      validation.detected.kind === "url" ? validation.detected.host! : "infrastructure summary";
     setScanned(label.slice(0, 60));
     setPhase("scanning");
     try {
-      const result = await runAudit({ data: { input: value, scanMode } });
+      const result = await runAudit({
+        data: { input: cleanValue, scanMode, politechMode },
+      });
       setProgress(100);
       setReport(result);
       setPhase("result");
 
-      // Data Persistence: Save to authenticated user's private Firestore vault
+      saveAuditScan(result, selectedFramework, politechMode).catch(() => {});
+
       if (user?.uid) {
+        const computedVerdict =
+          result.score >= 80
+            ? "COMPLIANT"
+            : result.score >= 50
+              ? "MODERATE RISK"
+              : "CRITICAL NON-COMPLIANT";
         saveUserAudit(user.uid, {
-          id: result.id || `audit_${Date.now()}`,
+          id: result.auditRefId || result.dbRecordId || `audit_${Date.now()}`,
           domain: result.target,
           score: result.score,
-          verdict: result.verdict || "Audited",
+          verdict: computedVerdict,
           criticalFindingsCount: result.criticalLeaks?.length || 0,
-          statutoryExceptionsCount: result.statutoryExceptions?.length || 0,
+          statutoryExceptionsCount: 0,
           reportSummary: result.summary,
           createdAt: new Date().toISOString(),
           reportData: result,
@@ -346,824 +387,587 @@ function Index() {
       if (err instanceof Error) {
         msg = err.message;
       }
-      if (msg.includes("503") || msg.includes("UNAVAILABLE")) {
-        msg = "Engine busy. Please wait a moment and click Analyze Domain Compliance again.";
-      }
       setError(msg);
       setPhase("idle");
     }
   };
 
+  const handleCertLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = certLookupInput.trim().toUpperCase();
+    if (!/^ASJI-2026-[A-Z0-9]{4,12}$/.test(cleaned)) {
+      setCertLookupResult(null);
+      setCertLookupError("Enter a valid Audit Reference ID (e.g., ASJI-2026-A1B2C3).");
+      return;
+    }
+    setCertLookupLoading(true);
+    setCertLookupError(null);
+    setCertLookupResult(null);
+    try {
+      const found = await lookupAuditScanByRefId(cleaned);
+      if (!found) {
+        setCertLookupError(`No archived live audit record found for ${cleaned}.`);
+      } else {
+        setCertLookupResult(found);
+      }
+    } catch {
+      setCertLookupError("Certificate registry lookup unavailable. Please retry.");
+    } finally {
+      setCertLookupLoading(false);
+    }
+  };
+
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen flex flex-col justify-between">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex items-center gap-3"
-        >
-          <div className="relative h-10 w-10 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-black/80 shadow-md shadow-primary/10 p-0.5">
-            <AnimatedLogo
-              size="sm"
-              withGlow={false}
-              withRays={false}
-              idSuffix="nav_emblem"
-              className="h-full w-full"
-            />
-          </div>
-          <div className="leading-tight text-left">
-            <p className="font-display text-xl sm:text-2xl tracking-tight text-gold-gradient font-bold">
-              ASJi One
-            </p>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-medium">
-              Trust Intelligence
-            </p>
-          </div>
-        </motion.div>
+    <div className="min-h-screen bg-[#0D0E11] text-[#FAF8F5] flex flex-col overflow-x-hidden selection:bg-[#C9A227]/30 selection:text-[#FAF8F5]">
+      {/* Top Navigation */}
+      <TopNavbar
+        activeTab={activeTab}
+        setActiveTab={handleTabSwitch}
+        onOpenUnlockModal={() => handleOpenUnlockModal("full-bundle")}
+      />
 
-        <nav className="flex items-center gap-5 sm:gap-7 text-xs sm:text-sm text-muted-foreground font-medium">
-          <a href="#scan" className="transition-colors hover:text-primary">
-            Scanner
-          </a>
-          <a href="#capabilities" className="transition-colors hover:text-primary">
-            Capabilities
-          </a>
-        </nav>
-      </header>
+      {/* Main Content Area with Smooth Spring Page Morphing */}
+      <main className="flex-1 w-full">
+        <AnimatePresence mode="wait" initial={false}>
+          {activeTab === "atlas" && (
+            <motion.div
+              key="atlas"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12"
+            >
+              <WorldLawsAtlas
+                selectedFramework={selectedFramework}
+                onSelectFramework={(fw) => {
+                  setSelectedFramework(fw);
+                  handleTabSwitch("scanner");
+                }}
+              />
+            </motion.div>
+          )}
 
-      <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-24 flex-1">
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="pt-8 pb-16 text-center sm:pt-14"
-        >
-          <div className="mb-4 inline-flex flex-col items-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-3.5 py-1 text-xs uppercase tracking-wider text-primary bg-primary/10 font-mono font-semibold">
-              <ShieldCheck className="h-3.5 w-3.5" /> 15 Sovereign Global Jurisdictions //
-              Remediation Patches &amp; Legal Solutions
-            </span>
-          </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight sm:text-5xl lg:text-6xl text-gold-gradient max-w-4xl mx-auto font-extrabold tracking-tight">
-            Audit Any Domain Against Global Privacy Laws.
-          </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-muted-foreground font-mono">
-            Inspect tracking cookies, consent mechanisms, and server security headers across{" "}
-            <strong>15 sovereign global jurisdictions</strong>—including India (DPDP Act 2023),
-            European Union (GDPR), United Kingdom (DUAA 2026), United States (CPRA/CCPA), UAE
-            (PDPL), Saudi Arabia (PDPL), Singapore (PDPA), Brazil (LGPD), Canada (PIPEDA),
-            Australia, Japan (APPI), South Korea (PIPA), Switzerland (FADP), South Africa (POPIA),
-            and Nigeria (NDPA 2023). Pinpoint statutory non-compliance violations, estimate legal
-            fine exposure, and unlock both <strong>autonomous remediation code patches</strong> and{" "}
-            <strong>bespoke statutory legal solutions</strong>.
-          </p>
+          {activeTab === "politech" && (
+            <motion.div
+              key="politech"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <PoliTechPage
+                onOpenUnlockModal={handleOpenUnlockModal}
+                isUnlocked={isLegalUnlocked}
+              />
+            </motion.div>
+          )}
 
-          <form
-            id="scan"
-            onSubmit={startScan}
-            className="surface-panel mx-auto mt-10 w-full max-w-2xl space-y-4 p-5 sm:p-6 text-left"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label
-                  htmlFor="site-input"
-                  className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 font-mono"
-                >
-                  <Globe className="h-3.5 w-3.5 text-primary" /> ENTER PRODUCTION TARGET DOMAIN
-                </label>
-                <span className="text-[11px] text-muted-foreground font-mono">
-                  Automated Inspection
-                </span>
-              </div>
-              <div className="relative flex items-center">
-                <Globe className="absolute left-4 h-5 w-5 text-muted-foreground pointer-events-none" />
-                <input
-                  id="site-input"
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  maxLength={8000}
-                  placeholder="e.g., https://enterprise-gateway.com"
-                  className="w-full rounded-xl bg-input/40 pl-11 pr-10 py-3.5 text-base font-mono text-foreground outline-none ring-1 ring-border transition-all placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/60 min-h-[48px]"
+          {activeTab === "pricing" && (
+            <motion.div
+              key="pricing"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <PricingPage
+                onOpenUnlockModal={handleOpenUnlockModal}
+                setActiveTab={handleTabSwitch}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === "about" && (
+            <motion.div
+              key="about"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AboutPage />
+            </motion.div>
+          )}
+
+          {activeTab === "scanner" && (
+            <motion.div
+              key="scanner"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-8 sm:pt-10 pb-0 space-y-16"
+            >
+              {/* Full-Bleed Architectural Hero Stage with Interactive Orbital Radar */}
+              <section
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const nx = (e.clientX - rect.left) / rect.width - 0.5;
+                  const ny = (e.clientY - rect.top) / rect.height - 0.5;
+                  e.currentTarget.style.setProperty("--radar-x", `${(nx * 24).toFixed(1)}px`);
+                  e.currentTarget.style.setProperty("--radar-y", `${(ny * 18).toFixed(1)}px`);
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.setProperty("--radar-x", "0px");
+                  e.currentTarget.style.setProperty("--radar-y", "0px");
+                }}
+                className="relative min-h-[82vh] flex flex-col items-center justify-center text-center py-12 px-4 rounded-3xl border border-[#262932] bg-[#15171C] overflow-hidden shadow-2xl"
+              >
+                {/* Architectural Blueprint Grid Background */}
+                <div
+                  className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(to right, #C9A227 1px, transparent 1px), linear-gradient(to bottom, #C9A227 1px, transparent 1px)",
+                    backgroundSize: "40px 40px",
+                  }}
                 />
-                {input && (
-                  <button
-                    type="button"
-                    onClick={() => setInput("")}
-                    className="absolute right-3.5 flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
-                    aria-label="Clear input"
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
 
-            {/* Statutory Regulatory Framework Selector */}
-            <div>
-              <label
-                htmlFor="framework-select"
-                className="text-xs font-semibold uppercase tracking-wider text-gold-gradient flex items-center gap-1.5 font-mono mb-2"
-              >
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Statutory Regulatory Framework:
-              </label>
-              <select
-                id="framework-select"
-                value={selectedFramework}
-                onChange={(e) => setSelectedFramework(e.target.value)}
-                className="w-full rounded-xl border border-border/80 bg-black/80 px-4 py-3 text-sm font-mono text-foreground outline-none transition-all focus:border-primary/60 focus:ring-1 focus:ring-primary/60 min-h-[48px] cursor-pointer"
-              >
-                {STATUTORY_FRAMEWORKS.map((fw) => (
-                  <option key={fw.id} value={fw.id} className="bg-black text-foreground py-1.5">
-                    {fw.flag} {fw.country}: {fw.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {/* Interactive SVG Orbital Compliance Radar Behind Hero Scanner */}
+                <HeroOrbitalRadar />
 
-            {/* Quick Domain Suggestion Chips */}
-            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar py-1 flex-nowrap sm:flex-wrap">
-              <span className="text-[11px] text-muted-foreground mr-1 font-mono shrink-0">
-                Quick Test:
-              </span>
-              {["enterprise-gateway.com", "hostinger.com", "github.com", "wikipedia.org"].map(
-                (domain) => (
-                  <button
-                    key={domain}
-                    type="button"
-                    onClick={() => {
-                      setInput(`https://${domain}`);
-                      setError(null);
-                    }}
-                    className="shrink-0 rounded-full border border-border/80 bg-secondary/40 px-3 py-1.5 text-[11px] font-mono text-muted-foreground transition-all hover:border-primary/50 hover:bg-secondary hover:text-foreground cursor-pointer min-h-[32px] flex items-center"
-                  >
-                    {domain}
-                  </button>
-                ),
-              )}
-            </div>
+                <div className="relative z-10 w-full flex flex-col items-center">
+                  {/* Interactive 3D Sovereign Telemetry Globe & Bespoke A1 Brand Emblem */}
+                  <SovereignTelemetryGlobe />
 
-            {detected && (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-secondary/30 px-3 py-2 text-left font-mono">
-                <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
-                  {detected.kind === "url"
-                    ? "Live Domain Scan Active"
-                    : "Custom Stack Text Detected"}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {detected.kind === "url"
-                    ? `Inspecting ${detected.host}...`
-                    : liveCheck && !liveCheck.ok
-                      ? liveCheck.error
-                      : "Custom Stack Mode"}
-                </span>
-              </div>
-            )}
-
-            {/* Terms Consent Checkbox */}
-            <label className="flex items-start gap-3 px-1 text-left text-[11px] leading-relaxed text-muted-foreground font-mono cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-primary rounded border-border cursor-pointer"
-              />
-              <span>
-                I agree to the{" "}
-                <Link
-                  to="/legal/privacy"
-                  className="text-primary underline underline-offset-2 hover:text-white"
-                >
-                  Privacy Policy
-                </Link>{" "}
-                and consent to processing of my data for the website scan.
-              </span>
-            </label>
-
-            <button
-              type="submit"
-              disabled={
-                phase === "scanning" ||
-                cooldownRemaining > 0 ||
-                !agreed ||
-                (liveCheck ? !liveCheck.ok : true)
-              }
-              className="btn-gold w-full rounded-xl px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-wider disabled:opacity-60 shadow-lg transition-all hover:scale-[1.01] font-mono cursor-pointer"
-            >
-              {cooldownRemaining > 0
-                ? `Please wait ${cooldownRemaining}s...`
-                : phase === "scanning"
-                  ? "Running Deep Domain Scan..."
-                  : "Analyze Domain Compliance"}
-            </button>
-
-            <p className="px-1 text-left text-[10px] leading-relaxed text-muted-foreground/80 font-mono">
-              {AUTHORISATION_NOTICE}
-            </p>
-
-            {error && (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-left text-xs text-destructive flex flex-col gap-2 font-mono">
-                <p className="font-semibold text-xs flex items-center gap-1.5 text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>Audit Inspection Notice</span>
-                </p>
-                <p className="leading-relaxed">{error}</p>
-                <button
-                  type="submit"
-                  className="mt-1 self-start rounded-lg bg-destructive/20 px-3 py-1.5 text-[11px] font-semibold text-destructive hover:bg-destructive/30 transition-all cursor-pointer"
-                >
-                  Retry Scan
-                </button>
-              </div>
-            )}
-          </form>
-
-          {/* REAL-TIME MULTI-REGION METRIC BADGES */}
-          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
-              <p className="font-mono text-xs font-bold text-gold-gradient">
-                120+ Real-Time Checks // Automated interface stack evaluations.
-              </p>
-              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
-                Deterministic security &amp; telemetry inspection.
-              </p>
-            </div>
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
-              <p className="font-mono text-xs font-bold text-gold-gradient">
-                &lt; 30s Scan Performance // Rapid technical assessment.
-              </p>
-              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
-                Headless browser verification &amp; transit trace.
-              </p>
-            </div>
-            <div className="surface-panel p-4 border border-primary/20 bg-black/60 rounded-2xl">
-              <p className="font-mono text-xs font-bold text-gold-gradient">
-                15 Global Jurisdictions // Sovereign framework coverage.
-              </p>
-              <p className="mt-1 font-mono text-[11px] text-muted-foreground leading-relaxed">
-                Cross-border statutory routing maps &amp; continuous regulatory sync.
-              </p>
-            </div>
-          </div>
-
-          {/* Statutory Legal Disclaimer & Intermediary Safe Harbor Banner */}
-          <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 text-left font-mono text-xs">
-            <div className="flex items-start gap-3">
-              <Scale className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-bold text-foreground flex items-center gap-2">
-                  <span>Statutory Legal Disclaimer &amp; Intermediary Safe Harbor Notice</span>
-                  <span className="text-[10px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded">
-                    Strict Operator Protection
-                  </span>
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  ASJi One is an automated diagnostic software and technical verification platform.
-                  Audits, gap analyses, and sample policies generated by this platform are technical
-                  and informational templates designed to assist engineering and compliance teams.
-                  They do not constitute formal attorney-client legal representation or statutory
-                  legal advice. Organizations must have final notices reviewed by their qualified
-                  legal counsel.
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {phase === "scanning" && (
-          <section ref={scanRef} className="surface-panel px-5 my-8 scroll-mt-12">
-            <ScanLoader progress={progress} url={scanned} />
-          </section>
-        )}
-
-        {phase === "result" && report && (
-          <motion.section
-            id="report-results"
-            ref={resultRef}
-            variants={reportContainerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-6 scroll-mt-8"
-          >
-            {/* Legal Disclaimer Header Banner */}
-            <motion.div
-              variants={reportItemVariants}
-              className="rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 text-left"
-            >
-              <p className="text-[10px] uppercase tracking-[0.24em] text-primary">
-                Informational report · Not legal advice
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                {NOT_LEGAL_ADVICE}{" "}
-                <Link
-                  to="/legal/disclaimer"
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  Read the full disclaimer
-                </Link>
-                .
-              </p>
-            </motion.div>
-
-            {/* Core Score Panel */}
-            <motion.div
-              variants={reportItemVariants}
-              className="surface-panel flex flex-col items-center gap-8 p-8 lg:flex-row lg:items-center lg:gap-14"
-            >
-              <ScoreWheel score={report.score} />
-              <div className="flex-1 text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-black/60 p-1 shadow-md overflow-hidden">
-                    <ASJiVectorLogo className="h-full w-full" idSuffix="result_badge" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#C9A227]/40 bg-[#C9A227]/10 px-4 py-1.5 text-xs font-mono font-bold text-[#C9A227] mb-4">
+                    <span>[IN] [EU] [UK] [US] [AE] 15 SOVEREIGN STATUTES INDEXED</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-gold-gradient">
-                    ASJi One // Technical Compliance Assessment
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center justify-center lg:justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
-                      ASJi Trust Index (Technical Risk Indicator) for
+
+                  <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#FAF8F5] max-w-5xl mx-auto">
+                    Statute-Locked Compliance &amp; Remediation Workbench
+                  </h1>
+
+                  {/* Mobile Compact Subheadline with Smooth Spring Accordion */}
+                  <div className="mt-4 max-w-3xl mx-auto font-sans text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    <p className="line-clamp-2 md:line-clamp-none">
+                      Inspect public transport security headers, pre-consent tracking scripts, and
+                      statutory exposure across 15 sovereign privacy mandates with deterministic
+                      evidence mapping.
                     </p>
-                    <h2 className="mt-2 font-display text-3xl text-gold-gradient break-all">
-                      {report.target || scanned}
-                    </h2>
-                  </div>
-                  <LinkedInShareButton
-                    domain={report.target || scanned}
-                    score={report.score}
-                    report={report}
-                  />
-                </div>
-                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Origin: {report.originCountry}
-                </p>
-                <div className="gold-rule my-5" />
-                <p className="text-sm leading-relaxed text-muted-foreground">{report.summary}</p>
-                {report.provenance && (
-                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-                    {report.hasModifiedSinceLastScan === false && (
-                      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400 flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3 w-3 shrink-0" /> Live Re-verified · No Site
-                        Changes Detected · Score Preserved
-                      </span>
-                    )}
-                    {report.hasModifiedSinceLastScan === true && (
-                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400 flex items-center gap-1.5">
-                        <RefreshCw className="h-3 w-3 shrink-0" /> Site Changes Detected · Score
-                        Updated (Was {report.previousScore}/100 → Now {report.score}/100)
-                      </span>
-                    )}
-                    <span className="rounded-full border border-primary/40 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
-                      {report.provenance.confidence} confidence
-                    </span>
-                    <span className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {report.provenance.method === "live-http-scan"
-                        ? "Live HTTP scan"
-                        : "Operator description"}
-                    </span>
-                    <span className="rounded-full border border-border px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {(report.provenance.durationMs / 1000).toFixed(1)}s ·{" "}
-                      {new Date(report.provenance.scannedAt).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-                  <a
-                    href="#asji-letterhead-report-paper"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowDetailedAnnexes(true);
-                      setTimeout(() => {
-                        document
-                          .getElementById("asji-letterhead-report-paper")
-                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 100);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-primary/60 bg-primary/20 px-6 py-3 text-xs font-mono font-bold text-primary transition-all hover:bg-primary/30 shadow-lg cursor-pointer"
-                  >
-                    <Award className="h-4 w-4 text-primary" />
-                    <span>View Official Report Card</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhase("idle");
-                      setReport(null);
-                    }}
-                    className="rounded-xl border border-border px-6 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
-                  >
-                    Analyze another
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Statutory Intermediary Safe Harbor Shield Assessment */}
-            <motion.div variants={reportItemVariants}>
-              <IntermediaryShieldCard
-                report={report}
-                onOpenRemediationModal={() => setUnlockOpen(true)}
-              />
-            </motion.div>
-
-            {/* Fine Exposure Card (DPDP Act 2023 & Global Jurisdictions) */}
-            <motion.div variants={reportItemVariants}>
-              <FineExposureCard report={report} />
-            </motion.div>
-
-            {/* Country-by-Country Legal Pass vs Wholly Fail Audit */}
-            <motion.div variants={reportItemVariants}>
-              <CountryLegalVerdictCard
-                report={report}
-                onOpenRemediationModal={() => setUnlockOpen(true)}
-              />
-            </motion.div>
-
-            {/* Top Critical Findings */}
-            {report.criticalLeaks?.length > 0 && (
-              <motion.div variants={reportItemVariants} className="surface-panel p-5 sm:p-7">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-lg sm:text-xl text-gold-gradient font-bold">
-                    Key Compliance Exposures
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : []).length}{" "}
-                    Actionable Vulnerabilities Detected
-                  </span>
-                </div>
-                <div className="gold-rule my-4" />
-                <ul className="space-y-3.5">
-                  {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : [])
-                    .slice(0, 3)
-                    .map((leak) => (
-                      <li
-                        key={leak.title}
-                        className="rounded-xl border border-border/50 bg-secondary/15 p-4"
+                    <div className="md:hidden mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setHeroExpanded(!heroExpanded)}
+                        className="inline-flex items-center gap-1 font-mono text-xs text-[#C9A227] underline cursor-pointer"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">{leak.title}</p>
-                          <span
-                            className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                              SEVERITY_STYLES[leak.severity] ?? SEVERITY_STYLES.low
-                            }`}
+                        <span>
+                          {heroExpanded ? "Hide Statutory Scope ▴" : "Read Statutory Scope ▾"}
+                        </span>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {heroExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                            className="overflow-hidden"
                           >
-                            {leak.severity}
-                          </span>
-                        </div>
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                          {leak.detail}
-                        </p>
-                      </li>
-                    ))}
-                </ul>
-              </motion.div>
-            )}
+                            <p className="mt-2 text-xs text-muted-foreground font-sans leading-relaxed text-left bg-[#0D0E11] p-3 rounded-lg border border-[#262932]">
+                              ASJi One inspects live public HTTP headers, TLS metadata, and script
+                              tags via hardened proxy routes—flagging GTM, GA4, Meta pixels, and
+                              missing CSP/HSTS directives transiently with zero retention.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
 
-            {/* Regulatory Framework Grid with Statutory Pass/Fail status */}
-            {(Array.isArray(report.frameworks) ? report.frameworks : []).length > 0 && (
-              <motion.div
-                variants={reportItemVariants}
-                className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
-              >
-                {(Array.isArray(report.frameworks) ? report.frameworks : []).map((f) => {
-                  const isPass = f.score >= 70;
-                  const isWarning = f.score >= 45 && f.score < 70;
-                  const isFail = f.score < 45;
+                  {/* Domain Input & Scan Console */}
+                  <div className="mt-10 w-full max-w-3xl mx-auto space-y-5">
+                    <form onSubmit={startScan} className="space-y-4">
+                      <div className="relative flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 rounded-xl border border-[#262932] bg-[#0D0E11] p-2.5 shadow-2xl">
+                        <div className="flex flex-col sm:flex-row lg:flex-1 items-stretch sm:items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 pl-2.5 pr-2 sm:border-r border-[#262932] shrink-0">
+                            <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-[#C9A227] shrink-0" />
+                            <select
+                              aria-label="Select governing privacy jurisdiction"
+                              value={selectedFramework}
+                              onChange={(e) => setSelectedFramework(e.target.value)}
+                              className="w-full sm:w-auto max-w-[230px] bg-transparent font-mono text-xs font-bold text-[#FAF8F5] outline-none cursor-pointer py-2"
+                            >
+                              {STATUTORY_FRAMEWORKS.map((fw) => (
+                                <option
+                                  key={fw.id}
+                                  value={fw.id}
+                                  className="bg-[#15171C] text-[#FAF8F5]"
+                                >
+                                  {fw.country} ({fw.id.toUpperCase()})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                  return (
-                    <div
-                      key={f.name}
-                      className="surface-panel card-hover fps-120 p-4 sm:p-5 flex flex-col justify-between cursor-default"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight">
-                            {f.name}
-                          </p>
-                          <span className="font-display text-base sm:text-lg text-gold-gradient font-bold shrink-0">
-                            {f.score}
-                          </span>
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between">
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 ${
-                              isPass
-                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                                : isWarning
-                                  ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
-                                  : "border-rose-500/40 bg-rose-500/10 text-rose-400"
-                            }`}
-                          >
-                            {isPass && <CheckCircle2 className="h-2.5 w-2.5" />}
-                            {isWarning && <AlertTriangle className="h-2.5 w-2.5" />}
-                            {isFail && <XCircle className="h-2.5 w-2.5" />}
-                            {isPass
-                              ? "STATUTORY PASS"
-                              : isWarning
-                                ? "CONDITIONAL"
-                                : "STATUTORY FAIL"}
-                          </span>
-                        </div>
-
-                        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${Math.max(0, Math.min(100, f.score))}%`,
-                              backgroundImage: isPass
-                                ? "linear-gradient(90deg, #10b981, #059669)"
-                                : isWarning
-                                  ? "linear-gradient(90deg, #f59e0b, #d97706)"
-                                  : "linear-gradient(90deg, #ef4444, #dc2626)",
-                            }}
+                          <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Enter public domain (e.g., example.com)"
+                            aria-label="Target domain URL"
+                            className="w-full min-w-0 flex-1 bg-transparent px-3 py-2.5 font-mono text-sm text-[#FAF8F5] placeholder:text-muted-foreground outline-none"
                           />
                         </div>
+
+                        <button
+                          type="submit"
+                          disabled={phase === "scanning" || cooldownRemaining > 0}
+                          className="btn-gold w-full lg:w-auto rounded-lg px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0 whitespace-nowrap shadow-2xl"
+                        >
+                          {phase === "scanning" ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Running Live Audit...</span>
+                            </>
+                          ) : cooldownRemaining > 0 ? (
+                            <>
+                              <Lock className="h-4 w-4" />
+                              <span>Cooldown ({cooldownRemaining}s)</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Run Live Audit</span>
+                              <ArrowRight className="h-4 w-4" />
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{f.note}</p>
-                    </div>
-                  );
-                })}
-              </motion.div>
-            )}
 
-            {/* Automated Remediation Code Patches Suite */}
-            <motion.div variants={reportItemVariants}>
-              <RemediationViewer
-                report={report}
-                isUnlocked={isCodePatchesUnlocked}
-                onOpenUnlockModal={handleOpenUnlockModal}
-              />
-            </motion.div>
+                      {/* DPDP Section 5 Unchecked Authorization Gate & PoliTech Mode Switch */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-lg border border-[#262932] bg-[#0D0E11]/85 px-3.5 py-2.5 text-left">
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            id="dpdp-scan-authorization"
+                            type="checkbox"
+                            checked={agreed}
+                            onChange={(e) => {
+                              setAgreed(e.target.checked);
+                              if (
+                                e.target.checked &&
+                                error?.toLowerCase().includes("authorization")
+                              ) {
+                                setError(null);
+                              }
+                            }}
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border border-[#C9A227]/60 bg-[#0D0E11] accent-[#C9A227] cursor-pointer"
+                          />
+                          <label
+                            htmlFor="dpdp-scan-authorization"
+                            className="font-sans text-xs text-zinc-300 leading-relaxed cursor-pointer select-none"
+                          >
+                            I confirm authorization to inspect publicly observable signals of this
+                            domain and agree to the{" "}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setLegalModalTitle(ITEMIZED_DATA_PROCESSING_NOTICE_TITLE);
+                                setLegalModalContent(ITEMIZED_DATA_PROCESSING_NOTICE_CONTENT);
+                                setLegalModalOpen(true);
+                              }}
+                              className="font-mono font-semibold text-[#C9A227] underline underline-offset-2 hover:text-[#DFB842] cursor-pointer"
+                            >
+                              [Itemized Data Processing Notice]
+                            </button>
+                            .
+                          </label>
+                        </div>
 
-            {/* Tailored Statutory Legal Solution & What You Don't Follow Under Your Privacy Law */}
-            <motion.div variants={reportItemVariants}>
-              <StatutoryLegalSolutionCard
-                report={report}
-                frameworkId={selectedFramework}
-                isUnlocked={isLegalUnlocked}
-                unlockedTier={unlockedTiers[unlockedTiers.length - 1] || null}
-                onOpenUnlockModal={(tier) =>
-                  handleOpenUnlockModal(
-                    (tier as "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle") ||
-                      (selectedFramework === "ind-dpdp" ? "dpdp-india" : "gdpr-global"),
-                  )
-                }
-              />
-            </motion.div>
+                        <label
+                          htmlFor="politech-mode-toggle"
+                          className="inline-flex items-center gap-2 rounded-md border border-[#262932] bg-[#15171C] px-2.5 py-1.5 font-mono text-[11px] font-semibold text-[#C9A227] shrink-0 cursor-pointer select-none hover:border-[#C9A227]/50"
+                        >
+                          <input
+                            id="politech-mode-toggle"
+                            type="checkbox"
+                            checked={politechMode}
+                            onChange={(e) => setPolitechMode(e.target.checked)}
+                            className="h-3.5 w-3.5 accent-[#C9A227] cursor-pointer"
+                          />
+                          <span>PoliTech Mode</span>
+                        </label>
+                      </div>
 
-            {/* Expandable Technical Engineering Logs & Statutory Annexes */}
-            <motion.div variants={reportItemVariants} className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDetailedAnnexes(!showDetailedAnnexes)}
-                className="w-full flex items-center justify-between rounded-xl border border-border/70 bg-secondary/30 p-4 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60 cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <span>
-                    {showDetailedAnnexes
-                      ? "Hide Official Certificate & Audit Annexes"
-                      : "View Official Certificate, Grounded Search Evidence & Localization Annexes"}
-                  </span>
+                      {error && (
+                        <div className="flex items-center gap-2 text-xs font-mono text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/30 p-3 rounded-lg text-left">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-center gap-3.5 text-[11px] font-mono text-muted-foreground pt-1">
+                        <span className="inline-flex items-center gap-1.5 text-[#10B981]">
+                          <ShieldCheck className="h-3.5 w-3.5" /> 100% Live Deterministic Telemetry
+                        </span>
+                        <span>·</span>
+                        <span>Rate-Limited (6/min)</span>
+                        <span>·</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCertLookup((v) => !v)}
+                          className="inline-flex items-center gap-1 text-[#C9A227] hover:underline cursor-pointer"
+                        >
+                          <Award className="h-3.5 w-3.5" />
+                          <span>
+                            {showCertLookup ? "Hide Certificate Lookup" : "Verify Certificate ID"}
+                          </span>
+                        </button>
+                        <span>·</span>
+                        <span>ASJi Web and Legal Solution, Jaipur</span>
+                      </div>
+                    </form>
+
+                    {showCertLookup && (
+                      <div className="rounded-xl border border-[#262932] bg-[#0D0E11] p-4 text-left space-y-3">
+                        <form
+                          onSubmit={handleCertLookup}
+                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+                        >
+                          <input
+                            type="text"
+                            value={certLookupInput}
+                            onChange={(e) => setCertLookupInput(e.target.value)}
+                            placeholder="Enter Certificate Ref ID (e.g., ASJI-2026-A1B2C3)"
+                            className="flex-1 rounded-md border border-[#262932] bg-[#15171C] px-3 py-2 font-mono text-xs text-[#FAF8F5] placeholder:text-zinc-500 focus:border-[#C9A227] outline-none uppercase"
+                          />
+                          <button
+                            type="submit"
+                            disabled={certLookupLoading}
+                            className="rounded-md border border-[#C9A227]/60 bg-[#15171C] px-4 py-2 font-mono text-xs font-bold text-[#C9A227] hover:bg-[#C9A227]/10 cursor-pointer disabled:opacity-50"
+                          >
+                            {certLookupLoading ? "Verifying..." : "Verify Certificate"}
+                          </button>
+                        </form>
+                        {certLookupError && (
+                          <p className="font-mono text-xs text-[#EF4444]">{certLookupError}</p>
+                        )}
+                        {certLookupResult && (
+                          <div className="rounded-lg border border-[#10B981]/40 bg-[#15171C] p-3.5 font-mono text-xs space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-bold text-[#FAF8F5]">
+                                {certLookupResult.audit_ref_id} · {certLookupResult.domain}
+                              </span>
+                              <span className="rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">
+                                {certLookupResult.compliance_score}/100 ({certLookupResult.verdict})
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-400">
+                              Framework: {certLookupResult.framework.toUpperCase()} · Findings:{" "}
+                              {certLookupResult.findings?.length || 0} · Verified Timestamp:{" "}
+                              {certLookupResult.created_at}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Live Rolling Statutory Coverage Ticker Strip */}
+                    <StatutoryTicker
+                      selectedFramework={selectedFramework}
+                      onSelectFramework={(fw) => setSelectedFramework(fw)}
+                      onOpenPoliTech={() => handleTabSwitch("politech")}
+                    />
+                  </div>
                 </div>
-                {showDetailedAnnexes ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </button>
+              </section>
 
-              {showDetailedAnnexes && (
-                <div className="mt-6 space-y-6 animate-in fade-in duration-300">
-                  {/* Official ASJi Web & Legal Solution Audit Certificate */}
+              {/* SCANNING LOADER STATE */}
+              {phase === "scanning" && (
+                <div ref={scanRef} className="py-12">
+                  <ScanLoader progress={progress} url={scanned || input} />
+                </div>
+              )}
+
+              {/* SCAN RESULTS & REMEDIATION WORKBENCH */}
+              {phase === "result" && report && (
+                <div ref={resultRef} className="space-y-12 animate-in fade-in duration-500">
+                  {/* Result Header & Score */}
+                  <div className="surface-panel rounded-2xl border border-[#262932] bg-[#15171C] p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-8">
+                    <div className="space-y-3 text-center lg:text-left min-w-0">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-[#C9A227]/40 bg-[#C9A227]/10 px-3 py-1 text-xs font-mono font-bold text-[#C9A227]">
+                        <ShieldCheck className="h-4 w-4" /> VERIFIED TECHNICAL AUDIT REPORT
+                      </div>
+                      <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-[#FAF8F5] break-words">
+                        Target: <span className="text-[#C9A227]">{report.target}</span>
+                      </h2>
+                      <p className="text-xs sm:text-sm font-mono text-muted-foreground">
+                        Ref ID:{" "}
+                        <strong className="text-[#C9A227]">{report.auditRefId || "LIVE"}</strong> ·{" "}
+                        Framework:{" "}
+                        <strong className="text-foreground">{report.frameworkName}</strong> ·{" "}
+                        {report.scannedAtUtc || new Date().toUTCString()}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-5 shrink-0">
+                      <ScoreWheel score={report.score} />
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleDownloadReportPdf}
+                          disabled={isDownloadingPdf}
+                          className="btn-gold rounded-lg px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-xl"
+                        >
+                          {isDownloadingPdf ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          <span>Download PDF Certificate</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handlePurge}
+                          className="w-full rounded-lg border border-[#262932] bg-[#0D0E11] px-4 py-2 text-xs font-mono text-muted-foreground hover:text-[#FAF8F5] transition-colors cursor-pointer"
+                        >
+                          New Scan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Executive Dark & Gold Compliance Audit Report & Certificate */}
                   <ASJiLetterheadReport
                     report={report}
-                    domain={report.target || scanned}
-                    score={report.score}
+                    frameworkId={selectedFramework}
+                    isPaid={isCodePatchesUnlocked || isLegalUnlocked}
+                    onOpenUnlockModal={() => handleOpenUnlockModal("full-bundle")}
                   />
 
-                  {/* Google Search Grounding Section */}
-                  <GroundedSearchCard grounding={report.grounding} />
+                  {/* Free Diagnostic Findings */}
+                  <div className="grid gap-8 lg:grid-cols-2">
+                    <IntermediaryShieldCard report={report} />
+                    <LocalizationScannerCard
+                      report={report}
+                      onOpenRemediationModal={() => handleOpenUnlockModal("full-bundle")}
+                    />
+                  </div>
 
-                  {/* Live Scan Evidence */}
-                  {(Array.isArray(report.evidence) ? report.evidence : []).length > 0 && (
-                    <div className="surface-panel p-6">
-                      <h3 className="font-display text-xl text-gold-gradient">
-                        {report.inputKind === "url" ? "Live scan evidence" : "Assessment basis"}
-                      </h3>
-                      <div className="gold-rule my-4" />
-                      <ul className="space-y-2.5">
-                        {(Array.isArray(report.evidence) ? report.evidence : []).map((item, i) => (
-                          <li
-                            key={i}
-                            className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
-                          >
-                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Global & Regional Language Notice Scanner Card */}
-                  <LocalizationScannerCard
+                  {/* Remediation Fixer Workbench (Code Patches) */}
+                  <RemediationViewer
                     report={report}
-                    onOpenRemediationModal={() => handleOpenUnlockModal("full-bundle")}
+                    isUnlocked={isCodePatchesUnlocked}
+                    unlockedTier={unlockedTiers[0] || null}
+                    onOpenUnlockModal={handleOpenUnlockModal}
+                  />
+
+                  {/* Statutory Legal Solution Card */}
+                  <StatutoryLegalSolutionCard
+                    report={report}
+                    frameworkId={selectedFramework}
+                    isUnlocked={isLegalUnlocked}
+                    unlockedTier={unlockedTiers[0] || null}
+                    onOpenUnlockModal={handleOpenUnlockModal}
                   />
                 </div>
               )}
-            </motion.div>
 
-            <RemediationBillingModal
-              isOpen={unlockOpen}
-              onClose={() => setUnlockOpen(false)}
-              onUnlockSuccess={handleUnlockSuccess}
-              report={report}
-              frameworkId={selectedFramework}
-              initialTier={initialBillingTier}
-            />
-          </motion.section>
-        )}
-
-        {/* STARTING PAGE CONTENT - SHOWN WHEN NO ACTIVE AUDIT REPORT */}
-        {!report && (
-          <div className="mt-12 space-y-14">
-            {/* 3-Step Work Focus Pipeline */}
-            <section className="rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/5 via-black/40 to-transparent p-6 sm:p-8">
-              <div className="text-center max-w-2xl mx-auto">
-                <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-                  Streamlined Statutory Audit Pipeline
-                </span>
-                <h2 className="mt-2 font-display text-2xl sm:text-3xl font-bold text-gold-gradient">
-                  How ASJi One Identifies Gaps &amp; Solves Compliance
-                </h2>
-                <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-mono">
-                  Controlled, deterministic, and non-disruptive inspection across 15 sovereign
-                  global privacy mandates.
-                </p>
-              </div>
-
-              <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold mb-3">
-                    1
-                  </div>
-                  <h3 className="text-sm font-bold text-foreground">Target &amp; Law Selection</h3>
-                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    Input your production domain and select from 15 sovereign jurisdictions (India
-                    DPDP 2023, EU GDPR, UK DUAA, US CPRA, UAE PDPL, Nigeria NDPA, etc.).
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 font-bold mb-3">
-                    2
-                  </div>
-                  <h3 className="text-sm font-bold text-foreground">Statutory Gaps Pinpointed</h3>
-                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    Automated scan detects pre-consent tracking, missing privacy notices,
-                    unappointed grievance officers, and fine risks under that specific statute.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/80 bg-black/60 p-5 font-mono">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold mb-3">
-                    3
-                  </div>
-                  <h3 className="text-sm font-bold text-foreground">
-                    Patches &amp; Legal Solutions
-                  </h3>
-                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    Receive both autonomous engineering code patches (NGINX, Cloudflare, Express,
-                    CMP) and tailored statutory legal solutions &amp; policies.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Supported Sovereign Jurisdictions - 15 Bento Cards with quick select */}
-            <section>
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
-                <div>
-                  <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-                    Cross-Border Statutory Coverage
-                  </span>
-                  <h2 className="font-display text-2xl font-bold text-gold-gradient">
-                    Supported Sovereign Privacy Mandates (15 Global Jurisdictions)
-                  </h2>
-                </div>
-                <span className="text-xs font-mono text-muted-foreground">
-                  Click any card to activate framework
-                </span>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {STATUTORY_FRAMEWORKS.map((fw) => {
-                  const isSelected = selectedFramework === fw.id;
-                  return (
-                    <div
-                      key={fw.id}
-                      onClick={() => {
-                        setSelectedFramework(fw.id);
-                        document.getElementById("scan")?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className={`group cursor-pointer rounded-2xl border p-5 transition-all font-mono ${
-                        isSelected
-                          ? "border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40"
-                          : "border-border/80 bg-black/50 hover:border-primary/50 hover:bg-black/80"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl">{fw.flag}</span>
-                        <span className="rounded bg-secondary/80 px-2 py-0.5 text-[10px] text-muted-foreground uppercase">
-                          {fw.region}
-                        </span>
-                      </div>
-                      <h3 className="mt-3 font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                        {fw.country}: {fw.label}
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Enforced by <strong className="text-foreground">{fw.authority}</strong>
+              {/* DEFAULT LANDING EXECUTIVES & ATLAS IF NO ACTIVE SCAN */}
+              {!report && (
+                <div className="space-y-16">
+                  <section className="rounded-2xl border border-[#262932] bg-[#15171C] p-8 sm:p-12">
+                    <div className="text-center max-w-3xl mx-auto space-y-3">
+                      <span className="text-xs font-mono font-semibold uppercase tracking-wider text-[#C9A227]">
+                        Statutory Audit Pipeline
+                      </span>
+                      <h2 className="font-display text-3xl font-bold text-[#FAF8F5]">
+                        How ASJi One Identifies Gaps &amp; Remediates Risk
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground font-sans leading-relaxed">
+                        Controlled, verifiable, and non-disruptive inspection across 15 sovereign
+                        global privacy mandates.
                       </p>
-                      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-                        <span className="text-[11px] text-primary font-semibold">
-                          {isSelected ? "Active Framework ✓" : "Select Node →"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          Deterministic Audit
-                        </span>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
 
-            {/* Direct World Laws Database Atlas & Sovereign Matrix */}
-            <div className="space-y-14">
-              <WorldLawsAtlas />
-              <SovereignLegalMatrix
-                onOpenRemediationModal={() => handleOpenUnlockModal("gdpr-global")}
-                isUnlocked={isLegalUnlocked}
-              />
-            </div>
-          </div>
-        )}
+                    <div className="mt-10 grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                      <SpecularCard className="rounded-xl border border-[#262932] bg-[#0D0E11] p-6 space-y-3">
+                        <div className="font-mono text-xs font-bold text-[#C9A227]">
+                          01. DOMAIN &amp; LAW
+                        </div>
+                        <h3 className="font-display text-lg font-bold text-[#FAF8F5]">
+                          Target &amp; Jurisdiction
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Enter your production domain and select from 15 sovereign privacy
+                          frameworks with verified maximum penalty ceilings.
+                        </p>
+                      </SpecularCard>
 
-        <StatutoryGrievanceNotice />
+                      <SpecularCard className="rounded-xl border border-[#262932] bg-[#0D0E11] p-6 space-y-3">
+                        <div className="font-mono text-xs font-bold text-[#C9A227]">
+                          02. FORENSIC AUDIT
+                        </div>
+                        <h3 className="font-display text-lg font-bold text-[#FAF8F5]">
+                          Direct Statutory Mapping
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Live telemetry inspection detects pre-consent tracking, missing HSTS/CSP
+                          headers, and unappointed grievance officers.
+                        </p>
+                      </SpecularCard>
 
-        <section id="capabilities" className="mt-20 scroll-mt-8">
-          <h2 className="text-center font-display text-3xl text-gold-gradient font-bold">
-            Capabilities &amp; Core Architecture
-          </h2>
-          <div className="gold-rule mx-auto mt-5 max-w-xs" />
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              [
-                "Cross-Border Transit Mapping",
-                "ASJi One performs controlled runtime network inspection to analyse relevant outbound traffic and data-flow signals across sovereign territorial borders.",
-              ],
-              [
-                "Threat Surface Mapping",
-                "Enumerate exposed endpoints, mixed content and insecure origins across active client interaction frames.",
-              ],
-              [
-                "Consent Forensics",
-                "Verify banner behaviour, pre-consent cookies, and storage writes against active regional DPDP / GDPR statutes.",
-              ],
-              [
-                "Regulatory Alignment",
-                "Cross-border statutory mandates audited across 15 sovereign nodes with deterministic compliance logging.",
-              ],
-              [
-                "Header Hardening",
-                "CSP, HSTS, referrer and frame policy evaluation with automated runtime isolation patch compilation.",
-              ],
-              [
-                "Vendor Visibility",
-                "Identify third-party scripts, telemetry listeners, and external data transport pathways through non-disruptive runtime verification.",
-              ],
-            ].map(([t, d]) => (
-              <article
-                key={t}
-                className="surface-panel card-hover fps-120 p-6 border border-border/80 bg-black/60 rounded-2xl transition-all hover:border-primary/50 font-mono"
-              >
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider text-gold-gradient">
-                  {t}
-                </h3>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{d}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+                      <SpecularCard className="rounded-xl border border-[#262932] bg-[#0D0E11] p-6 space-y-3 md:col-span-2 lg:col-span-1">
+                        <div className="font-mono text-xs font-bold text-[#C9A227]">
+                          03. REMEDIATION VAULT
+                        </div>
+                        <h3 className="font-display text-lg font-bold text-[#FAF8F5]">
+                          Code &amp; Legal Suite
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Deploy server configuration hardening alongside tailored statutory privacy
+                          notices and grievance officer charters.
+                        </p>
+                      </SpecularCard>
+                    </div>
+                  </section>
+
+                  <WorldLawsAtlas
+                    selectedFramework={selectedFramework}
+                    onSelectFramework={setSelectedFramework}
+                  />
+
+                  <SovereignLegalMatrix
+                    onOpenRemediationModal={() => handleOpenUnlockModal("gdpr-global")}
+                    isUnlocked={isLegalUnlocked}
+                    selectedFramework={selectedFramework}
+                  />
+                </div>
+              )}
+
+              <StatutoryGrievanceNotice />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
-      <Footer />
+      {/* Footer */}
+      <Footer
+        onOpenLegalModal={(title, content) => {
+          setLegalModalTitle(title);
+          setLegalModalContent(content);
+          setLegalModalOpen(true);
+        }}
+      />
+
+      {/* Legal Modal Reader */}
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        title={legalModalTitle}
+        content={legalModalContent}
+      />
+
+      {/* Remediation & Payment Unlock Modal */}
+      <RemediationBillingModal
+        isOpen={unlockOpen}
+        onClose={() => setUnlockOpen(false)}
+        onUnlockSuccess={handleUnlockSuccess}
+        report={report}
+        frameworkId={selectedFramework}
+        initialTier={initialBillingTier}
+      />
     </div>
   );
 }

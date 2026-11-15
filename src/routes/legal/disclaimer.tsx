@@ -45,7 +45,7 @@ export const Route = createFileRoute("/legal/disclaimer")({
       </LegalSection>
 
       <LegalSection title="3. Non-Intrusive Technical Inspection">
-        <ul className="space-y-1.5 text-muted-foreground">
+        <ul className="list-disc pl-5 space-y-1.5 text-[#52525B]">
           <li>
             Assessment is conducted via passive, public HTTP requests to target domain endpoints.
           </li>

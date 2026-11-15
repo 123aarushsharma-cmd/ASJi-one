@@ -10,7 +10,7 @@ export interface StatutoryFrameworkItem {
 export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   {
     id: "ind-dpdp",
-    flag: "🇮🇳",
+    flag: "[IN]",
     country: "INDIA",
     label: "Digital Personal Data Protection Act (DPDP Act, 2023 & DPDP Rules, 2025)",
     authority: "Data Protection Board of India (DPBI) / MeitY",
@@ -18,7 +18,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "eu-gdpr",
-    flag: "🇪🇺",
+    flag: "[EU]",
     country: "EUROPEAN UNION",
     label: "General Data Protection Regulation (GDPR 2026 Reforms)",
     authority: "European Data Protection Board (EDPB)",
@@ -26,7 +26,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "uk-duaa",
-    flag: "🇬🇧",
+    flag: "[UK]",
     country: "UNITED KINGDOM",
     label: "UK GDPR & Data Use and Access Act (DUAA 2026)",
     authority: "Information Commissioner's Office (ICO)",
@@ -34,7 +34,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "us-cpra",
-    flag: "🇺🇸",
+    flag: "[US]",
     country: "UNITED STATES",
     label: "California CPRA/CCPA & Multi-State Privacy Framework",
     authority: "California Privacy Protection Agency (CPPA) / FTC",
@@ -42,7 +42,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "brazil-lgpd",
-    flag: "🇧🇷",
+    flag: "[BR]",
     country: "BRAZIL",
     label: "Lei Geral de Proteção de Dados (LGPD - Law No. 13.709)",
     authority: "Autoridade Nacional de Proteção de Dados (ANPD)",
@@ -50,7 +50,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "canada-pipeda",
-    flag: "🇨🇦",
+    flag: "[CA]",
     country: "CANADA",
     label: "PIPEDA & Consumer Privacy Protection Act (CPPA)",
     authority: "Office of the Privacy Commissioner of Canada (OPC)",
@@ -58,7 +58,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "aus-privacy",
-    flag: "🇦🇺",
+    flag: "[AU]",
     country: "AUSTRALIA",
     label: "Privacy Act 1988 & Statutory Reforms (2024–2026)",
     authority: "Office of the Australian Information Commissioner (OAIC)",
@@ -66,7 +66,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "sg-pdpa",
-    flag: "🇸🇬",
+    flag: "[SG]",
     country: "SINGAPORE",
     label: "Personal Data Protection Act (PDPA)",
     authority: "Personal Data Protection Commission (PDPC)",
@@ -74,7 +74,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "jp-appi",
-    flag: "🇯🇵",
+    flag: "[JP]",
     country: "JAPAN",
     label: "Act on the Protection of Personal Information (APPI)",
     authority: "Personal Information Protection Commission (PPC)",
@@ -82,7 +82,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "uae-pdpl",
-    flag: "🇦🇪",
+    flag: "[AE]",
     country: "UNITED ARAB EMIRATES",
     label: "Federal Decree-Law No. 45 of 2021 (UAE PDPL)",
     authority: "UAE Data Office / ADGM / DIFC",
@@ -90,7 +90,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "kr-pipa",
-    flag: "🇰🇷",
+    flag: "[KR]",
     country: "SOUTH KOREA",
     label: "Personal Information Protection Act (PIPA 2023)",
     authority: "Personal Information Protection Commission (PIPC)",
@@ -98,7 +98,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "ch-fadp",
-    flag: "🇨🇭",
+    flag: "[CH]",
     country: "SWITZERLAND",
     label: "Federal Act on Data Protection (Revised FADP 2023)",
     authority: "Federal Data Protection and Information Commissioner (FDPIC)",
@@ -106,7 +106,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "ksa-pdpl",
-    flag: "🇸🇦",
+    flag: "[SA]",
     country: "SAUDI ARABIA",
     label: "SDAIA Personal Data Protection Law (Royal Decree M/19)",
     authority: "Saudi Data & AI Authority (SDAIA)",
@@ -114,7 +114,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "za-popia",
-    flag: "🇿🇦",
+    flag: "[ZA]",
     country: "SOUTH AFRICA",
     label: "Protection of Personal Information Act (POPIA Act 4 of 2013)",
     authority: "Information Regulator of South Africa",
@@ -122,7 +122,7 @@ export const STATUTORY_FRAMEWORKS: StatutoryFrameworkItem[] = [
   },
   {
     id: "ng-ndpa",
-    flag: "🇳🇬",
+    flag: "[NG]",
     country: "NIGERIA",
     label: "Nigeria Data Protection Act, 2023 (NDPA 2023)",
     authority: "Nigeria Data Protection Commission (NDPC)",

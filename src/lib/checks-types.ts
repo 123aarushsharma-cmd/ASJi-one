@@ -23,6 +23,8 @@ export interface CheckResult {
   remediation?: string;
   reasonIfNotChecked?: string;
   testedAt?: string;
+  testedAtUtc?: string;
+  testedAtIst?: string;
 }
 
 export interface ChecksSummary {

@@ -26,7 +26,7 @@ export function ASJiLegalSolutionReport({
     propDomain ||
     (report?.target
       ? report.target.replace(/^https?:\/\//, "").replace(/\/.*$/, "")
-      : "global-enterprise-client.com");
+      : "example.com");
 
   const certNumber = `ASJI-LEGAL-2026-${targetDomain
     .slice(0, 4)
@@ -40,111 +40,108 @@ export function ASJiLegalSolutionReport({
   });
 
   const renderHeader = (pageNumber: number, totalPages: number) => (
-    <div className="flex items-center justify-between border-b border-amber-500/30 pb-3 mb-4">
+    <div className="flex items-center justify-between border-b border-[#E5DEC9] pb-3 mb-4">
       <div className="flex items-center gap-3">
-        <ASJiVectorLogo width={36} height={36} />
+        <div className="flex h-9 w-9 items-center justify-center rounded border border-[#C9A227] bg-[#0D0E11] p-1">
+          <ASJiVectorLogo width={32} height={32} />
+        </div>
         <div>
-          <h1 className="font-display font-bold text-sm text-gold-gradient tracking-wide uppercase">
-            ASJi ONE // Sovereign Statutory Legal Suite
+          <h1 className="font-display font-bold text-sm text-[#18181B] tracking-wide uppercase">
+            ASJi One · Sovereign Statutory Legal Suite
           </h1>
-          <p className="text-[10px] font-mono text-neutral-400">
-            Cryptographic Legal Compliance Certificate • Ref: {certNumber}
+          <p className="text-[10px] font-mono text-[#52525B]">
+            Statutory Legal Compliance Brief · Ref: {certNumber}
           </p>
         </div>
       </div>
       <div className="text-right font-mono text-[10px]">
-        <div className="text-amber-400 font-bold">15-LAW GLOBAL COMPLIANCE DRAFT</div>
-        <div className="text-neutral-500">
+        <div className="text-[#9E7E1B] font-bold">15-JURISDICTION COMPLIANCE BRIEF</div>
+        <div className="text-[#52525B] tabular-nums">
           Page {pageNumber} of {totalPages}
         </div>
       </div>
     </div>
   );
 
-  const renderFooter = (pageNumber: number) => (
-    <div className="border-t border-neutral-800 pt-3 mt-auto flex items-center justify-between font-mono text-[9px] text-neutral-500">
+  const renderFooter = (_pageNumber: number) => (
+    <div className="border-t border-[#E5DEC9] pt-3 mt-auto flex items-center justify-between font-mono text-[9px] text-[#52525B]">
       <div>
         <span>
-          Target Entity: <strong className="text-white">{targetDomain}</strong>
+          Target Entity: <strong className="text-[#18181B]">{targetDomain}</strong>
         </span>
-        <span className="mx-2">•</span>
+        <span className="mx-2">·</span>
         <span>Issued: {dateStr}</span>
       </div>
       <div className="flex items-center gap-2">
-        <ShieldCheck className="w-3 h-3 text-emerald-400" />
-        <span className="text-amber-300 font-semibold">ASJi Sovereign Legal Seal</span>
+        <ShieldCheck className="w-3 h-3 text-[#059669]" />
+        <span className="text-[#9E7E1B] font-semibold">ASJi Sovereign Legal Registry</span>
       </div>
     </div>
   );
 
   return (
-    <div className="w-[794px] bg-[#0d0c0b] text-white font-sans text-xs select-none">
+    <div className="w-[794px] bg-[#FAF8F5] text-[#18181B] font-sans text-xs select-none">
       {/* PAGE 1: COVER & EXECUTIVE LEGAL BRIEF */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(1, 10)}
 
-          <div className="mt-6 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-black to-amber-500/5 p-6 space-y-4">
+          <div className="mt-6 rounded-xl border border-[#E5DEC9] bg-white p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold">
-                15-Sovereign Global Legal Solution Suite
+              <span className="px-2.5 py-1 rounded border border-[#E5DEC9] bg-[#FAF8F5] text-[#9E7E1B] font-mono text-[11px] font-bold">
+                15-Jurisdiction Statutory Legal Solution Pack
               </span>
-              <span className="font-mono text-neutral-400 text-[10px]">
+              <span className="font-mono text-[#52525B] text-[10px]">
                 Classification: STRICTLY CONFIDENTIAL
               </span>
             </div>
 
-            <h2 className="text-2xl font-bold text-gold-gradient font-display">
-              Statutory Privacy Compliance &amp; Non-Compliance Remediation Pack
+            <h2 className="text-2xl font-bold text-[#18181B] font-display">
+              Statutory Privacy Compliance &amp; Remediation Legal Brief
             </h2>
 
-            <p className="text-xs text-neutral-300 leading-relaxed font-mono">
-              Prepared exclusively for <strong className="text-white">{targetDomain}</strong>. This
-              statutory legal suite articulates non-compliance gaps, delivers itemized legal
-              templates, appoints designated grievance redressal charters, and establishes binding
+            <p className="text-xs text-[#52525B] leading-relaxed font-sans">
+              Prepared exclusively for <strong className="text-[#18181B]">{targetDomain}</strong>.
+              This statutory legal dossier articulates non-compliance gaps, delivers itemized legal
+              notices, appoints designated grievance redressal charters, and establishes binding
               cross-border data transfer protocols across all 15 global sovereign privacy regimes.
             </p>
 
             <div className="grid grid-cols-3 gap-3 pt-2 font-mono text-[11px]">
-              <div className="bg-black/80 p-3 rounded-xl border border-white/10">
-                <span className="text-neutral-500 block text-[9px]">Target Domain:</span>
-                <strong className="text-amber-300 text-xs">{targetDomain}</strong>
+              <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#E5DEC9]">
+                <span className="text-[#52525B] block text-[9px]">Target Domain</span>
+                <strong className="text-[#18181B] text-xs">{targetDomain}</strong>
               </div>
-              <div className="bg-black/80 p-3 rounded-xl border border-white/10">
-                <span className="text-neutral-500 block text-[9px]">Evaluated Frameworks:</span>
-                <strong className="text-white text-xs">15 Global Sovereign Laws</strong>
+              <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#E5DEC9]">
+                <span className="text-[#52525B] block text-[9px]">Evaluated Frameworks</span>
+                <strong className="text-[#18181B] text-xs">15 Sovereign Laws</strong>
               </div>
-              <div className="bg-black/80 p-3 rounded-xl border border-white/10">
-                <span className="text-neutral-500 block text-[9px]">Legal Penalty Exposure:</span>
-                <strong className="text-red-400 text-xs">Up to ₹250Cr / €20M</strong>
+              <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#E5DEC9]">
+                <span className="text-[#52525B] block text-[9px]">Penalty Ceiling</span>
+                <strong className="text-[#DC2626] text-xs">Up to ₹250Cr / €20M</strong>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 space-y-3 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <Scale className="w-4 h-4 text-amber-400" />
+          <div className="mt-6 space-y-3">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <Scale className="w-4 h-4 text-[#9E7E1B]" />
               1. Executive Legal Directive &amp; Compliance Objectives
             </h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
+            <p className="text-xs text-[#52525B] leading-relaxed font-sans">
               Global regulatory privacy enforcement has transitioned from voluntary guidance to
-              strict statutory penal regimes with severe financial and personal criminal liabilities
-              attaching to corporate decision-makers. This document equips {targetDomain} with
-              turnkey, legally sound notices and charters ready for immediate web deployment.
+              strict statutory penal regimes with substantial financial and executive accountability
+              attaching to corporate decision-makers. This dossier equips {targetDomain} with
+              audit-ready notices and governance charters.
             </p>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-2">
-              <div className="text-amber-400 font-bold text-xs uppercase">
-                Primary Statutory Targets Satisfied:
+            <div className="p-4 bg-white border border-[#E5DEC9] rounded-lg space-y-2">
+              <div className="text-[#9E7E1B] font-mono font-bold text-xs uppercase">
+                Primary Statutory Mandates Covered
               </div>
-              <ul className="list-disc list-inside space-y-1 text-neutral-300 text-[11px]">
-                <li>
-                  India Digital Personal Data Protection Act (DPDP Act 2023 &amp; 2025 Draft Rules)
-                </li>
-                <li>
-                  European Union General Data Protection Regulation (EU GDPR &amp; ePrivacy
-                  Directive)
-                </li>
+              <ul className="list-disc list-inside space-y-1 text-[#52525B] text-[11px]">
+                <li>India Digital Personal Data Protection Act (DPDP Act 2023 &amp; 2025 Rules)</li>
+                <li>European Union General Data Protection Regulation (EU GDPR &amp; ePrivacy)</li>
                 <li>United Kingdom Data Use and Access Act (DUAA 2026 &amp; UK GDPR)</li>
                 <li>United States California CPRA/CCPA &amp; Multi-State Privacy Regulations</li>
                 <li>Nigeria Data Protection Act, 2023 (NDPA 2023 Major Fiduciary Regime)</li>
@@ -157,123 +154,141 @@ export function ASJiLegalSolutionReport({
       </div>
 
       {/* PAGE 2: 15-GLOBAL SOVEREIGN LAWS MATRIX */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(2, 10)}
 
           <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <Globe className="w-4 h-4 text-[#9E7E1B]" />
               2. 15 Sovereign Global Privacy Laws Statutory Matrix
             </h3>
 
-            <table className="w-full text-left text-[10px] border-collapse">
+            <table className="w-full text-left text-[10px] border-collapse bg-white border border-[#E5DEC9]">
               <thead>
-                <tr className="bg-neutral-900 text-neutral-400 border-b border-neutral-800">
+                <tr className="bg-[#FAF8F5] text-[#52525B] border-b border-[#E5DEC9]">
                   <th className="p-2">Jurisdiction</th>
                   <th className="p-2">Statutory Enactment</th>
                   <th className="p-2">Supervisory Authority</th>
                   <th className="p-2">Statutory Penalty Ceiling</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/80">
+              <tbody className="divide-y divide-[#E5DEC9]">
                 {[
                   {
-                    country: "🇮🇳 India",
+                    iso: "[IN]",
+                    country: "India",
                     law: "DPDP Act 2023 & Draft Rules 2025",
                     body: "Data Protection Board of India (DPBI)",
                     penalty: "Up to ₹250 Crore per breach",
                   },
                   {
-                    country: "🇪🇺 EU",
+                    iso: "[EU]",
+                    country: "European Union",
                     law: "GDPR (Reg 2016/679)",
                     body: "European Data Protection Board (EDPB)",
                     penalty: "Up to €20M or 4% global turnover",
                   },
                   {
-                    country: "🇬🇧 UK",
+                    iso: "[UK]",
+                    country: "United Kingdom",
                     law: "UK GDPR & DUAA 2026",
                     body: "Information Commissioner's Office (ICO)",
                     penalty: "Up to £17.5M or 4% global turnover",
                   },
                   {
-                    country: "🇺🇸 USA (CA)",
+                    iso: "[US]",
+                    country: "USA (California)",
                     law: "CPRA / CCPA (Cal. Civ. Code)",
                     body: "California Privacy Protection Agency (CPPA)",
                     penalty: "Up to $7,500 per intentional violation",
                   },
                   {
-                    country: "🇧🇷 Brazil",
+                    iso: "[BR]",
+                    country: "Brazil",
                     law: "LGPD (Law No. 13.709)",
                     body: "Autoridade Nacional (ANPD)",
                     penalty: "Up to 50M BRL per violation",
                   },
                   {
-                    country: "🇨🇦 Canada",
+                    iso: "[CA]",
+                    country: "Canada",
                     law: "PIPEDA & CPPA",
                     body: "Privacy Commissioner of Canada (OPC)",
                     penalty: "Up to $25M CAD or 5% global revenue",
                   },
                   {
-                    country: "🇦🇺 Australia",
+                    iso: "[AU]",
+                    country: "Australia",
                     law: "Privacy Act 1988 Reforms",
                     body: "Australian Information Commissioner (OAIC)",
                     penalty: "Up to AU$50M or 30% adjusted turnover",
                   },
                   {
-                    country: "🇸🇬 Singapore",
+                    iso: "[SG]",
+                    country: "Singapore",
                     law: "PDPA 2012",
                     body: "Personal Data Protection Commission (PDPC)",
                     penalty: "Up to SG$1M or 10% annual turnover",
                   },
                   {
-                    country: "🇯🇵 Japan",
+                    iso: "[JP]",
+                    country: "Japan",
                     law: "APPI 2022/2026",
                     body: "Personal Information Protection Comm (PPC)",
                     penalty: "Up to 100M JPY corporate fine",
                   },
                   {
-                    country: "🇦🇪 UAE",
+                    iso: "[AE]",
+                    country: "UAE",
                     law: "Federal Decree-Law 45/2021",
                     body: "UAE Data Office / TDRA",
                     penalty: "Up to AED 15M administrative fines",
                   },
                   {
-                    country: "🇰🇷 South Korea",
+                    iso: "[KR]",
+                    country: "South Korea",
                     law: "PIPA 2023 Amendments",
                     body: "Personal Information Protection Comm (PIPC)",
                     penalty: "Up to 3% total revenue",
                   },
                   {
-                    country: "🇨🇭 Switzerland",
+                    iso: "[CH]",
+                    country: "Switzerland",
                     law: "revFADP / nDSG 2023",
                     body: "FDPIC / EDÖB",
                     penalty: "Up to CHF 250,000 personal criminal fine",
                   },
                   {
-                    country: "🇸🇦 Saudi Arabia",
+                    iso: "[SA]",
+                    country: "Saudi Arabia",
                     law: "Saudi PDPL (Decree M/19)",
                     body: "Saudi Data & AI Authority (SDAIA)",
                     penalty: "Up to SAR 5M + imprisonment",
                   },
                   {
-                    country: "🇿🇦 South Africa",
+                    iso: "[ZA]",
+                    country: "South Africa",
                     law: "POPIA (Act 4 of 2013)",
                     body: "Information Regulator SA",
                     penalty: "Up to ZAR 10M + up to 10 yrs prison",
                   },
                   {
-                    country: "🇳🇬 Nigeria",
+                    iso: "[NG]",
+                    country: "Nigeria",
                     law: "Nigeria Data Protection Act 2023",
                     body: "Nigeria Data Protection Commission (NDPC)",
                     penalty: "Up to ₦10M or 2% annual gross revenue",
                   },
                 ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-900/40">
-                    <td className="p-2 font-bold text-white">{row.country}</td>
-                    <td className="p-2 text-neutral-300">{row.law}</td>
-                    <td className="p-2 text-neutral-400">{row.body}</td>
-                    <td className="p-2 text-amber-300 font-bold">{row.penalty}</td>
+                  <tr key={idx}>
+                    <td className="p-2 font-bold text-[#18181B]">
+                      <span className="text-[#9E7E1B] mr-1">{row.iso}</span>
+                      {row.country}
+                    </td>
+                    <td className="p-2 text-[#18181B]">{row.law}</td>
+                    <td className="p-2 text-[#52525B]">{row.body}</td>
+                    <td className="p-2 text-[#DC2626] font-bold">{row.penalty}</td>
                   </tr>
                 ))}
               </tbody>
@@ -285,13 +300,13 @@ export function ASJiLegalSolutionReport({
       </div>
 
       {/* PAGE 3: NON-COMPLIANCE GAP & PENALTY MATRIX */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(3, 10)}
 
           <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <AlertTriangle className="w-4 h-4 text-[#DC2626]" />
               3. Itemized Non-Compliance Gap &amp; Penalty Risk Matrix
             </h3>
 
@@ -303,7 +318,7 @@ export function ASJiLegalSolutionReport({
                   finding:
                     "Personal data forms capture user inputs without upfront itemized disclosures in English & Eighth Schedule regional languages.",
                   fine: "Up to ₹250 Crores (Schedule 1, Item 1)",
-                  remedy: "Inject ASJi Section 5 Itemized Notice before form submit.",
+                  remedy: "Inject ASJi Section 5 Itemized Notice before form submission.",
                 },
                 {
                   gap: "Gap 2: Unconsented Pre-Tracking & Non-Affirmative Consent",
@@ -340,16 +355,16 @@ export function ASJiLegalSolutionReport({
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-1"
+                  className="p-3.5 bg-white border border-[#E5DEC9] rounded-lg space-y-1"
                 >
-                  <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#18181B]">
                     <span>{item.gap}</span>
-                    <span className="text-red-400 text-[10px]">{item.fine}</span>
+                    <span className="text-[#DC2626] text-[10px]">{item.fine}</span>
                   </div>
-                  <div className="text-[10px] text-neutral-400">Statute: {item.law}</div>
-                  <p className="text-[11px] text-neutral-300 mt-1">{item.finding}</p>
-                  <div className="text-[10px] text-emerald-400 font-semibold pt-1">
-                    ✓ Statutory Remedy: {item.remedy}
+                  <div className="text-[10px] text-[#9E7E1B]">Statute: {item.law}</div>
+                  <p className="text-[11px] text-[#52525B] mt-1 font-sans">{item.finding}</p>
+                  <div className="text-[10px] text-[#059669] font-semibold pt-1">
+                    Statutory Remedy: {item.remedy}
                   </div>
                 </div>
               ))}
@@ -360,19 +375,19 @@ export function ASJiLegalSolutionReport({
         {renderFooter(3)}
       </div>
 
-      {/* PAGE 4: MODEL STATUTORY NOTICE AT COLLECTION (SECTION 5) */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      {/* PAGE 4: MODEL STATUTORY NOTICE AT COLLECTION */}
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(4, 10)}
 
-          <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-400" />
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <FileText className="w-4 h-4 text-[#9E7E1B]" />
               4. Model Statutory Notice at Collection (DPDP Sec. 5 &amp; GDPR Art. 13)
             </h3>
 
-            <div className="p-4 bg-black/80 border border-amber-500/30 rounded-xl space-y-3 text-[11px] leading-relaxed text-neutral-200">
-              <div className="text-amber-400 font-bold uppercase border-b border-white/10 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed text-[#18181B]">
+              <div className="text-[#9E7E1B] font-mono font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 STATUTORY NOTIFICATION AT COLLECTION OF PERSONAL DATA
               </div>
 
@@ -414,53 +429,55 @@ export function ASJiLegalSolutionReport({
       </div>
 
       {/* PAGE 5: STATUTORY GRIEVANCE REDRESSAL OFFICER CHARTER */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(5, 10)}
 
-          <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-400" />
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <Lock className="w-4 h-4 text-[#9E7E1B]" />
               5. Statutory Grievance Redressal Officer Appointment &amp; SLA Charter
             </h3>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-3 text-[11px] leading-relaxed">
-              <div className="text-amber-300 font-bold uppercase border-b border-neutral-800 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed">
+              <div className="text-[#9E7E1B] font-mono font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 DESIGNATION OF STATUTORY GRIEVANCE REDRESSAL OFFICER
               </div>
 
-              <p className="text-neutral-300">
+              <p className="text-[#52525B]">
                 Pursuant to Section 8(9) and Section 13 of the Digital Personal Data Protection Act,
                 2023, and Rule 3(2) of the Information Technology (Intermediary Guidelines and
                 Digital Media Ethics Code) Rules, 2021, {targetDomain} designates the following
                 officer:
               </p>
 
-              <div className="bg-black/80 p-3.5 rounded-xl border border-white/10 space-y-1.5 text-[10.5px]">
+              <div className="bg-[#FAF8F5] p-3.5 rounded-lg border border-[#E5DEC9] space-y-1.5 text-[11px] font-mono">
                 <div>
-                  <span className="text-neutral-500">Designated Officer:</span>{" "}
-                  <strong className="text-white">Chief Grievance Redressal Officer (GRO)</strong>
+                  <span className="text-[#52525B]">Designated Officer:</span>{" "}
+                  <strong className="text-[#18181B]">
+                    Chief Grievance Redressal Officer (GRO)
+                  </strong>
                 </div>
                 <div>
-                  <span className="text-neutral-500">Electronic Mail:</span>{" "}
-                  <strong className="text-amber-300">grievance-officer@{targetDomain}</strong>
+                  <span className="text-[#52525B]">Electronic Mail:</span>{" "}
+                  <strong className="text-[#9E7E1B]">grievance-officer@{targetDomain}</strong>
                 </div>
                 <div>
-                  <span className="text-neutral-500">Physical Service Address:</span>{" "}
-                  <strong className="text-white">
+                  <span className="text-[#52525B]">Physical Service Address:</span>{" "}
+                  <strong className="text-[#18181B]">
                     Legal &amp; Compliance Division, {targetDomain}
                   </strong>
                 </div>
                 <div>
-                  <span className="text-neutral-500">Statutory SLA Window:</span>{" "}
-                  <strong className="text-emerald-400">
+                  <span className="text-[#52525B]">Statutory SLA Window:</span>{" "}
+                  <strong className="text-[#059669]">
                     Acknowledgement within 24 hours · Final Resolution within 30 days
                   </strong>
                 </div>
               </div>
 
-              <div className="text-neutral-400 text-[10.5px] space-y-1 pt-2">
-                <div className="text-white font-bold">
+              <div className="text-[#52525B] text-[11px] space-y-1 pt-2">
+                <div className="text-[#18181B] font-bold">
                   Mandatory Duties of the Grievance Officer:
                 </div>
                 <ul className="list-disc list-inside space-y-1">
@@ -488,31 +505,31 @@ export function ASJiLegalSolutionReport({
       </div>
 
       {/* PAGE 6: VERIFIABLE PARENTAL CONSENT ADDENDUM FOR MINORS */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(6, 10)}
 
-          <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <ShieldCheck className="w-4 h-4 text-[#9E7E1B]" />
               6. Verifiable Minor Protection &amp; Parental Consent Addendum (Sec. 9)
             </h3>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-3 text-[11px] leading-relaxed">
-              <div className="text-amber-300 font-bold uppercase border-b border-neutral-800 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed">
+              <div className="text-[#9E7E1B] font-mono font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 STATUTORY MINOR PROTECTION PROTOCOL
               </div>
 
-              <p className="text-neutral-300">
+              <p className="text-[#52525B]">
                 Under Section 9 of the DPDP Act 2023 and Article 8 of the EU GDPR, processing
                 personal data of children (individuals under 18 years in India, 16 years in EU)
                 requires verifiable parental or lawful guardian consent.
               </p>
 
-              <div className="space-y-2">
-                <div className="p-3 bg-black/80 border border-red-500/30 rounded-lg text-red-300 text-[10.5px]">
+              <div className="space-y-2.5">
+                <div className="p-3.5 bg-[#FAF8F5] border border-[#EF4444]/40 rounded-lg text-[#DC2626] text-[11px]">
                   <strong>Strict Statutory Prohibitions:</strong>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
+                  <ul className="list-disc list-inside mt-1 space-y-1 text-[#52525B]">
                     <li>
                       Prohibition on behavioral monitoring, targeted advertising, or profiling of
                       minors.
@@ -524,9 +541,9 @@ export function ASJiLegalSolutionReport({
                   </ul>
                 </div>
 
-                <div className="p-3 bg-black/80 border border-emerald-500/30 rounded-lg text-emerald-300 text-[10.5px]">
+                <div className="p-3.5 bg-[#FAF8F5] border border-[#10B981]/40 rounded-lg text-[#059669] text-[11px]">
                   <strong>Verifiable Parent Authentication Mechanism:</strong>
-                  <ul className="list-disc list-inside mt-1 space-y-1 text-neutral-300">
+                  <ul className="list-disc list-inside mt-1 space-y-1 text-[#52525B]">
                     <li>
                       DigiLocker tokenized guardian verification or government identity cross-check.
                     </li>
@@ -543,32 +560,32 @@ export function ASJiLegalSolutionReport({
         {renderFooter(6)}
       </div>
 
-      {/* PAGE 7: EU STANDARD CONTRACTUAL CLAUSES (SCCs) & TRANSFERS */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      {/* PAGE 7: EU STANDARD CONTRACTUAL CLAUSES */}
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(7, 10)}
 
-          <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-amber-400" />
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <Globe className="w-4 h-4 text-[#9E7E1B]" />
               7. Cross-Border Transfer Schedule &amp; Standard Contractual Clauses (SCCs)
             </h3>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-3 text-[11px] leading-relaxed">
-              <div className="text-amber-300 font-bold uppercase border-b border-neutral-800 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed">
+              <div className="text-[#9E7E1B] font-mono font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 INTERNATIONAL DATA TRANSFER ADEQUACY AGREEMENT
               </div>
 
-              <p className="text-neutral-300">
+              <p className="text-[#52525B]">
                 To comply with Chapter V of the EU GDPR, Article 22 of the UAE PDPL, and Section 16
                 of the DPDP Act 2023, transfers of personal data outside origin territories to
                 third-party processors or cloud data centers require approved Standard Contractual
                 Clauses (SCCs) or verified adequacy whitelists.
               </p>
 
-              <div className="p-3 bg-black/80 border border-white/10 rounded-lg space-y-1 text-[10.5px]">
-                <div className="text-white font-bold">Binding Transfer Obligations:</div>
-                <ul className="list-disc list-inside space-y-1 text-neutral-400">
+              <div className="p-3.5 bg-[#FAF8F5] border border-[#E5DEC9] rounded-lg space-y-1 text-[11px]">
+                <div className="text-[#18181B] font-bold">Binding Transfer Obligations:</div>
+                <ul className="list-disc list-inside space-y-1 text-[#52525B]">
                   <li>
                     Data Importers must enforce security measures equal or superior to origin
                     jurisdiction laws.
@@ -589,23 +606,23 @@ export function ASJiLegalSolutionReport({
         {renderFooter(7)}
       </div>
 
-      {/* PAGE 8: DATA SUBJECT ACCESS REQUEST (DSAR) WORKFLOW */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      {/* PAGE 8: DSAR WORKFLOW */}
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(8, 10)}
 
           <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <CheckCircle2 className="w-4 h-4 text-[#9E7E1B]" />
               8. Data Subject Access Request (DSAR) Intake &amp; Fulfillment Workflow
             </h3>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-3 text-[11px] leading-relaxed">
-              <div className="text-amber-300 font-bold uppercase border-b border-neutral-800 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed">
+              <div className="text-[#9E7E1B] font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 AUTOMATED DSAR FULFILLMENT TIMELINE (30-DAY SLA)
               </div>
 
-              <div className="space-y-2 text-[10.5px]">
+              <div className="space-y-2.5 text-[11px]">
                 {[
                   {
                     step: "Phase 1: Verification (Day 1-3)",
@@ -624,9 +641,9 @@ export function ASJiLegalSolutionReport({
                     desc: "Deliver secure encrypted access link or issue confirmation of full erasure across backends.",
                   },
                 ].map((s, idx) => (
-                  <div key={idx} className="p-3 bg-black/80 border border-white/10 rounded-lg">
-                    <strong className="text-amber-300 block">{s.step}</strong>
-                    <span className="text-neutral-400 mt-0.5 block">{s.desc}</span>
+                  <div key={idx} className="p-3 bg-[#FAF8F5] border border-[#E5DEC9] rounded-lg">
+                    <strong className="text-[#18181B] block">{s.step}</strong>
+                    <span className="text-[#52525B] mt-0.5 block font-sans">{s.desc}</span>
                   </div>
                 ))}
               </div>
@@ -638,41 +655,41 @@ export function ASJiLegalSolutionReport({
       </div>
 
       {/* PAGE 9: DPIA & BREACH ESCALATION POLICY */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between mb-8 relative shadow-2xl">
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between mb-8 relative">
         <div>
           {renderHeader(9, 10)}
 
-          <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <AlertTriangle className="w-4 h-4 text-[#9E7E1B]" />
               9. Data Protection Impact Assessment (DPIA) &amp; Breach Escalation
             </h3>
 
-            <div className="p-4 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-3 text-[11px] leading-relaxed">
-              <div className="text-amber-300 font-bold uppercase border-b border-neutral-800 pb-2">
+            <div className="p-5 bg-white border border-[#E5DEC9] rounded-lg space-y-3 text-xs leading-relaxed">
+              <div className="text-[#9E7E1B] font-mono font-bold uppercase border-b border-[#E5DEC9] pb-2">
                 STATUTORY BREACH ESCALATION TIMELINE (72-HOUR MANDATE)
               </div>
 
-              <p className="text-neutral-300">
+              <p className="text-[#52525B]">
                 Under Section 8(6) of the DPDP Act 2023 and Article 33 of the EU GDPR, any personal
                 data breach must be reported to the supervisory board and each affected individual
                 without delay.
               </p>
 
-              <div className="p-3 bg-black/80 border border-red-500/30 rounded-lg text-[10.5px] space-y-1">
-                <div className="text-red-400 font-bold">Breach Escalation Sequence:</div>
-                <ul className="list-disc list-inside text-neutral-300 space-y-1">
+              <div className="p-3.5 bg-[#FAF8F5] border border-[#EF4444]/40 rounded-lg text-[11px] space-y-1">
+                <div className="text-[#DC2626] font-bold">Breach Escalation Sequence:</div>
+                <ul className="list-disc list-inside text-[#52525B] space-y-1">
                   <li>
-                    <strong>Hour 0-6:</strong> Contain breach vector, isolate affected servers, and
-                    notify DPO/Grievance Officer.
+                    <strong className="text-[#18181B]">Hour 0-6:</strong> Contain breach vector,
+                    isolate affected servers, and notify DPO/Grievance Officer.
                   </li>
                   <li>
-                    <strong>Hour 6-24:</strong> Assess breach scope, categories of compromised
-                    personal data, and estimated impact.
+                    <strong className="text-[#18181B]">Hour 6-24:</strong> Assess breach scope,
+                    categories of compromised personal data, and estimated impact.
                   </li>
                   <li>
-                    <strong>Hour 24-72:</strong> Submit formal statutory incident notice to DPBI /
-                    EDPB and notify affected users.
+                    <strong className="text-[#18181B]">Hour 24-72:</strong> Submit formal statutory
+                    incident notice to DPBI / EDPB and notify affected users.
                   </li>
                 </ul>
               </div>
@@ -683,75 +700,76 @@ export function ASJiLegalSolutionReport({
         {renderFooter(9)}
       </div>
 
-      {/* PAGE 10: 4-PHASE BOARD ROADMAP & CERTIFICATE OF COMPLIANCE */}
-      <div className="pdf-page w-[794px] h-[1123px] bg-[#0d0c0b] p-8 border border-amber-500/30 box-border flex flex-col justify-between relative shadow-2xl">
+      {/* PAGE 10: 4-PHASE BOARD ROADMAP & CERTIFICATE */}
+      <div className="pdf-page legal-paper w-[794px] h-[1123px] p-8 box-border flex flex-col justify-between relative">
         <div>
           {renderHeader(10, 10)}
 
           <div className="space-y-4 font-mono">
-            <h3 className="text-sm font-bold text-white border-b border-neutral-800 pb-2 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-[#18181B] border-b border-[#E5DEC9] pb-2 flex items-center gap-2 font-display">
+              <Award className="w-4 h-4 text-[#9E7E1B]" />
               10. 4-Phase Executive Rectification Roadmap &amp; Legal Certificate
             </h3>
 
-            <div className="grid grid-cols-2 gap-3 text-[10.5px]">
-              <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-                <strong className="text-amber-300 block mb-1">
+            <div className="grid grid-cols-2 gap-3 text-[11px]">
+              <div className="p-3.5 bg-white border border-[#E5DEC9] rounded-lg">
+                <strong className="text-[#9E7E1B] block mb-1">
                   Phase 1: Immediate Notices (Day 1-7)
                 </strong>
-                <span className="text-neutral-400">
+                <span className="text-[#52525B] font-sans">
                   Deploy Section 5 itemized notices, publish Grievance Officer charter, and install
                   cookie CMP script.
                 </span>
               </div>
-              <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-                <strong className="text-amber-300 block mb-1">
+              <div className="p-3.5 bg-white border border-[#E5DEC9] rounded-lg">
+                <strong className="text-[#9E7E1B] block mb-1">
                   Phase 2: Consent Gates (Day 8-15)
                 </strong>
-                <span className="text-neutral-400">
+                <span className="text-[#52525B] font-sans">
                   Enforce zero-leak cookie consent gating and activate verifiable minor age
                   verification.
                 </span>
               </div>
-              <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-                <strong className="text-amber-300 block mb-1">
+              <div className="p-3.5 bg-white border border-[#E5DEC9] rounded-lg">
+                <strong className="text-[#9E7E1B] block mb-1">
                   Phase 3: DSAR &amp; Contracts (Day 16-30)
                 </strong>
-                <span className="text-neutral-400">
+                <span className="text-[#52525B] font-sans">
                   Integrate DSAR intake portal and sign Standard Contractual Clauses with vendors.
                 </span>
               </div>
-              <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-                <strong className="text-amber-300 block mb-1">
+              <div className="p-3.5 bg-white border border-[#E5DEC9] rounded-lg">
+                <strong className="text-[#9E7E1B] block mb-1">
                   Phase 4: DPIA Audit (Day 31-45)
                 </strong>
-                <span className="text-neutral-400">
+                <span className="text-[#52525B] font-sans">
                   Conduct comprehensive DPIA review and issue final board compliance sign-off.
                 </span>
               </div>
             </div>
 
-            {/* Official Signed Legal Compliance Certificate Block */}
-            <div className="mt-6 rounded-2xl border-2 border-amber-500/50 bg-black/90 p-5 text-center space-y-3">
-              <ASJiVectorLogo width={48} height={48} className="mx-auto" />
-              <h4 className="text-base font-bold text-gold-gradient uppercase tracking-widest font-display">
-                Cryptographic Certificate of Statutory Legal Compliance
+            <div className="mt-6 rounded-xl border-2 border-[#C9A227] bg-white p-6 text-center space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#C9A227] bg-[#0D0E11] p-1.5 mx-auto">
+                <ASJiVectorLogo width={40} height={40} />
+              </div>
+              <h4 className="text-base font-bold text-[#18181B] uppercase tracking-widest font-display">
+                Certificate of Statutory Legal Readiness
               </h4>
-              <p className="text-[10px] text-neutral-300 max-w-lg mx-auto">
-                This certifies that <strong>{targetDomain}</strong> has been issued the official
-                ASJi 15-Sovereign Statutory Legal Suite. Execution of the enclosed notices,
-                charters, and contracts fulfills statutory due diligence requirements.
+              <p className="text-[11px] text-[#52525B] max-w-lg mx-auto font-sans">
+                This certifies that <strong className="text-[#18181B]">{targetDomain}</strong> has
+                been issued the official ASJi 15-Jurisdiction Statutory Legal Suite. Execution of
+                the enclosed notices, charters, and contracts establishes statutory due diligence.
               </p>
 
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[9px] text-neutral-400">
+              <div className="pt-3 border-t border-[#E5DEC9] flex items-center justify-between text-[9.5px] text-[#52525B]">
                 <div>
-                  Certificate ID: <strong className="text-amber-300">{certNumber}</strong>
+                  Certificate ID: <strong className="text-[#9E7E1B]">{certNumber}</strong>
                 </div>
                 <div>
-                  Issuer: <strong className="text-white">ASJi Legal-Tech Compliance Desk</strong>
+                  Issuer: <strong className="text-[#18181B]">ASJi Legal Compliance Desk</strong>
                 </div>
                 <div>
-                  Status: <strong className="text-emerald-400">OFFICIALLY ISSUED</strong>
+                  Status: <strong className="text-[#059669]">OFFICIALLY ISSUED</strong>
                 </div>
               </div>
             </div>

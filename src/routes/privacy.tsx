@@ -24,7 +24,8 @@ export const Route = createFileRoute("/privacy")({
           processed through this site. Privacy &amp; Data Protection Contact:{" "}
           <strong>{LEGAL.contactEmail}</strong>. Direct Phone:{" "}
           <strong>{LEGAL.phoneNumbers.join(" / ")}</strong>. India DPDP Grievance Officer:{" "}
-          <strong>{LEGAL.grievanceOfficer}</strong>, {LEGAL.contactEmail}.
+          <strong>{LEGAL.grievanceOfficer.name}</strong> ({LEGAL.grievanceOfficer.email} •{" "}
+          {LEGAL.grievanceOfficer.sla}).
         </p>
       </LegalSection>
 

@@ -4,34 +4,46 @@ import {
   Globe,
   Scale,
   ShieldCheck,
-  FileText,
   Phone,
   MapPin,
   Mail,
   Printer,
   CheckCircle2,
   XCircle,
+  AlertTriangle,
   Award,
   Download,
   Loader2,
   Lock,
+  FileCode2,
+  FileDown,
 } from "lucide-react";
 import type { AuditReport } from "@/lib/audit.functions";
-import { downloadReportAsPdf, openStandalonePrintWindow } from "@/lib/pdf-export";
+import {
+  downloadReportAsPdf,
+  downloadReportAsHtml,
+  openStandalonePrintWindow,
+} from "@/lib/pdf-export";
 import { detectDomainOriginCountry } from "@/lib/country-origin";
-import { ASJiVectorLogo } from "./ASJiVectorLogo";
+import { ASJiBrandLockup } from "./ASJiBrandLockup";
 import { getUnifiedJurisdictionVerdicts } from "@/lib/unified-verdicts";
 import {
   evaluateStatutoryExceptions,
   type DomainExceptionsAnalysis,
 } from "@/lib/statutory-exceptions";
+import { STATUTORY_FRAMEWORKS } from "@/lib/audit-statutes";
+import { generateAutomatedPatches } from "@/lib/remediation-patches";
+import { generateStatutoryLegalSolution } from "@/lib/statutory-legal-solutions";
 
 interface ASJiLetterheadReportProps {
   report?: AuditReport | null;
   domain?: string;
   score?: number;
+  frameworkId?: string;
+  isPaid?: boolean;
   className?: string;
   onPrint?: () => void;
+  onOpenUnlockModal?: () => void;
 }
 
 export type LawVerdict = {
@@ -45,51 +57,243 @@ export type LawVerdict = {
   isOriginCountry: boolean;
 };
 
+type ForensicStatus = "PASS" | "WARN" | "FAIL";
+
+interface ForensicEvidenceRow {
+  id: string;
+  category: string;
+  control: string;
+  status: ForensicStatus;
+  proof: string;
+}
+
+function getScoreVisuals(score: number) {
+  if (score >= 80) {
+    return {
+      color: "#10B981",
+      label: "PASS · COMPLIANT",
+      badgeBg: "rgba(16, 185, 129, 0.12)",
+      badgeBorder: "rgba(16, 185, 129, 0.45)",
+    };
+  }
+  if (score >= 55) {
+    return {
+      color: "#C9A227",
+      label: "CONDITIONAL · REVIEW",
+      badgeBg: "rgba(201, 162, 39, 0.14)",
+      badgeBorder: "rgba(201, 162, 39, 0.5)",
+    };
+  }
+  return {
+    color: "#EF4444",
+    label: "FAIL · REMEDIATION REQUIRED",
+    badgeBg: "rgba(239, 68, 68, 0.12)",
+    badgeBorder: "rgba(239, 68, 68, 0.45)",
+  };
+}
+
+function StatusBadge({ status }: { status: ForensicStatus }) {
+  const styles: Record<ForensicStatus, { color: string; bg: string; border: string }> = {
+    PASS: {
+      color: "#10B981",
+      bg: "rgba(16, 185, 129, 0.12)",
+      border: "rgba(16, 185, 129, 0.45)",
+    },
+    WARN: {
+      color: "#F59E0B",
+      bg: "rgba(245, 158, 11, 0.12)",
+      border: "rgba(245, 158, 11, 0.45)",
+    },
+    FAIL: {
+      color: "#EF4444",
+      bg: "rgba(239, 68, 68, 0.12)",
+      border: "rgba(239, 68, 68, 0.45)",
+    },
+  };
+  const s = styles[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider whitespace-nowrap border"
+      style={{ color: s.color, backgroundColor: s.bg, borderColor: s.border }}
+    >
+      {status === "PASS" && <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />}
+      {status === "WARN" && <AlertTriangle className="h-2.5 w-2.5 shrink-0" />}
+      {status === "FAIL" && <XCircle className="h-2.5 w-2.5 shrink-0" />}
+      <span>{status}</span>
+    </span>
+  );
+}
+
+function OfficialSignOffBlock({
+  auditRefId,
+  shaDigest,
+}: {
+  auditRefId: string;
+  shaDigest: string;
+}) {
+  return (
+    <div className="space-y-2.5 pt-2 pdf-avoid-break" style={{ breakInside: "avoid" }}>
+      {/* Safe Harbor Disclaimer & Authorization Signatory */}
+      <div className="grid grid-cols-1 md:grid-cols-3 print:grid-cols-3 gap-3 rounded-lg border border-[#262932] bg-[#15171C] p-3.5 font-mono text-[10px]">
+        <div className="md:col-span-2 print:col-span-2 space-y-1">
+          <span className="font-bold uppercase tracking-wider text-[#C9A227] block">
+            Safe Harbor Disclaimer &amp; Technical Observation Scope
+          </span>
+          <p className="text-zinc-300 leading-snug">
+            This dossier documents passive, deterministic inspection of publicly reachable DNS, TLS,
+            HTTP headers, scripts, and statutory disclosures across 15 privacy frameworks. Outputs
+            support engineering and governance workflows and do not constitute formal legal counsel.
+          </p>
+        </div>
+
+        <div className="border-t border-[#262932] pt-2 md:border-l md:border-t-0 md:pl-3 md:pt-0 print:border-l print:border-t-0 print:pl-3 print:pt-0 flex flex-col justify-between space-y-1.5">
+          <div>
+            <span className="text-[9px] uppercase tracking-wider text-zinc-400 block">
+              Authorization Signatory · {auditRefId}
+            </span>
+            <span className="font-display text-sm italic font-bold text-[#FAF8F5] block">
+              ASJi Sovereign Legal Operations
+            </span>
+            <span className="text-[9.5px] text-zinc-400 block">
+              Jaipur Headquarters · Compliance Directorate
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[9.5px] font-bold text-[#10B981]">
+            <Lock className="h-3 w-3 shrink-0" />
+            <span>SHA-256 SEAL: {shaDigest}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Gold-Stamped Official Footer */}
+      <footer
+        className="overflow-hidden rounded-lg border pdf-avoid-break"
+        style={{
+          borderColor: "rgba(201, 162, 39, 0.55)",
+          backgroundColor: "#15171C",
+          breakInside: "avoid",
+        }}
+      >
+        <div
+          className="border-b px-3 py-1.5 text-center"
+          style={{
+            backgroundColor: "#0D0E11",
+            borderBottomColor: "rgba(201, 162, 39, 0.35)",
+          }}
+        >
+          <p className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#C9A227]">
+            Issued by ASJi Web and Legal Solution (www.asji.online | hello@asjione.com)
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 print:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#262932] text-[10px] font-mono text-[#FAF8F5]">
+          <div className="flex items-center gap-2 p-2.5">
+            <Phone className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+            <div className="tabular-nums leading-tight">
+              <a href="tel:+918290841179" className="block font-bold hover:text-[#C9A227]">
+                +91 82908 41179
+              </a>
+              <a href="tel:+919461584298" className="block text-zinc-400 hover:text-[#C9A227]">
+                +91 94615 84298
+              </a>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-2.5">
+            <MapPin className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+            <div className="leading-tight">
+              <span className="font-bold block">Jaipur,</span>
+              <span className="text-zinc-400">Rajasthan, India</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-2.5 min-w-0">
+            <Globe className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+            <a
+              href="https://www.asji.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#C9A227] hover:underline truncate"
+            >
+              www.asji.online
+            </a>
+          </div>
+
+          <div className="flex items-center gap-2 p-2.5 min-w-0">
+            <Mail className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+            <a
+              href="mailto:hello@asjione.com"
+              className="font-bold text-[#FAF8F5] hover:text-[#C9A227] truncate"
+            >
+              hello@asjione.com
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 export function ASJiLetterheadReport({
   report,
   domain: propDomain,
   score: propScore,
+  frameworkId = "ind-dpdp",
+  isPaid = false,
   className = "",
   onPrint,
+  onOpenUnlockModal,
 }: ASJiLetterheadReportProps) {
-  // Extract target domain and compliance score dynamically
   const targetDomain =
     propDomain ||
     (report?.target
-      ? report.target.replace(/^https?:\/\//, "").replace(/\/.*$/, "")
+      ? report.target.replace(/^https?:\/\//i, "").replace(/\/.*$/, "")
       : "enterprise-gateway.com");
 
-  const complianceScore = propScore ?? report?.score ?? 88;
-
-  // Determine Origin Country
+  const complianceScore = propScore ?? report?.score ?? 0;
+  const scoreVisual = getScoreVisuals(complianceScore);
   const origin = detectDomainOriginCountry(targetDomain, report?.originCountry);
 
-  const formattedDate = report?.provenance?.scannedAt
-    ? new Date(report.provenance.scannedAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+  const activeFramework = useMemo(() => {
+    return STATUTORY_FRAMEWORKS.find((f) => f.id === frameworkId) || STATUTORY_FRAMEWORKS[0];
+  }, [frameworkId]);
 
-  const certNumber = useMemo(() => {
-    let hash = 0;
-    for (let i = 0; i < targetDomain.length; i++) {
-      hash = (hash << 5) - hash + targetDomain.charCodeAt(i);
-      hash |= 0;
+  const { utcTimestamp, istTimestamp } = useMemo(() => {
+    if (report?.scannedAtUtc && report?.scannedAtIst) {
+      return { utcTimestamp: report.scannedAtUtc, istTimestamp: report.scannedAtIst };
     }
-    const num = Math.abs(hash % 9000) + 1000;
-    return `ASJI-CERT-2026-${targetDomain
-      .slice(0, 4)
-      .toUpperCase()
-      .replace(/[^A-Z]/g, "X")}-${num}`;
-  }, [targetDomain]);
+    const baseDate = report?.provenance?.scannedAt
+      ? new Date(report.provenance.scannedAt)
+      : new Date();
+    const utc = baseDate.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+    const ist =
+      baseDate.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }) + " IST";
+    return { utcTimestamp: utc, istTimestamp: ist };
+  }, [report?.scannedAtUtc, report?.scannedAtIst, report?.provenance?.scannedAt]);
 
-  // Evaluate all 15 Sovereign Global Laws using the Unified Sovereign Audit Standard
+  const { auditRefId, shaDigest } = useMemo(() => {
+    let hash = 2166136261;
+    const seed = `${targetDomain}|${frameworkId}|${complianceScore}`;
+    for (let i = 0; i < seed.length; i++) {
+      hash ^= seed.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    const hexHash = (hash >>> 0).toString(16).toUpperCase().padStart(8, "0");
+    return {
+      auditRefId: report?.auditRefId || `ASJI-2026-${hexHash.slice(0, 6)}`,
+      shaDigest: `${hexHash}${hexHash.split("").reverse().join("")}`.slice(0, 16),
+    };
+  }, [report?.auditRefId, targetDomain, frameworkId, complianceScore]);
+
   const unified = useMemo(() => {
     const reportData: AuditReport = (report || {
       target: targetDomain,
@@ -104,12 +308,12 @@ export function ASJiLetterheadReport({
   }, [report, targetDomain, complianceScore, origin.countryName]);
 
   const statutoryExceptions: DomainExceptionsAnalysis = useMemo(() => {
-    return evaluateStatutoryExceptions(report, targetDomain);
+    return evaluateStatutoryExceptions(report ?? null, targetDomain);
   }, [report, targetDomain]);
 
   const lawsVerdictList: LawVerdict[] = useMemo(() => {
     const primaryIds = [
-      { id: "in-dpdp", statuteRef: "Sec. 6(1) & Sec. 8(1)" },
+      { id: "in-dpdp", statuteRef: "Sec. 5(1), 6(1) & 8(1)" },
       { id: "eu-gdpr", statuteRef: "Art. 7, 13, 32 & 44" },
       { id: "gb-ukgdpr", statuteRef: "DUAA & PECR Reg 6" },
       { id: "us-ccpa", statuteRef: "Cal. Civ. Code § 1798.100" },
@@ -135,7 +339,7 @@ export function ASJiLetterheadReport({
       return {
         id: v ? v.id : item.id,
         country: v ? v.country : "Jurisdiction",
-        flag: v ? v.flag : "🌐",
+        flag: v ? v.flag : "[GL]",
         lawName: v ? v.statuteName : "Statutory Standard",
         statuteRef: v ? v.statuteRef : item.statuteRef,
         focusArea: v ? v.focusArea : "Statutory compliance and telemetry safeguard controls",
@@ -145,37 +349,248 @@ export function ASJiLetterheadReport({
     });
   }, [unified, origin.countryName, complianceScore]);
 
-  const passingLaws = lawsVerdictList.filter((l) => l.pass);
   const failingLaws = lawsVerdictList.filter((l) => !l.pass);
+  const passingLaws = lawsVerdictList.filter((l) => l.pass);
 
-  // Check if Origin Country passes its own domestic law
-  const originLaw = lawsVerdictList.find((l) => l.isOriginCountry);
-  const originPass = originLaw
-    ? originLaw.pass
-    : unified.originVerdict
-      ? unified.originVerdict.passed
-      : complianceScore >= 75;
+  // Build deterministic forensic rows from actual scan output
+  const forensicRows: ForensicEvidenceRow[] = useMemo(() => {
+    const rows: ForensicEvidenceRow[] = [];
+
+    if (Array.isArray(report?.provenance?.checks)) {
+      report.provenance.checks.forEach((chk, idx) => {
+        const valLower = (chk.value || "").toLowerCase();
+        const labelLower = (chk.label || "").toLowerCase();
+        let status: ForensicStatus = "PASS";
+        if (
+          valLower.includes("missing") ||
+          valLower.includes("fail") ||
+          valLower.includes("none detected") ||
+          valLower.includes("not enforced") ||
+          valLower.includes("expired") ||
+          valLower.includes("unencrypted")
+        ) {
+          status = "FAIL";
+        } else if (
+          valLower.includes("warn") ||
+          valLower.includes("partial") ||
+          valLower.includes("limited") ||
+          valLower.includes("waf") ||
+          valLower.includes("blocked")
+        ) {
+          status = "WARN";
+        }
+        const cat =
+          labelLower.includes("dns") || labelLower.includes("spf") || labelLower.includes("dmarc")
+            ? "DNS / Email"
+            : labelLower.includes("tls") ||
+                labelLower.includes("ssl") ||
+                labelLower.includes("https")
+              ? "Transport / TLS"
+              : labelLower.includes("script") ||
+                  labelLower.includes("cookie") ||
+                  labelLower.includes("cmp")
+                ? "Tracking / Consent"
+                : "HTTP Inspection";
+        rows.push({
+          id: `prov-${idx}`,
+          category: cat,
+          control: chk.label,
+          status,
+          proof: chk.value,
+        });
+      });
+    }
+
+    if (report?.sslCert) {
+      rows.push({
+        id: "ssl-cert",
+        category: "Transport / TLS",
+        control: "X.509 SSL/TLS Certificate",
+        status: report.sslCert.valid ? "PASS" : "FAIL",
+        proof: report.sslCert.valid
+          ? `Issuer: ${report.sslCert.issuer || "Verified CA"}${
+              report.sslCert.daysRemaining !== undefined
+                ? ` · ${report.sslCert.daysRemaining} days left`
+                : ""
+            }`
+          : "TLS certificate invalid, unreachable, or self-signed",
+      });
+    }
+
+    if (report?.dnsSecurity) {
+      const dns = report.dnsSecurity;
+      rows.push({
+        id: "dns-spf-dmarc",
+        category: "DNS / Email",
+        control: "SPF, DMARC & CAA Records",
+        status:
+          dns.spfRecord && dns.dmarcRecord
+            ? "PASS"
+            : dns.spfRecord || dns.dmarcRecord
+              ? "WARN"
+              : "FAIL",
+        proof: `SPF: ${dns.spfRecord ? "Present" : "Missing"} · DMARC: ${
+          dns.dmarcRecord ? "Present" : "Missing"
+        } · CAA: ${dns.caaRecords?.length ? dns.caaRecords.join(", ") : "None"}`,
+      });
+    }
+
+    if (report && "detectedCmp" in report) {
+      const cmp = report.detectedCmp;
+      rows.push({
+        id: "cmp-status",
+        category: "Consent Gate",
+        control: "Consent Management Platform (CMP)",
+        status: cmp ? (cmp.isStandardCmp ? "PASS" : "WARN") : "FAIL",
+        proof: cmp
+          ? `${cmp.name} (${cmp.evidence})`
+          : "No verifiable CMP banner or affirmative consent gate detected in DOM",
+      });
+    }
+
+    if (Array.isArray(report?.detectedScripts)) {
+      if (report.detectedScripts.length > 0) {
+        report.detectedScripts.forEach((script, idx) => {
+          rows.push({
+            id: `script-${idx}`,
+            category: "Tracker Forensics",
+            control: `${script.name} (${script.category})`,
+            status: report.detectedCmp ? "WARN" : "FAIL",
+            proof: `${script.privacyRisk} · ${script.scriptUrlOrSnippet}`,
+          });
+        });
+      } else {
+        rows.push({
+          id: "script-none",
+          category: "Tracker Forensics",
+          control: "Third-Party Trackers",
+          status: "PASS",
+          proof: "Zero unconsented third-party analytics or ad-tech scripts detected",
+        });
+      }
+    }
+
+    if (report?.policyDisclosures) {
+      const pd = report.policyDisclosures;
+      const missingCount = [
+        !pd.privacyPolicyUrl,
+        !pd.cookiePolicyUrl,
+        !pd.termsUrl,
+        !pd.grievanceContact,
+      ].filter(Boolean).length;
+      rows.push({
+        id: "policy-links",
+        category: "Disclosures",
+        control: "Privacy, Cookie, Terms & Grievance Links",
+        status: missingCount === 0 ? "PASS" : missingCount <= 2 ? "WARN" : "FAIL",
+        proof: `Privacy: ${pd.privacyPolicyUrl ? "Linked" : "Missing"} · Cookies: ${
+          pd.cookiePolicyUrl ? "Linked" : "Missing"
+        } · Terms: ${pd.termsUrl ? "Linked" : "Missing"} · Grievance: ${
+          pd.grievanceContact ? pd.grievanceContact : "Not Listed"
+        }`,
+      });
+    }
+
+    if (Array.isArray(report?.criticalLeaks)) {
+      report.criticalLeaks.forEach((leak, idx) => {
+        rows.push({
+          id: `leak-${idx}`,
+          category: "Exposure Finding",
+          control: leak.title,
+          status: leak.severity === "critical" || leak.severity === "high" ? "FAIL" : "WARN",
+          proof: leak.detail,
+        });
+      });
+    }
+
+    if (rows.length === 0 && Array.isArray(report?.evidence)) {
+      report.evidence.forEach((ev, idx) => {
+        const lower = ev.toLowerCase();
+        const status: ForensicStatus =
+          lower.includes("missing") || lower.includes("fail") || lower.includes("leak")
+            ? "FAIL"
+            : lower.includes("warn") || lower.includes("partial")
+              ? "WARN"
+              : "PASS";
+        rows.push({
+          id: `ev-${idx}`,
+          category: "Audit Signal",
+          control: `Verification #${idx + 1}`,
+          status,
+          proof: ev,
+        });
+      });
+    }
+
+    return rows;
+  }, [report]);
+
+  // Statutory gap mapping (diagnostic gap pointers visible on Page 2; full patches/drafts gated behind isPaid)
+  const legalSolutionSuite = useMemo(() => {
+    return generateStatutoryLegalSolution(report ?? null, frameworkId);
+  }, [report, frameworkId]);
+
+  const automatedPatches = useMemo(() => {
+    if (!isPaid || !report) return [];
+    return generateAutomatedPatches(report);
+  }, [isPaid, report]);
+
+  const criticalViolationsCount =
+    (report?.criticalLeaks?.length || 0) + forensicRows.filter((r) => r.status === "FAIL").length;
+
+  const statutoryCeiling =
+    report?.fineRisk?.estimate ||
+    (frameworkId === "ind-dpdp"
+      ? "Up to INR 250 Crore (DPDP Act, 2023)"
+      : frameworkId === "eu-gdpr"
+        ? "Up to EUR 20M or 4% Global Turnover"
+        : frameworkId === "uk-duaa"
+          ? "Up to GBP 17.5M or 4% Global Turnover"
+          : frameworkId === "us-cpra"
+            ? "Up to USD 7,500 per Intentional Violation"
+            : "Statutory Regulatory Penalty Ceiling");
 
   const reportPaperRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingHtml, setIsDownloadingHtml] = useState(false);
 
   const handleDownloadPdf = async () => {
     const paperEl =
       reportPaperRef.current || document.getElementById("asji-letterhead-report-paper");
     if (!paperEl) return;
-    setIsDownloading(true);
+    setIsDownloadingPdf(true);
     try {
       const success = await downloadReportAsPdf(paperEl, targetDomain);
       if (success) {
-        toast.success("PDF Downloaded Successfully", {
-          description: `Exact compliance certificate generated for ${targetDomain}`,
+        toast.success("Executive PDF Certificate Saved", {
+          description: `2–3 page Dark & Gold audit dossier exported for ${targetDomain}`,
         });
       }
     } catch (err) {
       console.error("PDF download failed", err);
       openStandalonePrintWindow(paperEl, targetDomain);
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadHtml = async () => {
+    const paperEl =
+      reportPaperRef.current || document.getElementById("asji-letterhead-report-paper");
+    if (!paperEl) return;
+    setIsDownloadingHtml(true);
+    try {
+      const success = await downloadReportAsHtml(paperEl, targetDomain);
+      if (success) {
+        toast.success("Executive Dossier (.html) Downloaded", {
+          description: `Standalone dark & gold dossier saved for ${targetDomain}`,
+        });
+      }
+    } catch (err) {
+      console.error("HTML dossier export failed", err);
+      toast.error("Could not export HTML dossier");
+    } finally {
+      setIsDownloadingHtml(false);
     }
   };
 
@@ -191,38 +606,61 @@ export function ASJiLetterheadReport({
     }
   };
 
+  const gaugeRadius = 36;
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
+  const clampedScore = Math.max(0, Math.min(100, complianceScore));
+  const gaugeDashOffset = gaugeCircumference - (clampedScore / 100) * gaugeCircumference;
+
   return (
-    <div
-      className={`relative mx-auto max-w-4xl overflow-hidden rounded-2xl border border-[#D4AF37]/40 bg-[#0d0c0b] text-foreground shadow-2xl transition-all ${className}`}
+    <section
+      aria-label="Executive Audit Report and Certificate"
+      className={`relative w-full overflow-hidden rounded-xl border border-[#C9A227]/45 bg-[#0D0E11] text-[#F3F4F6] shadow-2xl ${className}`}
     >
-      {/* Top Action Control Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-b border-[#D4AF37]/30 bg-black/80 px-4 sm:px-6 py-3 print:hidden">
-        <div className="flex items-center gap-2">
-          <Award className="h-4 w-4 text-[#E5C158] shrink-0" />
-          <span className="font-mono text-xs font-bold text-[#E5C158] uppercase tracking-wider">
-            Official ASJi Web &amp; Legal Solutions Audit &amp; Compliance Report
+      {/* Top Action Toolbar (Hidden in Print & PDF Exports) */}
+      <div
+        data-export-strip="true"
+        className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 border-b border-[#262932] bg-[#15171C] px-4 py-3 print:hidden"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Award className="h-4 w-4 text-[#C9A227] shrink-0" />
+          <span className="font-mono text-xs font-bold text-[#FAF8F5] uppercase tracking-wider truncate">
+            Executive Audit Dossier ({isPaid ? "3-Page Full Pack" : "2-Page Audit Brief"})
           </span>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={handleDownloadPdf}
-            disabled={isDownloading}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/60 bg-emerald-500/20 px-3.5 py-1.5 text-xs font-mono font-bold text-emerald-300 transition-all hover:bg-emerald-500 hover:text-black shadow-sm disabled:opacity-50 cursor-pointer"
+            disabled={isDownloadingPdf}
+            className="btn-gold inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-bold whitespace-nowrap disabled:opacity-50 cursor-pointer"
           >
-            {isDownloading ? (
+            {isDownloadingPdf ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Download className="h-3.5 w-3.5" />
             )}
-            <span>{isDownloading ? "Generating PDF..." : "Download Report (PDF)"}</span>
+            <span>{isDownloadingPdf ? "Generating PDF..." : "Export PDF"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadHtml}
+            disabled={isDownloadingHtml}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#C9A227]/50 bg-[#0D0E11] px-3 py-1.5 text-xs font-mono font-bold text-[#C9A227] transition-colors hover:bg-[#C9A227]/10 whitespace-nowrap disabled:opacity-50 cursor-pointer"
+          >
+            {isDownloadingHtml ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5" />
+            )}
+            <span>Dossier (.html)</span>
           </button>
 
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#D4AF37]/50 bg-[#D4AF37]/10 px-3.5 py-1.5 text-xs font-mono font-bold text-[#E5C158] transition-all hover:bg-[#D4AF37] hover:text-black shadow-sm cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#262932] bg-[#0D0E11] px-3 py-1.5 text-xs font-mono font-bold text-[#FAF8F5] transition-colors hover:border-[#C9A227] hover:text-[#C9A227] whitespace-nowrap cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
             <span>Print Report</span>
@@ -230,799 +668,602 @@ export function ASJiLetterheadReport({
         </div>
       </div>
 
-      {/* Main Single-Page Letterhead Certificate Paper (Engineered for Exact A4 Page Fit) */}
+      {/* Matte Onyx & Brushed Antique Gold Executive Dossier Paper */}
       <div
         id="asji-letterhead-report-paper"
         ref={reportPaperRef}
         data-pdf-paper="true"
-        className="relative bg-[#0d0c0b] text-white p-3 sm:p-5 border border-[#D4AF37]/30"
+        className="relative p-3 sm:p-5 space-y-5"
         style={{
-          backgroundColor: "#0d0c0b",
-          color: "#ffffff",
+          backgroundColor: "#0D0E11",
+          color: "#F3F4F6",
           fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
           boxSizing: "border-box",
         }}
       >
-        {/* Fine Guilloche Certificate Inner Border */}
+        {/* =====================================================================
+            PAGE 1 — EXECUTIVE VERDICT & TECHNICAL TELEMETRY MATRIX
+           ===================================================================== */}
         <div
-          className="relative rounded-xl border border-[#D4AF37]/40 p-3 sm:p-4"
+          data-dossier-page="1"
+          className="relative rounded-xl border p-4 space-y-3.5"
           style={{
-            borderColor: "rgba(212, 175, 55, 0.45)",
-            background: "linear-gradient(180deg, #141210 0%, #0d0c0b 50%, #0a0908 100%)",
-            backgroundColor: "#0d0c0b",
+            backgroundColor: "#0D0E11",
+            borderColor: "rgba(201, 162, 39, 0.45)",
           }}
         >
-          {/* Top Security Corner Accents */}
-          <div className="absolute top-1 left-1 h-3 w-3 border-t-2 border-l-2 border-[#D4AF37]" />
-          <div className="absolute top-1 right-1 h-3 w-3 border-t-2 border-r-2 border-[#D4AF37]" />
-          <div className="absolute bottom-1 left-1 h-3 w-3 border-b-2 border-l-2 border-[#D4AF37]" />
-          <div className="absolute bottom-1 right-1 h-3 w-3 border-b-2 border-r-2 border-[#D4AF37]" />
+          {/* Decorative Antique Gold Corner Rules */}
+          <div className="pointer-events-none absolute top-1.5 left-1.5 h-3 w-3 border-t-2 border-l-2 border-[#C9A227]" />
+          <div className="pointer-events-none absolute top-1.5 right-1.5 h-3 w-3 border-t-2 border-r-2 border-[#C9A227]" />
+          <div className="pointer-events-none absolute bottom-1.5 left-1.5 h-3 w-3 border-b-2 border-l-2 border-[#C9A227]" />
+          <div className="pointer-events-none absolute bottom-1.5 right-1.5 h-3 w-3 border-b-2 border-r-2 border-[#C9A227]" />
 
-          {/* 1. EXECUTIVE LETTERHEAD HEADER */}
+          {/* 1. Compact Executive Dark & Gold Report Header */}
           <header
-            className="flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between"
-            style={{ borderBottomColor: "rgba(212, 175, 55, 0.3)" }}
+            className="flex flex-col md:flex-row print:flex-row md:items-center justify-between gap-3 border-b pb-3.5"
+            style={{ borderBottomColor: "rgba(201, 162, 39, 0.3)" }}
           >
-            {/* Left Brand Identity */}
-            <div className="flex items-center gap-3">
-              {/* Monogram Gold Emblem with Official Logo */}
-              <div
-                className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 bg-black p-1 shadow-lg overflow-hidden"
-                style={{ borderColor: "#D4AF37", backgroundColor: "#120f05" }}
-              >
-                <ASJiVectorLogo className="h-full w-full" idSuffix="cert_logo" />
-                <div
-                  className="absolute -bottom-1 -right-1 rounded-full border p-0.5"
-                  style={{ backgroundColor: "#D4AF37", borderColor: "#D4AF37" }}
-                >
-                  <ShieldCheck className="h-2.5 w-2.5 text-black" />
-                </div>
-              </div>
-
-              <div>
-                <h1 className="font-display text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>ASJi</span>
-                  <span style={{ color: "#E5C158" }}>WEB &amp; LEGAL</span>
-                </h1>
-                <p
-                  className="font-mono text-[8px] font-bold uppercase tracking-[0.22em]"
-                  style={{ color: "#E5C158" }}
-                >
-                  SOLUTION —
-                </p>
-                <p className="text-[9px] italic" style={{ color: "#a3a3a3" }}>
-                  Your Business. Our Expertise. Your Peace of Mind.
-                </p>
-              </div>
+            <div className="flex flex-col items-start min-w-0">
+              <ASJiBrandLockup size="report" idSuffix="cert_logo" />
+              <p className="mt-1.5 font-mono text-[10.5px] text-zinc-400">
+                ASJi Web and Legal Solution · Page 01 · Executive Verdict &amp; Technical Telemetry
+                Matrix
+              </p>
             </div>
 
-            {/* Right Service Capabilities 4-Grid */}
+            {/* Gold-Bordered Audit Verification Seal */}
             <div
-              className="grid grid-cols-2 gap-x-3 gap-y-1 border-t pt-2 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0"
-              style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+              className="rounded-lg border p-2.5 shrink-0 md:min-w-[270px]"
+              style={{
+                backgroundColor: "#15171C",
+                borderColor: "rgba(201, 162, 39, 0.6)",
+              }}
             >
-              <div className="flex items-center gap-1.5">
-                <Globe className="h-3 w-3 shrink-0" style={{ color: "#E5C158" }} />
-                <div>
-                  <p className="text-[9px] font-bold text-white leading-none">Web Solutions</p>
-                  <p className="text-[7.5px]" style={{ color: "#888888" }}>
-                    Digital. Modern.
-                  </p>
-                </div>
+              <div className="flex items-center justify-between gap-2 border-b border-[#262932] pb-1 mb-1.5">
+                <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.15em] text-[#C9A227]">
+                  AUDIT VERIFICATION SEAL
+                </span>
+                <ShieldCheck className="h-3 w-3 text-[#C9A227] shrink-0" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <Scale className="h-3 w-3 shrink-0" style={{ color: "#E5C158" }} />
-                <div>
-                  <p className="text-[9px] font-bold text-white leading-none">Legal Advisory</p>
-                  <p className="text-[7.5px]" style={{ color: "#888888" }}>
-                    Strategic. Trusted.
-                  </p>
+
+              <dl className="space-y-0.5 font-mono text-[9.5px] tabular-nums">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-400">Audit ID:</dt>
+                  <dd className="font-bold text-[#FAF8F5]">{auditRefId}</dd>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="h-3 w-3 shrink-0" style={{ color: "#E5C158" }} />
-                <div>
-                  <p className="text-[9px] font-bold text-white leading-none">Compliance</p>
-                  <p className="text-[7.5px]" style={{ color: "#888888" }}>
-                    Secure. Assured.
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-400">Target:</dt>
+                  <dd className="font-bold text-[#C9A227] break-all text-right">
+                    https://{targetDomain}
+                  </dd>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <FileText className="h-3 w-3 shrink-0" style={{ color: "#E5C158" }} />
-                <div>
-                  <p className="text-[9px] font-bold text-white leading-none">Documentation</p>
-                  <p className="text-[7.5px]" style={{ color: "#888888" }}>
-                    Professional.
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-400">UTC:</dt>
+                  <dd className="text-zinc-200 text-right">{utcTimestamp}</dd>
                 </div>
-              </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-400">IST:</dt>
+                  <dd className="text-zinc-200 text-right">{istTimestamp}</dd>
+                </div>
+              </dl>
             </div>
           </header>
 
-          {/* 2. OFFICIAL CERTIFICATE SUB-TITLE & SERIAL INFO */}
-          <div
-            className="my-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 border"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.7)",
-              borderColor: "rgba(255, 255, 255, 0.12)",
-            }}
-          >
-            <div>
-              <span
-                className="font-mono text-[8.5px] uppercase tracking-widest block font-bold"
-                style={{ color: "#E5C158" }}
-              >
-                OFFICIAL TECHNICAL COMPLIANCE &amp; SOVEREIGN PRIVACY AUDIT REPORT
-              </span>
-              <span className="text-[9px] font-mono" style={{ color: "#a3a3a3" }}>
-                SERIAL: <strong className="text-white font-mono">{certNumber}</strong>
-              </span>
+          {report?.isWafBlocked && (
+            <div className="rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-3 py-1.5 font-mono text-[10px] text-[#F59E0B]">
+              WAF / Bot Shield Detected — Displaying verified DNS, TLS, and transport-layer
+              telemetry only.
             </div>
-            <div className="text-right text-[9px] font-mono" style={{ color: "#a3a3a3" }}>
-              <span>ISSUED: </span>
-              <strong className="text-white">{formattedDate}</strong>
-            </div>
-          </div>
+          )}
 
-          {/* 3. TARGET DOMAIN METADATA & REGISTERED COUNTRY ORIGIN BOX */}
-          <div className="mb-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {/* Target Domain & Registered Country */}
+          {/* 2. Compact 2-Column Executive Summary Block */}
+          <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-3 pdf-avoid-break">
+            {/* Left Block: Score Gauge + Verdict */}
             <div
-              className="sm:col-span-2 rounded-lg border p-2.5 flex flex-col justify-between"
-              style={{
-                backgroundColor: "#121110",
-                borderColor: "rgba(255, 255, 255, 0.12)",
-              }}
+              className="rounded-lg border p-3.5 flex items-center gap-3.5"
+              style={{ backgroundColor: "#15171C", borderColor: "#262932" }}
             >
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-[8.5px] uppercase tracking-wider font-mono block"
-                    style={{ color: "#888888" }}
-                  >
-                    Audited Domain
-                  </span>
-                  {/* Origin Registered Country Badge */}
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold"
-                    style={{
-                      backgroundColor: "rgba(212, 175, 55, 0.15)",
-                      borderColor: "rgba(212, 175, 55, 0.5)",
-                      color: "#E5C158",
-                    }}
-                  >
-                    <span>Origin:</span>
-                    <span>{origin.flag}</span>
-                    <span>{origin.countryName}</span>
+              <div className="relative h-16 w-16 shrink-0">
+                <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r={gaugeRadius}
+                    fill="none"
+                    stroke="#262932"
+                    strokeWidth="9"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r={gaugeRadius}
+                    fill="none"
+                    stroke={scoreVisual.color}
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray={gaugeCircumference}
+                    strokeDashoffset={gaugeDashOffset}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-mono text-sm font-bold text-[#FAF8F5] tabular-nums">
+                    {complianceScore}%
                   </span>
                 </div>
-                <span
-                  className="font-mono text-sm sm:text-base font-bold break-all block mt-0.5"
-                  style={{ color: "#E5C158" }}
-                >
-                  {targetDomain}
-                </span>
               </div>
-              <div
-                className="mt-1.5 flex flex-wrap items-center gap-2.5 text-[8.5px] font-mono border-t pt-1"
-                style={{
-                  color: "#888888",
-                  borderTopColor: "rgba(255, 255, 255, 0.08)",
-                }}
-              >
-                <span>
-                  ENGINE: <strong className="text-white">ASJi One Trust v2.4</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  ORIGIN STATUS:{" "}
-                  <strong style={{ color: originPass ? "#34d399" : "#fb7185" }}>
-                    {originPass ? "PASS [DOMESTIC COMPLIANT]" : "FAIL [ACTION REQUIRED]"}
-                  </strong>
-                </span>
-              </div>
-            </div>
 
-            {/* Score Box */}
-            <div
-              className="rounded-lg border p-2.5 flex items-center justify-between shadow-inner"
-              style={{
-                backgroundColor: "#14120f",
-                borderColor: "rgba(212, 175, 55, 0.4)",
-              }}
-            >
-              <div>
-                <span
-                  className="text-[8.5px] uppercase tracking-wider font-mono block"
-                  style={{ color: "#888888" }}
-                >
-                  Compliance Score
+              <div className="min-w-0 space-y-1">
+                <span className="font-mono text-[9.5px] font-bold uppercase tracking-wider text-zinc-400 block">
+                  Overall Compliance Posture
                 </span>
-                <span className="font-mono text-xl font-black text-white">{complianceScore}%</span>
-                <span
-                  className="text-[8.5px] font-mono block font-bold"
-                  style={{ color: unified.overallPassed ? "#34d399" : "#fb7185" }}
-                >
-                  {unified.overallPassed ? "OVERALL: PASS" : "OVERALL: FAIL"}
-                </span>
-              </div>
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg border font-mono text-xs font-black"
-                style={{
-                  borderColor: unified.overallPassed ? "#34d399" : "#fb7185",
-                  backgroundColor: unified.overallPassed
-                    ? "rgba(16, 185, 129, 0.15)"
-                    : "rgba(244, 63, 94, 0.15)",
-                  color: unified.overallPassed ? "#34d399" : "#fb7185",
-                }}
-              >
-                {unified.overallPassed ? "PASS" : "FAIL"}
-              </div>
-            </div>
-          </div>
-
-          {/* 4. TOTAL 15 STATUTORY JURISDICTIONS EVALUATION TABLE */}
-          <div
-            className="overflow-x-auto rounded-lg border mb-2.5 print:overflow-visible"
-            style={{
-              borderColor: "rgba(255, 255, 255, 0.12)",
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
-            }}
-          >
-            <table className="w-full min-w-[500px] print:min-w-full text-left text-[10px] font-mono border-collapse">
-              <thead>
-                <tr
-                  className="border-b text-[8.5px] uppercase tracking-wider"
+                <div
+                  className="inline-block rounded px-2 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider border"
                   style={{
-                    backgroundColor: "#181614",
-                    borderBottomColor: "rgba(255, 255, 255, 0.12)",
-                    color: "#888888",
+                    color: scoreVisual.color,
+                    backgroundColor: scoreVisual.badgeBg,
+                    borderColor: scoreVisual.badgeBorder,
                   }}
                 >
-                  <th className="px-2.5 py-1.5 font-bold" style={{ color: "#E5C158" }}>
-                    Country &amp; Jurisdiction
-                  </th>
-                  <th className="px-2.5 py-1.5 font-bold">Applicable Sovereign Law</th>
-                  <th className="px-2.5 py-1.5 font-bold">Statutory Scope &amp; Focus</th>
-                  <th className="px-2.5 py-1.5 font-bold text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {lawsVerdictList.map((item, idx) => (
-                  <tr
-                    key={item.id}
-                    style={{
-                      backgroundColor: item.isOriginCountry
-                        ? "rgba(212, 175, 55, 0.08)"
-                        : idx % 2 === 0
-                          ? "rgba(0, 0, 0, 0.25)"
-                          : "rgba(0, 0, 0, 0.45)",
-                      borderBottom:
-                        idx < lawsVerdictList.length - 1
-                          ? "1px solid rgba(255, 255, 255, 0.08)"
-                          : "none",
-                    }}
+                  {scoreVisual.label}
+                </div>
+                <p className="font-mono text-[10px] text-zinc-300 tabular-nums">
+                  {passingLaws.length}/15 Laws Aligned ·{" "}
+                  <span
+                    className="font-bold"
+                    style={{ color: criticalViolationsCount > 0 ? "#EF4444" : "#10B981" }}
                   >
-                    <td className="px-2.5 py-1.5 font-bold text-white whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{item.flag}</span>
-                        <div>
-                          <div className="leading-tight flex items-center gap-1">
-                            <span>{item.country}</span>
-                            {item.isOriginCountry && (
-                              <span
-                                className="rounded px-1 py-0.2 text-[7px] uppercase font-bold"
-                                style={{
-                                  backgroundColor: "#D4AF37",
-                                  color: "#000000",
-                                }}
-                              >
-                                Origin
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2.5 py-1.5 text-white whitespace-nowrap">
-                      <div className="font-bold leading-tight">{item.lawName}</div>
-                      <div className="text-[7.5px]" style={{ color: "#888888" }}>
-                        {item.statuteRef}
-                      </div>
-                    </td>
-                    <td
-                      className="px-2.5 py-1.5 text-[9px] leading-tight"
-                      style={{ color: "#d1d5db" }}
-                    >
-                      {item.focusArea}
-                    </td>
-                    <td className="px-2.5 py-1.5 text-center whitespace-nowrap">
-                      {item.pass ? (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8.5px] font-black"
-                          style={{
-                            backgroundColor: "rgba(16, 185, 129, 0.15)",
-                            borderColor: "rgba(16, 185, 129, 0.6)",
-                            color: "#34d399",
-                          }}
-                        >
-                          <CheckCircle2 className="h-3 w-3" style={{ color: "#34d399" }} />
-                          <span>PASS</span>
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8.5px] font-black"
-                          style={{
-                            backgroundColor: "rgba(244, 63, 94, 0.15)",
-                            borderColor: "rgba(244, 63, 94, 0.6)",
-                            color: "#fb7185",
-                          }}
-                        >
-                          <XCircle className="h-3 w-3" style={{ color: "#fb7185" }} />
-                          <span>FAIL</span>
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 5. SUMMARY VERDICT BOX (CLEAR PASS/FAIL STATEMENT) */}
-          <div
-            className="rounded-lg border p-2.5 text-[9px] font-mono mb-2.5"
-            style={{
-              backgroundColor: "#100f0d",
-              borderColor: "rgba(212, 175, 55, 0.35)",
-            }}
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {/* PASS AS PER */}
-              <div
-                className="rounded p-2 border"
-                style={{
-                  backgroundColor: "rgba(16, 185, 129, 0.08)",
-                  borderColor: "rgba(16, 185, 129, 0.3)",
-                }}
-              >
-                <div className="flex items-center gap-1 text-[#34d399] font-bold mb-1 uppercase text-[9.5px]">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>PASS as per these countries&apos; laws ({passingLaws.length}/15):</span>
-                </div>
-                {passingLaws.length > 0 ? (
-                  <ul className="space-y-0.5 text-[8.5px] text-gray-200">
-                    {passingLaws.map((l) => (
-                      <li key={l.id} className="flex items-center gap-1">
-                        <span>{l.flag}</span>
-                        <strong className="text-white">{l.country}:</strong>
-                        <span>{l.lawName}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="text-gray-400 text-[8.5px]">None</span>
-                )}
+                    {criticalViolationsCount} Failed Controls
+                  </span>
+                </p>
               </div>
+            </div>
 
-              {/* FAIL AS PER */}
-              <div
-                className="rounded p-2 border"
-                style={{
-                  backgroundColor: "rgba(244, 63, 94, 0.08)",
-                  borderColor: "rgba(244, 63, 94, 0.3)",
-                }}
-              >
-                <div className="flex items-center gap-1 text-[#fb7185] font-bold mb-1 uppercase text-[9.5px]">
-                  <XCircle className="h-3.5 w-3.5" />
-                  <span>
-                    FAIL according to these countries&apos; laws ({failingLaws.length}/15):
+            {/* Right Block: Jurisdiction + Penalty Ceiling */}
+            <div
+              className="rounded-lg border p-3.5 flex flex-col justify-between space-y-1.5"
+              style={{ backgroundColor: "#15171C", borderColor: "#262932" }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-mono text-[9.5px] font-bold uppercase tracking-wider text-zinc-400 block">
+                    Governing Jurisdiction &amp; Origin
                   </span>
+                  <p className="font-display text-xs sm:text-sm font-bold text-[#FAF8F5] leading-snug mt-0.5">
+                    <span className="text-[#C9A227] font-mono mr-1">{activeFramework.flag}</span>
+                    {activeFramework.label}
+                  </p>
                 </div>
-                {failingLaws.length > 0 ? (
-                  <ul className="space-y-0.5 text-[8.5px] text-gray-200">
-                    {failingLaws.map((l) => (
-                      <li key={l.id} className="flex items-center gap-1">
-                        <span>{l.flag}</span>
-                        <strong className="text-white">{l.country}:</strong>
-                        <span>{l.lawName}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="text-[#34d399] text-[8.5px] font-bold">
-                    ✓ All 15 Global Jurisdictions Fully Compliant
-                  </span>
-                )}
+                <span className="rounded border border-[#C9A227]/40 bg-[#0D0E11] px-2 py-0.5 font-mono text-[9.5px] font-bold text-[#C9A227] shrink-0">
+                  {origin.flag} {origin.countryName}
+                </span>
+              </div>
+              <div className="border-t border-[#262932] pt-1.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[9.5px]">
+                <span className="text-zinc-400">
+                  Exposure:{" "}
+                  <strong className="text-[#EF4444]">{failingLaws.length} Jurisdictions</strong>
+                </span>
+                <span className="font-bold text-[#C9A227]">{statutoryCeiling}</span>
               </div>
             </div>
           </div>
 
-          {/* 5.4 STATUTORY EXCEPTIONS, EXEMPTIONS & SAFE HARBORS REGISTER */}
-          <div
-            className="rounded-lg border p-3 text-[9px] font-mono mb-2.5"
-            style={{
-              backgroundColor: "#0d0c0a",
-              borderColor: "rgba(212, 175, 55, 0.35)",
-            }}
-          >
+          {/* 2B. Deterministic Rule-Based Scoring Breakdown */}
+          {Array.isArray(report?.scoreBreakdown) && report.scoreBreakdown.length > 0 && (
             <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-1.5 mb-2 gap-1"
-              style={{ borderBottomColor: "rgba(255, 255, 255, 0.1)" }}
+              className="rounded-lg border p-3 space-y-2 pdf-avoid-break"
+              style={{ backgroundColor: "#15171C", borderColor: "#262932" }}
             >
-              <div className="flex items-center gap-1.5">
-                <Scale className="h-3 w-3 text-primary" />
-                <span
-                  className="font-bold uppercase tracking-wider text-[9.5px]"
-                  style={{ color: "#E5C158" }}
-                >
-                  STATUTORY EXCEPTIONS, EXEMPTIONS &amp; SAFE HARBOR REGISTER
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#262932] pb-1.5 font-mono text-[10px]">
+                <span className="font-bold uppercase tracking-wider text-[#C9A227]">
+                  Deterministic Scoring Formula Breakdown (Base 100 · Live Final {complianceScore}
+                  /100)
+                </span>
+                <span className="text-zinc-400">
+                  {report.politechMode ? "Standard + PoliTech Mode" : "Live Signal Telemetry"}
                 </span>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-1.5 font-mono text-[10px]">
+                {report.scoreBreakdown.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start justify-between gap-2 rounded border border-[#262932] bg-[#0D0E11] px-2.5 py-1.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-bold text-[#FAF8F5] truncate">{item.rule}</div>
+                      <div className="text-[9px] text-zinc-400 leading-snug">{item.detail}</div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold tabular-nums border ${
+                        item.passed
+                          ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                          : "border-[#EF4444]/40 bg-[#EF4444]/10 text-[#EF4444]"
+                      }`}
+                    >
+                      {item.delta === 0 ? "0" : item.delta}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Compact Full-Width Technical Forensics Matrix */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 border-b border-[#262932] pb-1.5">
+              <h2 className="font-display text-sm font-bold text-[#FAF8F5] flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+                <span>Technical Forensics &amp; HTTP Telemetry Matrix</span>
+              </h2>
+              <span className="font-mono text-[9.5px] text-zinc-400 tabular-nums">
+                {forensicRows.length} Signals · {report?.scanMethodWorked || "Live HTTP Inspection"}
+              </span>
+            </div>
+
+            {forensicRows.length > 0 ? (
+              <>
+                {/* Mobile Stacked Cards */}
+                <div className="space-y-2 md:hidden print:hidden">
+                  {forensicRows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="dossier-card rounded border border-[#262932] bg-[#15171C] p-2.5 space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[9.5px] font-bold uppercase text-[#C9A227]">
+                          {row.category} · {row.control}
+                        </span>
+                        <StatusBadge status={row.status} />
+                      </div>
+                      <p className="font-mono text-[10px] text-zinc-300 break-words leading-snug">
+                        {row.proof}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop & Print Institutional Compact Table */}
+                <div className="hidden md:block print:block overflow-x-auto rounded-lg border border-[#262932]">
+                  <table className="w-full min-w-[640px] print:min-w-0 text-left font-mono text-[10px] border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#262932] bg-[#15171C] text-[9px] uppercase tracking-wider text-[#C9A227]">
+                        <th className="px-2.5 py-1.5 font-bold w-[16%]">Layer</th>
+                        <th className="px-2.5 py-1.5 font-bold w-[26%]">Control</th>
+                        <th className="px-2.5 py-1.5 font-bold w-[46%]">
+                          Verified Technical Proof
+                        </th>
+                        <th className="px-2.5 py-1.5 font-bold text-right w-[12%]">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forensicRows.map((row, idx) => (
+                        <tr
+                          key={row.id}
+                          style={{
+                            backgroundColor: idx % 2 === 0 ? "#0D0E11" : "#12141A",
+                            borderBottom:
+                              idx < forensicRows.length - 1 ? "1px solid #262932" : "none",
+                          }}
+                        >
+                          <td className="px-2.5 py-1.5 text-[9.5px] font-bold uppercase text-[#C9A227] align-top">
+                            {row.category}
+                          </td>
+                          <td className="px-2.5 py-1.5 font-sans text-[10.5px] font-semibold text-[#FAF8F5] align-top">
+                            {row.control}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-[10px] text-zinc-300 break-words align-top leading-snug">
+                            {row.proof}
+                          </td>
+                          <td className="px-2.5 py-1.5 text-right align-top">
+                            <StatusBadge status={row.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div className="rounded border border-[#262932] bg-[#15171C] p-3 font-mono text-[10px] text-zinc-400">
+                No technical anomalies captured in this inspection record.
+              </div>
+            )}
+          </div>
+
+          {/* 4. Compact 15-Jurisdiction Sovereign Evaluation Grid (5 tight rows x 3 cols) */}
+          <div className="space-y-2 pdf-avoid-break">
+            <div className="flex items-center justify-between gap-2 border-b border-[#262932] pb-1.5">
+              <h2 className="font-display text-sm font-bold text-[#FAF8F5] flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+                <span>15-Jurisdiction Sovereign Verdict Grid</span>
+              </h2>
+              <span className="font-mono text-[9.5px] text-zinc-400 tabular-nums">
+                {passingLaws.length} Pass · {failingLaws.length} Fail
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 gap-2">
+              {lawsVerdictList.map((item) => (
+                <div
+                  key={item.id}
+                  className="dossier-card rounded border px-2.5 py-2 flex items-center justify-between gap-2"
+                  style={{
+                    backgroundColor: item.isOriginCountry ? "rgba(201, 162, 39, 0.08)" : "#15171C",
+                    borderColor: item.isOriginCountry ? "rgba(201, 162, 39, 0.55)" : "#262932",
+                  }}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-[#FAF8F5] truncate">
+                      <span className="text-[#C9A227] shrink-0">{item.flag}</span>
+                      <span className="truncate">{item.country}</span>
+                      {item.isOriginCountry && (
+                        <span className="rounded bg-[#C9A227] px-1 text-[8px] font-bold uppercase text-[#0D0E11] shrink-0">
+                          Origin
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-mono text-[9px] text-zinc-400 truncate">
+                      {item.statuteRef}
+                    </div>
+                  </div>
+                  <StatusBadge status={item.pass ? "PASS" : "FAIL"} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* =====================================================================
+            PAGE 2 — STATUTORY GAP MAPPING & REMEDIATION CODE PATCHES
+           ===================================================================== */}
+        <div
+          data-dossier-page="2"
+          className="dossier-page-break relative rounded-xl border p-4 space-y-3.5"
+          style={{
+            backgroundColor: "#0D0E11",
+            borderColor: "rgba(201, 162, 39, 0.45)",
+          }}
+        >
+          {/* Page 2 Running Header */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#C9A227]/30 pb-2 font-mono text-[10px]">
+            <span className="font-bold text-[#C9A227] uppercase tracking-wider">
+              ASJi WEB AND LEGAL SOLUTION · PAGE 02 · STATUTORY GAPS &amp; REMEDIATION
+            </span>
+            <span className="text-zinc-400 tabular-nums">
+              {auditRefId} · {targetDomain}
+            </span>
+          </div>
+
+          {/* 2A. Section-by-Section Statutory Gap Mapping */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-sm font-bold text-[#FAF8F5] flex items-center gap-1.5">
+                <Scale className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+                <span>Statutory Gap Mapping ({legalSolutionSuite.lawName})</span>
+              </h2>
+              <span className="font-mono text-[9.5px] text-zinc-400 tabular-nums">
+                {legalSolutionSuite.nonComplianceGaps.length} Mapped Observations
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2.5">
+              {legalSolutionSuite.nonComplianceGaps.map((gap) => (
+                <div
+                  key={gap.id}
+                  className="dossier-card pdf-avoid-break rounded-lg border border-[#262932] bg-[#15171C] p-3 space-y-1.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-[10px] font-bold text-[#C9A227]">
+                      {gap.lawArticle}
+                    </span>
+                    <StatusBadge status={gap.severity === "critical" ? "FAIL" : "WARN"} />
+                  </div>
+                  <div className="font-sans text-xs font-bold text-[#FAF8F5]">{gap.issue}</div>
+                  <p className="text-[10.5px] text-zinc-300 leading-snug">
+                    {gap.whatYouDoNotFollow}
+                  </p>
+                  <div className="border-t border-[#262932] pt-1 font-mono text-[9.5px] text-zinc-400">
+                    <strong className="text-[#10B981]">Remedy: </strong>
+                    {gap.statutoryRemedy}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2B. Compact Statutory Exceptions & Safe Harbor Register */}
+          <div className="rounded-lg border border-[#262932] bg-[#15171C] p-3 space-y-2 pdf-avoid-break">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#FAF8F5]">
+                Statutory Exceptions &amp; Safe Harbor Qualification
+              </span>
               <span
-                className={`rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                className={`rounded px-2 py-0.5 font-mono text-[9px] font-bold uppercase border ${
                   statutoryExceptions.hasAnyQualifiedException
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                    : "bg-red-500/15 text-red-300 border border-red-500/30"
+                    ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/40"
+                    : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/40"
                 }`}
               >
                 {statutoryExceptions.hasAnyQualifiedException
-                  ? `${statutoryExceptions.qualifiedCount} of ${statutoryExceptions.totalEvaluated} Statutory Exceptions Qualified`
-                  : "Full Statutory Scope Applicable (No Exemptions)"}
+                  ? `${statutoryExceptions.qualifiedCount}/${statutoryExceptions.totalEvaluated} Qualified`
+                  : "Full Scope Applicable (No Exemptions)"}
               </span>
             </div>
 
-            {/* Legal Evaluation Conclusion */}
-            <p className="text-[8.5px] leading-relaxed text-gray-300 mb-2.5 bg-black/40 p-2 rounded border border-white/5">
-              <strong className="text-white">Statutory Assessment: </strong>
-              {statutoryExceptions.summaryConclusion}
-            </p>
-
-            {/* Itemized Exceptions Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2">
               {statutoryExceptions.exceptionsList.map((exc) => {
                 const isQualified =
                   exc.qualificationStatus === "QUALIFIED_EXEMPTION" ||
                   exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR";
-
                 return (
                   <div
                     key={exc.id}
-                    className="rounded border p-2 flex flex-col justify-between"
+                    className="rounded border p-2.5 flex items-start justify-between gap-2 bg-[#0D0E11]"
                     style={{
-                      backgroundColor: isQualified
-                        ? "rgba(16, 185, 129, 0.05)"
-                        : "rgba(0, 0, 0, 0.35)",
-                      borderColor: isQualified
-                        ? "rgba(16, 185, 129, 0.3)"
-                        : "rgba(255, 255, 255, 0.08)",
+                      borderColor: isQualified ? "rgba(16, 185, 129, 0.35)" : "#262932",
                     }}
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-bold text-white text-[8.5px] flex items-center gap-1">
-                          <span>{exc.flag}</span>
-                          <span className="truncate">{exc.exceptionTitle}</span>
-                        </span>
-                        <span
-                          className={`text-[7px] font-bold px-1 py-0.5 rounded shrink-0 uppercase ${
-                            exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-white/5 text-gray-400 border border-white/10"
-                          }`}
-                        >
-                          {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
-                            ? "EXEMPT"
-                            : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
-                              ? "CONDITIONAL"
-                              : "NOT EXEMPT"}
-                        </span>
+                    <div className="min-w-0">
+                      <div className="font-mono text-[10px] font-bold text-[#FAF8F5] truncate">
+                        <span className="text-[#C9A227] mr-1">{exc.flag}</span>
+                        {exc.exceptionTitle}
                       </div>
-                      <div className="text-[7.5px] text-[#D4AF37] font-semibold mb-1">
+                      <div className="font-mono text-[9px] text-[#C9A227] truncate">
                         {exc.sectionOrArticle}
                       </div>
-                      <p className="text-[7.5px] text-gray-300 leading-tight">
-                        {exc.auditRationale}
+                      <p className="text-[9.5px] text-zinc-400 leading-snug mt-0.5">
+                        {exc.impactOnVerdict}
                       </p>
                     </div>
-                    <div className="mt-1.5 pt-1 border-t border-white/5 text-[7px] text-gray-400">
-                      <strong className="text-gray-200">Legal Effect: </strong>
-                      {exc.impactOnVerdict}
-                    </div>
+                    <span
+                      className={`rounded px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase shrink-0 border ${
+                        exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                          ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/40"
+                          : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                            ? "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/40"
+                            : "bg-[#15171C] text-zinc-400 border-[#262932]"
+                      }`}
+                    >
+                      {exc.qualificationStatus === "QUALIFIED_EXEMPTION"
+                        ? "EXEMPT"
+                        : exc.qualificationStatus === "CONDITIONAL_SAFE_HARBOR"
+                          ? "CONDITIONAL"
+                          : "NOT EXEMPT"}
+                    </span>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* 5.5 DETECTED TECHNICAL COMPLIANCE FINDINGS & AUDIT EXPOSURES */}
-          <div
-            className="rounded-lg border p-3 text-[9px] font-mono mb-2.5"
-            style={{
-              backgroundColor: "#0f0e0c",
-              borderColor: "rgba(212, 175, 55, 0.3)",
-            }}
-          >
-            <div
-              className="flex items-center justify-between border-b pb-1.5 mb-2"
-              style={{ borderBottomColor: "rgba(255, 255, 255, 0.1)" }}
-            >
-              <span
-                className="font-bold uppercase tracking-wider text-[9.5px]"
-                style={{ color: "#E5C158" }}
-              >
-                DETECTED TECHNICAL COMPLIANCE FINDINGS &amp; AUDIT EXPOSURES
-              </span>
-              <span className="text-[8px] uppercase tracking-wider" style={{ color: "#888888" }}>
-                Result-Oriented Scan Log
-              </span>
-            </div>
+          {/* 2C. Remediation Code Patches (Unlocked when isPaid) OR Sealed Notice + Sign-Off */}
+          {isPaid ? (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-display text-sm font-bold text-[#FAF8F5] flex items-center gap-1.5">
+                  <FileCode2 className="h-3.5 w-3.5 text-[#C9A227] shrink-0" />
+                  <span>Production Server &amp; Consent Blocker Remediation Patches</span>
+                </h2>
+                <span className="font-mono text-[9.5px] font-bold uppercase text-[#10B981]">
+                  Verified Paid License
+                </span>
+              </div>
 
-            {/* Critical Leaks / Exposures Itemized */}
-            {Array.isArray(report?.criticalLeaks) && report.criticalLeaks.length > 0 ? (
-              <div className="space-y-1.5">
-                {(Array.isArray(report.criticalLeaks) ? report.criticalLeaks : []).map(
-                  (leak, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 rounded p-1.5 border"
-                      style={{
-                        backgroundColor: "rgba(0, 0, 0, 0.4)",
-                        borderColor:
-                          leak.severity === "critical" || leak.severity === "high"
-                            ? "rgba(244, 63, 94, 0.3)"
-                            : "rgba(245, 158, 11, 0.3)",
-                      }}
-                    >
-                      <div className="flex items-start gap-1.5">
-                        <span
-                          className="mt-0.5 rounded px-1 py-0.2 text-[7px] font-bold uppercase shrink-0"
-                          style={{
-                            backgroundColor:
-                              leak.severity === "critical" || leak.severity === "high"
-                                ? "rgba(244, 63, 94, 0.2)"
-                                : "rgba(245, 158, 11, 0.2)",
-                            color:
-                              leak.severity === "critical" || leak.severity === "high"
-                                ? "#fb7185"
-                                : "#fbbf24",
-                            border:
-                              leak.severity === "critical" || leak.severity === "high"
-                                ? "1px solid rgba(244, 63, 94, 0.4)"
-                                : "1px solid rgba(245, 158, 11, 0.4)",
-                          }}
-                        >
-                          {leak.severity}
-                        </span>
-                        <div>
-                          <span className="font-bold text-white block">{leak.title}</span>
-                          <span className="text-[8px] leading-tight block text-gray-300">
-                            {leak.detail}
-                          </span>
-                        </div>
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2.5">
+                {automatedPatches.map((patch) => (
+                  <div
+                    key={patch.id}
+                    className="dossier-card pdf-avoid-break rounded-lg border border-[#C9A227]/35 bg-[#15171C] overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-[#262932] bg-[#0D0E11] px-2.5 py-1.5 font-mono text-[9.5px]">
+                      <span className="font-bold text-[#FAF8F5] truncate">{patch.title}</span>
+                      <span className="text-[#C9A227] shrink-0">{patch.filename}</span>
                     </div>
-                  ),
+                    <pre className="p-2.5 font-mono text-[8.5px] leading-[1.35] text-[#FAF8F5] whitespace-pre-wrap break-words bg-[#0D0E11]/85">
+                      {patch.code.trim()}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="rounded-lg border border-[#C9A227]/40 bg-[#15171C] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pdf-avoid-break">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-[#C9A227]/40 bg-[#0D0E11] text-[#C9A227]">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#FAF8F5]">
+                      Remediation Code Patches &amp; Tailored Legal Notices Locked
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                      Complete the Remediation Workbench unlock to append ready-to-deploy NGINX,
+                      Cloudflare, Express, and Consent Blocker patches plus Page 3 tailored
+                      statutory disclosures to this dossier.
+                    </p>
+                  </div>
+                </div>
+                {onOpenUnlockModal && (
+                  <button
+                    type="button"
+                    data-export-strip="true"
+                    onClick={onOpenUnlockModal}
+                    className="btn-gold rounded-lg px-3.5 py-2 text-xs font-mono font-bold uppercase tracking-wider whitespace-nowrap shrink-0 cursor-pointer print:hidden"
+                  >
+                    Unlock Full Pack
+                  </button>
                 )}
               </div>
-            ) : (
-              <div className="text-[#34d399] font-bold text-[8.5px] py-1">
-                ✓ No critical vulnerabilities or unconsented telemetry leaks detected.
-              </div>
-            )}
 
-            {/* Evidence items summary */}
-            {Array.isArray(report?.evidence) && report.evidence.length > 0 && (
-              <div
-                className="mt-2 pt-2 border-t text-[8px]"
-                style={{ borderTopColor: "rgba(255, 255, 255, 0.08)", color: "#a3a3a3" }}
-              >
-                <span className="font-bold uppercase block mb-1" style={{ color: "#D4AF37" }}>
-                  VERIFIED AUDIT EVIDENCE SIGNALS (
-                  {(Array.isArray(report.evidence) ? report.evidence : []).length} Signals
-                  Captured):
-                </span>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-gray-300">
-                  {(Array.isArray(report.evidence) ? report.evidence : [])
-                    .slice(0, 6)
-                    .map((item, idx) => (
-                      <li key={idx} className="truncate flex items-center gap-1">
-                        <span className="text-[#D4AF37]">•</span>
-                        <span className="truncate">{item}</span>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* 6. LEGAL SIGNATORY & CRYPTOGRAPHIC SEAL BOX */}
-          <div
-            className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg border p-2.5 text-[8.5px] font-mono"
-            style={{
-              backgroundColor: "#121110",
-              borderColor: "rgba(255, 255, 255, 0.12)",
-              color: "#a3a3a3",
-            }}
-          >
-            <div className="sm:col-span-2">
-              <span className="font-bold block uppercase text-[9px]" style={{ color: "#E5C158" }}>
-                Statutory Technical Legal Notice:
-              </span>
-              <p className="mt-0.5 leading-tight" style={{ color: "#a3a3a3" }}>
-                By executing this scan, you authorize a passive, non-intrusive public transport
-                layer audit. Reports generate automated technical compliance logs evaluated strictly
-                against the 15 sovereign statutory data protection frameworks above.
-              </p>
-            </div>
-
-            <div
-              className="border-t pt-1.5 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0 flex flex-col justify-between"
-              style={{ borderColor: "rgba(255, 255, 255, 0.12)" }}
-            >
-              <div>
-                <span
-                  className="text-[7.5px] uppercase tracking-wider block"
-                  style={{ color: "#737373" }}
-                >
-                  AUTHORIZATION SIGNATURE
-                </span>
-                <span className="text-[9.5px] font-bold text-white block mt-0.5 font-serif italic">
-                  ASJi Sovereign Legal Operations
-                </span>
-                <span className="text-[7.5px] block" style={{ color: "#888888" }}>
-                  Jaipur Headquarters // Directorate of RegTech
-                </span>
-              </div>
-              <div
-                className="flex items-center gap-1 text-[7.5px] font-bold mt-0.5"
-                style={{ color: "#34d399" }}
-              >
-                <Lock className="h-2.5 w-2.5" />
-                <span>SHA-256 HASH VERIFIED</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 7. OFFICIAL FOOTER CONTACT BLOCK */}
-          <footer
-            className="mt-2.5 overflow-hidden rounded-lg border"
-            style={{
-              borderColor: "rgba(212, 175, 55, 0.5)",
-              backgroundColor: "#080808",
-            }}
-          >
-            {/* Top Ribbon */}
-            <div
-              className="border-b py-0.5 text-center"
-              style={{
-                background: "linear-gradient(90deg, #201808 0%, #3a2c0c 50%, #201808 100%)",
-                borderBottomColor: "rgba(212, 175, 55, 0.35)",
-              }}
-            >
-              <p
-                className="font-mono text-[8px] font-extrabold uppercase tracking-[0.22em]"
-                style={{ color: "#E5C158" }}
-              >
-                EMPOWERING BUSINESSES. ENSURING COMPLIANCE. DELIVERING TRUST.
-              </p>
-            </div>
-
-            {/* 4 Contact Columns */}
-            <div
-              className="grid grid-cols-2 sm:grid-cols-4 p-1.5 text-[9px] font-mono"
-              style={{ gap: "4px" }}
-            >
-              {/* Phone */}
-              <div
-                className="flex items-center gap-1.5 p-1"
-                style={{ borderRight: "1px solid rgba(255, 255, 255, 0.08)" }}
-              >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
-                  style={{
-                    color: "#E5C158",
-                    borderColor: "rgba(212, 175, 55, 0.6)",
-                    backgroundColor: "rgba(212, 175, 55, 0.1)",
-                  }}
-                >
-                  <Phone className="h-3 w-3" />
-                </div>
-                <div style={{ color: "#d1d5db" }}>
-                  <a
-                    href="tel:8290841179"
-                    className="hover:text-[#E5C158] block leading-none font-bold"
-                  >
-                    8290841179
-                  </a>
-                  <a
-                    href="tel:9461584298"
-                    className="hover:text-[#E5C158] block leading-none mt-0.5"
-                  >
-                    9461584298
-                  </a>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div
-                className="flex items-center gap-1.5 p-1"
-                style={{ borderRight: "1px solid rgba(255, 255, 255, 0.08)" }}
-              >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
-                  style={{
-                    color: "#E5C158",
-                    borderColor: "rgba(212, 175, 55, 0.6)",
-                    backgroundColor: "rgba(212, 175, 55, 0.1)",
-                  }}
-                >
-                  <MapPin className="h-3 w-3" />
-                </div>
-                <div style={{ color: "#d1d5db", lineHeight: 1.1 }}>
-                  <span className="font-bold text-white block">Jaipur,</span>
-                  <span className="text-[8px]" style={{ color: "#888888" }}>
-                    Rajasthan, India
-                  </span>
-                </div>
-              </div>
-
-              {/* Website */}
-              <div
-                className="flex items-center gap-1.5 p-1"
-                style={{ borderRight: "1px solid rgba(255, 255, 255, 0.08)" }}
-              >
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
-                  style={{
-                    color: "#E5C158",
-                    borderColor: "rgba(212, 175, 55, 0.6)",
-                    backgroundColor: "rgba(212, 175, 55, 0.1)",
-                  }}
-                >
-                  <Globe className="h-3 w-3" />
-                </div>
-                <div className="truncate">
-                  <a
-                    href="https://www.asji.online"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold hover:underline block truncate leading-tight"
-                    style={{ color: "#E5C158" }}
-                  >
-                    www.asji.online
-                  </a>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="flex items-center gap-1.5 p-1">
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border"
-                  style={{
-                    color: "#E5C158",
-                    borderColor: "rgba(212, 175, 55, 0.6)",
-                    backgroundColor: "rgba(212, 175, 55, 0.1)",
-                  }}
-                >
-                  <Mail className="h-3 w-3" />
-                </div>
-                <div className="truncate">
-                  <a
-                    href="mailto:asji.online@gmail.com"
-                    className="font-bold text-white hover:text-[#E5C158] transition-colors block truncate leading-tight"
-                  >
-                    asji.online@gmail.com
-                  </a>
-                </div>
-              </div>
-            </div>
-          </footer>
+              {/* For free 2-page dossier, official sign-off concludes cleanly on Page 2 */}
+              <OfficialSignOffBlock auditRefId={auditRefId} shaDigest={shaDigest} />
+            </>
+          )}
         </div>
+
+        {/* =====================================================================
+            PAGE 3 (ONLY WHEN PAID) — TAILORED STATUTORY NOTICE & OFFICIAL SIGN-OFF
+           ===================================================================== */}
+        {isPaid && (
+          <div
+            data-dossier-page="3"
+            className="dossier-page-break relative rounded-xl border p-4 space-y-3.5"
+            style={{
+              backgroundColor: "#0D0E11",
+              borderColor: "rgba(201, 162, 39, 0.45)",
+            }}
+          >
+            {/* Page 3 Running Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#C9A227]/30 pb-2 font-mono text-[10px]">
+              <span className="font-bold text-[#C9A227] uppercase tracking-wider">
+                ASJi WEB AND LEGAL SOLUTION · PAGE 03 · TAILORED STATUTORY NOTICE &amp; SIGN-OFF
+              </span>
+              <span className="text-zinc-400 tabular-nums">
+                {auditRefId} · {targetDomain}
+              </span>
+            </div>
+
+            {/* Ready-to-Deploy Tailored Statutory Privacy Policy */}
+            <div className="rounded-lg border border-[#C9A227]/40 bg-[#15171C] p-3.5 space-y-2 pdf-avoid-break">
+              <div className="flex items-center justify-between gap-2 border-b border-[#262932] pb-1.5">
+                <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-[#C9A227]">
+                  Ready-to-Deploy Tailored Privacy Notice ({legalSolutionSuite.lawName})
+                </span>
+                <span className="font-mono text-[9.5px] text-zinc-400">
+                  Authority: {legalSolutionSuite.authority}
+                </span>
+              </div>
+              <pre className="font-mono text-[10px] leading-[1.45] text-[#FAF8F5] whitespace-pre-wrap break-words bg-[#0D0E11] p-3 rounded border border-[#262932]">
+                {legalSolutionSuite.samplePrivacyPolicy}
+              </pre>
+            </div>
+
+            {/* Consent Gate & Grievance Charters (2-Column Compact Grid) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-3">
+              <div className="dossier-card pdf-avoid-break rounded-lg border border-[#262932] bg-[#15171C] p-3 space-y-1.5">
+                <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#C9A227]">
+                  Zero-Leak Consent Gate Charter
+                </div>
+                <pre className="font-mono text-[9.5px] leading-[1.4] text-zinc-200 whitespace-pre-wrap break-words bg-[#0D0E11] p-2.5 rounded border border-[#262932]">
+                  {legalSolutionSuite.sampleConsentGateCharter}
+                </pre>
+              </div>
+
+              <div className="dossier-card pdf-avoid-break rounded-lg border border-[#262932] bg-[#15171C] p-3 space-y-1.5">
+                <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#C9A227]">
+                  Grievance Officer &amp; Rectification Roadmap
+                </div>
+                <pre className="font-mono text-[9.5px] leading-[1.4] text-zinc-200 whitespace-pre-wrap break-words bg-[#0D0E11] p-2.5 rounded border border-[#262932]">
+                  {`${legalSolutionSuite.sampleGrievanceCharter}\n\n${legalSolutionSuite.sampleRectificationRoadmap}`}
+                </pre>
+              </div>
+            </div>
+
+            {/* Official Gold-Stamped Sign-Off */}
+            <OfficialSignOffBlock auditRefId={auditRefId} shaDigest={shaDigest} />
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

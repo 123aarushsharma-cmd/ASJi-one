@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { Shield, Settings2, Check, X, Lock } from "lucide-react";
+import { saveConsentRecord } from "@/lib/firestore-service";
 
 export type ConsentChoice = "Accepted" | "Rejected" | "Managed";
 export type ConsentStatus = "pending" | "Accepted" | "Rejected" | "Managed";
@@ -21,7 +22,7 @@ export interface CookieConsentDecision {
 }
 
 export const COOKIE_CONSENT_STORAGE_KEY = "asji_cookie_consent_decision";
-export const COOKIE_CONSENT_VERSION = "1.0";
+export const COOKIE_CONSENT_VERSION = "2026.3";
 export const COOKIE_CONSENT_UPDATED_EVENT = "asji_cookie_consent_updated";
 export const OPEN_COOKIE_PREFERENCES_EVENT = "asji_open_cookie_preferences";
 export const COOKIE_BANNER_STATE_EVENT = "asji_cookie_banner_state";
@@ -85,7 +86,12 @@ export function getStoredConsent(): CookieConsentDecision | null {
     const raw = localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CookieConsentDecision;
-    if (parsed && typeof parsed === "object" && parsed.categories) {
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.categories &&
+      parsed.version === COOKIE_CONSENT_VERSION
+    ) {
       return parsed;
     }
   } catch {
@@ -207,6 +213,7 @@ export function CookieConsent() {
         preferences: true,
       };
       saveStoredConsent("Accepted", fullConsent);
+      saveConsentRecord("Accepted", fullConsent, COOKIE_CONSENT_VERSION).catch(() => {});
       setCategories(fullConsent);
       setShowBanner(false);
       setShowManageModal(false);
@@ -218,6 +225,7 @@ export function CookieConsent() {
         preferences: false,
       };
       saveStoredConsent("Rejected", essentialOnly);
+      saveConsentRecord("Rejected", essentialOnly, COOKIE_CONSENT_VERSION).catch(() => {});
       setCategories(essentialOnly);
       setShowBanner(false);
       setShowManageModal(false);
@@ -229,6 +237,7 @@ export function CookieConsent() {
   // Save granular custom preferences from the Managed modal
   const handleSaveManaged = useCallback(() => {
     saveStoredConsent("Managed", categories);
+    saveConsentRecord("Managed", categories, COOKIE_CONSENT_VERSION).catch(() => {});
     setShowBanner(false);
     setShowManageModal(false);
   }, [categories]);
@@ -236,94 +245,78 @@ export function CookieConsent() {
   return (
     <>
       {/* ============================================================ */}
-      {/* 1. RESPONSIVE FLOATING CONSENT BANNER (Mobile/Tablet/Desktop) */}
+      {/* 1. MATTE ONYX VIEWPORT-FIXED CONSENT BANNER                  */}
       {/* ============================================================ */}
       {showBanner && !showManageModal && (
         <aside
           ref={bannerRef}
           role="region"
           aria-label="Privacy and Cookie Consent Notice"
-          style={{
-            position: "fixed",
-            bottom: "max(12px, env(safe-area-inset-bottom, 12px))",
-            left: "max(12px, env(safe-area-inset-left, 12px))",
-            right: "max(12px, env(safe-area-inset-right, 12px))",
-            zIndex: 50,
-            touchAction: "manipulation",
-          }}
-          className="mx-auto max-w-5xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[#D4AF37]/45 bg-[#0c0a09]/95 px-4 py-3.5 shadow-[0_16px_48px_rgba(0,0,0,0.95)] backdrop-blur-2xl transition-all sm:px-6 sm:py-4"
+          className="fixed bottom-24 inset-x-3 sm:inset-x-5 lg:bottom-0 lg:inset-x-0 z-[60] max-h-[75vh] overflow-y-auto touch-manipulation rounded-xl lg:rounded-none border border-[#C9A227]/45 lg:border-x-0 lg:border-b-0 lg:border-t lg:border-[#C9A227]/45 bg-[#0D0E11]/95 backdrop-blur-xl shadow-[0_-18px_48px_rgba(0,0,0,0.88)] transition-colors"
         >
-          <div className="mx-auto flex max-w-6xl flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto flex max-w-[1440px] flex-col gap-3.5 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-12 lg:py-4">
             {/* Title, Badge & Statutory Notice */}
             <div className="flex items-start gap-3">
-              <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]">
-                <Shield className="h-4.5 w-4.5" />
+              <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#262932] bg-[#15171C] text-[#C9A227]">
+                <Shield className="h-4 w-4" />
               </div>
               <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-serif text-sm font-bold tracking-tight text-foreground sm:text-base">
-                    Privacy &amp; Cookie Consent
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="font-display text-sm font-bold tracking-tight text-[#FAF8F5] sm:text-base">
+                    Granular Privacy &amp; Consent Notice
                   </h3>
-                  <span className="rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-2 py-0.5 text-[10px] font-semibold text-[#D4AF37]">
-                    DPDP · GDPR · NDPA · CPRA Compliant
+                  <span className="font-mono text-[10px] font-semibold text-[#C9A227] uppercase tracking-wider">
+                    DPDP Sec. 6 · GDPR Art. 7
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed text-muted-foreground sm:text-[13px] md:max-w-2xl lg:max-w-3xl">
-                  We require your prior affirmative consent before deploying non-essential telemetry
-                  or cookies. Strictly necessary cookies for cryptographic verification and security
-                  are active by default. You can accept all, reject optional cookies, or customize
-                  your preferences. Review our{" "}
+                <p className="text-xs leading-relaxed text-[#A1A1AA] sm:text-[13px] md:max-w-2xl lg:max-w-3xl">
+                  Non-essential telemetry scripts are blocked by default until affirmative,
+                  unambiguous consent is granted. Essential security and session integrity storage
+                  remain active. Consent may be withdrawn anytime via{" "}
+                  <span className="font-semibold text-[#FAF8F5]">Consent Preferences</span> in the
+                  footer. Review our{" "}
                   <Link
                     to="/legal/privacy"
-                    className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
+                    className="font-medium text-[#C9A227] underline underline-offset-2 hover:text-[#DFB842]"
                   >
-                    Privacy Notice
-                  </Link>
-                  ,{" "}
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
                   <Link
                     to="/legal/cookies"
-                    className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
+                    className="font-medium text-[#C9A227] underline underline-offset-2 hover:text-[#DFB842]"
                   >
-                    Cookie Policy
-                  </Link>
-                  , and{" "}
-                  <Link
-                    to="/legal/security"
-                    className="font-medium text-[#D4AF37] underline underline-offset-2 hover:text-[#e5c158]"
-                  >
-                    Security Safeguards
+                    Cookie Notice
                   </Link>
                   .
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons: Responsive for Mobile Touch (<640px), Tablets (640px-1024px), & Desktop */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5 sm:pt-0 shrink-0">
+            {/* Equal-Prominence Action Buttons (DPDP Sec 6 / GDPR Art 7) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:items-center gap-2 pt-0.5 sm:pt-0 shrink-0">
               <button
                 type="button"
                 onClick={() => handleChoice("Accepted")}
-                className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center rounded-lg bg-[#D4AF37] px-4 py-2 text-xs font-bold text-black shadow-md transition-all hover:bg-[#c49f2f] hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
+                className="inline-flex min-h-[40px] items-center justify-center rounded-md border border-[#C9A227] bg-[#C9A227] px-4 py-2 text-xs font-mono font-bold text-[#0D0E11] transition-colors hover:bg-[#DFB842] cursor-pointer whitespace-nowrap"
               >
                 Accept All
               </button>
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleChoice("Rejected")}
-                  className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center rounded-lg border border-border/80 bg-secondary/80 px-3.5 py-2 text-xs font-semibold text-foreground transition-all hover:bg-secondary active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60 cursor-pointer"
-                >
-                  Reject Optional
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChoice("Managed")}
-                  className="inline-flex min-h-[44px] sm:min-h-[38px] items-center justify-center gap-1.5 rounded-lg border border-[#D4AF37]/40 bg-transparent px-3.5 py-2 text-xs font-semibold text-[#D4AF37] transition-all hover:bg-[#D4AF37]/10 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
-                >
-                  <Settings2 className="h-3.5 w-3.5 shrink-0" />
-                  <span>Preferences</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleChoice("Rejected")}
+                className="inline-flex min-h-[40px] items-center justify-center rounded-md border border-[#C9A227]/75 bg-[#15171C] px-4 py-2 text-xs font-mono font-bold text-[#FAF8F5] transition-colors hover:border-[#C9A227] hover:bg-[#1C1F26] cursor-pointer whitespace-nowrap"
+              >
+                Reject Non-Essential
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChoice("Managed")}
+                className="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-md border border-[#262932] bg-[#15171C] px-4 py-2 text-xs font-mono font-bold text-[#C9A227] transition-colors hover:border-[#C9A227] cursor-pointer whitespace-nowrap"
+              >
+                <Settings2 className="h-3.5 w-3.5 shrink-0" />
+                <span>Manage Preferences</span>
+              </button>
             </div>
           </div>
         </aside>
@@ -337,40 +330,27 @@ export function CookieConsent() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="cookie-preferences-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 70,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(5, 5, 5, 0.85)",
-            backdropFilter: "blur(8px)",
-            padding: "12px",
-            paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))",
-            paddingTop: "max(14px, env(safe-area-inset-top, 14px))",
-          }}
-          className="animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0D0E11]/90 p-3 pt-[max(14px,env(safe-area-inset-top))] pb-[max(14px,env(safe-area-inset-bottom))] backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setShowManageModal(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative flex max-h-[92dvh] sm:max-h-[85vh] w-full max-w-lg md:max-w-xl flex-col overflow-hidden rounded-2xl border border-[#D4AF37]/40 bg-[#0c0a09] shadow-2xl shadow-black/90"
+            className="relative flex max-h-[92dvh] sm:max-h-[85vh] w-full max-w-lg md:max-w-xl flex-col overflow-hidden rounded-md border border-[#262932] bg-[#15171C]"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex items-center justify-between border-b border-[#262932] px-4 py-3 sm:px-6 sm:py-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37] shrink-0">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-[#262932] bg-[#0D0E11] text-[#C9A227] shrink-0">
                   <Settings2 className="h-4 w-4" />
                 </div>
                 <div>
                   <h2
                     id="cookie-preferences-title"
-                    className="font-serif text-sm sm:text-base md:text-lg font-bold text-foreground"
+                    className="font-display text-sm sm:text-base md:text-lg font-bold text-[#F4F4F5]"
                   >
                     Manage Privacy Preferences
                   </h2>
-                  <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+                  <p className="text-[10px] sm:text-[11px] text-[#A1A1AA]">
                     Customize your data protection &amp; script gating choices
                   </p>
                 </div>
@@ -378,7 +358,7 @@ export function CookieConsent() {
               <button
                 type="button"
                 onClick={() => setShowManageModal(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/60 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:border-[#C9A227] hover:text-[#F4F4F5] cursor-pointer"
                 aria-label="Close preferences"
               >
                 <X className="h-4 w-4" />
@@ -387,49 +367,45 @@ export function CookieConsent() {
 
             {/* Modal Body: Scrollable Categories */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 space-y-3 sm:px-6 sm:py-4 sm:space-y-3.5 text-left">
-              <p className="text-xs leading-relaxed text-muted-foreground">
+              <p className="text-xs leading-relaxed text-[#A1A1AA]">
                 We respect your personal privacy rights under global regulations including GDPR,
                 India DPDP Act 2023, and CPRA. Analytics and advertising scripts are gated and only
                 execute if authorized below.
               </p>
 
               {/* 1. Necessary (Always Active) */}
-              <div className="rounded-xl border border-border/60 bg-secondary/30 p-3 sm:p-3.5 transition-colors">
+              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-3 sm:p-3.5">
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-foreground">
+                      <span className="text-xs sm:text-sm font-bold text-[#F4F4F5]">
                         Necessary (Essential)
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
+                      <span className="inline-flex items-center gap-1 rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#10B981]">
                         <Lock className="h-2.5 w-2.5" />
                         Always Active
                       </span>
                     </div>
-                    <p className="mt-1 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#A1A1AA]">
                       Essential for core platform security, session integrity, cryptographic
                       verification, and site operation. Cannot be disabled.
                     </p>
                   </div>
-                  <div className="flex h-6 w-6 sm:h-5 sm:w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[#10B981]/15 text-[#10B981]">
                     <Check className="h-3.5 w-3.5" />
                   </div>
                 </div>
               </div>
 
               {/* 2. Analytics (Gated behind consent) */}
-              <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 sm:p-3.5 transition-colors hover:border-[#D4AF37]/30">
+              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-3 sm:p-3.5 transition-colors hover:border-[#C9A227]/60">
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="pr-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-foreground">
-                        Analytics
-                      </span>
-                      <span className="rounded border border-primary/20 bg-primary/5 px-1.5 py-0.2 text-[9px] text-primary">
-                        Script Gated
-                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-[#F4F4F5]">Analytics</span>
+                      <span className="font-mono text-[10px] text-[#C9A227]">Script Gated</span>
                     </div>
-                    <p className="mt-1 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#A1A1AA]">
                       Collects aggregated, non-identifying telemetry to measure platform usage,
                       diagnose system latency, and improve compliance tools. Gated behind consent.
                     </p>
@@ -444,24 +420,20 @@ export function CookieConsent() {
                       className="peer sr-only"
                       aria-label="Toggle Analytics Cookies"
                     />
-                    <div className="h-6 w-11 rounded-full bg-secondary peer-focus:ring-2 peer-focus:ring-[#D4AF37] peer-checked:bg-[#D4AF37] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div className="h-6 w-11 rounded-full bg-[#262932] peer-focus:ring-2 peer-focus:ring-[#C9A227] peer-checked:bg-[#C9A227] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-[#F4F4F5] after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
               </div>
 
               {/* 3. Marketing (Gated behind consent) */}
-              <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 sm:p-3.5 transition-colors hover:border-[#D4AF37]/30">
+              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-3 sm:p-3.5 transition-colors hover:border-[#C9A227]/60">
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="pr-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-foreground">
-                        Marketing
-                      </span>
-                      <span className="rounded border border-primary/20 bg-primary/5 px-1.5 py-0.2 text-[9px] text-primary">
-                        Script Gated
-                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-[#F4F4F5]">Marketing</span>
+                      <span className="font-mono text-[10px] text-[#C9A227]">Script Gated</span>
                     </div>
-                    <p className="mt-1 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#A1A1AA]">
                       Allows non-invasive regulatory alerts, feature announcements, and relevant
                       statutory compliance advisory updates.
                     </p>
@@ -476,19 +448,17 @@ export function CookieConsent() {
                       className="peer sr-only"
                       aria-label="Toggle Marketing Cookies"
                     />
-                    <div className="h-6 w-11 rounded-full bg-secondary peer-focus:ring-2 peer-focus:ring-[#D4AF37] peer-checked:bg-[#D4AF37] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div className="h-6 w-11 rounded-full bg-[#262932] peer-focus:ring-2 peer-focus:ring-[#C9A227] peer-checked:bg-[#C9A227] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-[#F4F4F5] after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
               </div>
 
               {/* 4. Preferences (Optional) */}
-              <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 sm:p-3.5 transition-colors hover:border-[#D4AF37]/30">
+              <div className="rounded-md border border-[#262932] bg-[#0D0E11] p-3 sm:p-3.5 transition-colors hover:border-[#C9A227]/60">
                 <div className="flex items-start sm:items-center justify-between gap-3">
                   <div className="pr-1">
-                    <span className="text-xs sm:text-sm font-bold text-foreground">
-                      Preferences
-                    </span>
-                    <p className="mt-1 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-bold text-[#F4F4F5]">Preferences</span>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#A1A1AA]">
                       Remembers your jurisdiction filters, theme preferences, and legal matrix
                       customizations for future sessions.
                     </p>
@@ -503,26 +473,26 @@ export function CookieConsent() {
                       className="peer sr-only"
                       aria-label="Toggle Preferences Cookies"
                     />
-                    <div className="h-6 w-11 rounded-full bg-secondary peer-focus:ring-2 peer-focus:ring-[#D4AF37] peer-checked:bg-[#D4AF37] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div className="h-6 w-11 rounded-full bg-[#262932] peer-focus:ring-2 peer-focus:ring-[#C9A227] peer-checked:bg-[#C9A227] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[10px] after:left-[2px] after:bg-[#F4F4F5] after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
               </div>
             </div>
 
-            {/* Modal Actions Footer: Responsive Mobile & Tablet Layout */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-border/60 bg-[#090807] px-4 py-3 sm:px-6 sm:py-3.5">
+            {/* Modal Actions Footer: Equal Prominence + One-Click Withdrawal */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-[#262932] bg-[#0D0E11] px-4 py-3 sm:px-6 sm:py-3.5">
               <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => handleChoice("Rejected")}
-                  className="inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary cursor-pointer"
+                  className="inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-md border border-[#C9A227]/60 bg-[#15171C] px-3 py-1.5 text-xs font-mono font-bold text-[#FAF8F5] hover:border-[#C9A227] cursor-pointer whitespace-nowrap"
                 >
-                  Reject Optional
+                  Withdraw / Reject Non-Essential
                 </button>
                 <button
                   type="button"
                   onClick={() => handleChoice("Accepted")}
-                  className="inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-medium text-[#D4AF37] hover:bg-[#D4AF37]/20 cursor-pointer"
+                  className="inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-md border border-[#262932] bg-[#15171C] px-3 py-1.5 text-xs font-mono font-bold text-[#C9A227] hover:border-[#C9A227] cursor-pointer whitespace-nowrap"
                 >
                   Accept All
                 </button>
@@ -530,7 +500,7 @@ export function CookieConsent() {
               <button
                 type="button"
                 onClick={handleSaveManaged}
-                className="inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-lg bg-[#D4AF37] px-4 py-1.5 text-xs font-bold text-black hover:bg-[#c49f2f] shadow-md cursor-pointer w-full sm:w-auto"
+                className="btn-gold inline-flex min-h-[42px] sm:min-h-[36px] items-center justify-center rounded-md px-4 py-1.5 text-xs font-mono font-bold cursor-pointer w-full sm:w-auto whitespace-nowrap"
               >
                 Save Preferences
               </button>

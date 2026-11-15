@@ -4,19 +4,39 @@ import {
   getDocs,
   getDoc,
   setDoc,
+  updateDoc,
   addDoc,
   deleteDoc,
   query,
   orderBy,
   limit,
   serverTimestamp,
-  type DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { WORLD_LAWS_DATA, type WorldLaw } from "./world-laws-data";
+import type { AuditReport } from "./audit-types";
+import { OperationType, handleFirestoreError } from "./firestore-errors";
 
 const LAWS_COLLECTION = "laws";
+const STATUTORY_RULES_COLLECTION = "statutory_rules";
 const CHAT_COLLECTION = "chat_sessions";
+const AUDIT_SCANS_COLLECTION = "audit_scans";
+const PAYMENT_UNLOCKS_COLLECTION = "payment_unlocks";
+const GRIEVANCE_TICKETS_COLLECTION = "grievance_tickets";
+const CONSENT_RECORDS_COLLECTION = "consent_records";
+
+export function normalizeDomainName(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split("/")[0]
+    .split("?")[0]
+    .split("#")[0]
+    .split(":")[0]
+    .trim();
+}
 
 export interface ChatMessage {
   id?: string;
@@ -31,20 +51,108 @@ export interface ChatMessage {
   quickActions?: string[];
 }
 
+export interface StatutoryRuleDoc extends WorldLaw {
+  legalTemplateText?: string;
+  lastUpdatedIso?: string;
+  lastUpdatedBy?: string;
+}
+
+export interface AuditScanFindingSummary {
+  title: string;
+  severity: "low" | "medium" | "high" | "critical";
+  detail: string;
+}
+
+export interface AuditScanRecord {
+  audit_ref_id: string;
+  domain: string;
+  target: string;
+  framework: string;
+  politech_mode: boolean;
+  compliance_score: number;
+  verdict: "COMPLIANT" | "MODERATE RISK" | "CRITICAL NON-COMPLIANT";
+  findings: AuditScanFindingSummary[];
+  score_breakdown?: {
+    rule: string;
+    delta: number;
+    passed: boolean;
+    detail: string;
+  }[];
+  created_at: string;
+}
+
+export interface PaymentUnlockRecord {
+  id: string;
+  userId?: string | null;
+  domain: string;
+  referenceId: string;
+  tier: "patch-code" | "dpdp-india" | "gdpr-global" | "full-bundle";
+  tierName?: string;
+  priceInr?: string;
+  orgName?: string;
+  email?: string;
+  taxId?: string | null;
+  status: "pending" | "verified" | "rejected";
+  created_at: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+}
+
+export interface GrievanceTicketRecord {
+  ticketId: string;
+  requestType: "Access" | "Correction" | "Erasure" | "Grievance";
+  fullName: string;
+  email: string;
+  domainRef?: string;
+  summary: string;
+  status: "OPEN" | "RESOLVED";
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolutionNote?: string;
+}
+
+export interface ConsentRecordDoc {
+  id: string;
+  choice: "Accepted" | "Rejected" | "Managed" | "ScanAuthorized";
+  categories?: {
+    necessary: boolean;
+    analytics: boolean;
+    marketing: boolean;
+    preferences: boolean;
+  };
+  policyVersion: string;
+  domainContext?: string;
+  createdAt: string;
+}
+
 /**
  * Initializes and synchronizes all global laws into Firestore.
- * Ensures the database always contains up-to-date statutory schemas.
+ * Keeps `laws` and `statutory_rules` aligned so admin updates apply everywhere.
  */
 export async function seedWorldLawsToFirestore(): Promise<{ count: number; status: string }> {
   try {
     let synced = 0;
     for (const law of WORLD_LAWS_DATA) {
-      const docRef = doc(db, LAWS_COLLECTION, law.id);
+      const lawRef = doc(db, LAWS_COLLECTION, law.id);
+      const ruleRef = doc(db, STATUTORY_RULES_COLLECTION, law.id);
       await setDoc(
-        docRef,
+        lawRef,
         {
           ...law,
           lastUpdated: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      await setDoc(
+        ruleRef,
+        {
+          ...law,
+          legalTemplateText: law.standardDraftTemplate,
+          lastUpdated: serverTimestamp(),
+          lastUpdatedIso: new Date().toISOString(),
         },
         { merge: true },
       );
@@ -58,44 +166,539 @@ export async function seedWorldLawsToFirestore(): Promise<{ count: number; statu
   }
 }
 
+export const seedStatutoryRules = seedWorldLawsToFirestore;
+
 /**
- * Retrieves all global data protection laws, preferring Firestore with seamless local fallback.
+ * Retrieves all global data protection laws, preferring live `statutory_rules` + `laws`
+ * with seamless local fallback.
  */
-export async function fetchWorldLaws(): Promise<WorldLaw[]> {
+export async function fetchWorldLaws(): Promise<StatutoryRuleDoc[]> {
   try {
-    const colRef = collection(db, LAWS_COLLECTION);
-    const snapshot = await getDocs(colRef);
-    if (!snapshot.empty) {
-      const list: WorldLaw[] = [];
-      snapshot.forEach((d) => {
-        list.push(d.data() as WorldLaw);
+    const [rulesSnap, lawsSnap] = await Promise.all([
+      getDocs(collection(db, STATUTORY_RULES_COLLECTION)),
+      getDocs(collection(db, LAWS_COLLECTION)),
+    ]);
+
+    const merged = new Map<string, StatutoryRuleDoc>();
+    for (const base of WORLD_LAWS_DATA) {
+      merged.set(base.id, {
+        ...base,
+        legalTemplateText: base.standardDraftTemplate,
       });
-      return list.sort((a, b) => a.country.localeCompare(b.country));
     }
-    // If firestore is empty, seed it now
-    seedWorldLawsToFirestore().catch(console.error);
-    return WORLD_LAWS_DATA;
+
+    if (!lawsSnap.empty) {
+      lawsSnap.forEach((d) => {
+        const data = d.data() as StatutoryRuleDoc;
+        const existing = merged.get(d.id);
+        merged.set(d.id, {
+          ...(existing || data),
+          ...data,
+          id: data.id || d.id,
+        });
+      });
+    }
+
+    if (!rulesSnap.empty) {
+      rulesSnap.forEach((d) => {
+        const data = d.data() as StatutoryRuleDoc;
+        const existing = merged.get(d.id);
+        merged.set(d.id, {
+          ...(existing || data),
+          ...data,
+          id: data.id || d.id,
+          standardDraftTemplate:
+            data.legalTemplateText ||
+            data.standardDraftTemplate ||
+            existing?.standardDraftTemplate ||
+            "",
+        });
+      });
+    }
+
+    return Array.from(merged.values()).sort((a, b) => a.country.localeCompare(b.country));
   } catch (err) {
     console.warn("Using local world laws registry:", err);
-    return WORLD_LAWS_DATA;
+    return WORLD_LAWS_DATA.map((l) => ({ ...l, legalTemplateText: l.standardDraftTemplate }));
+  }
+}
+
+export async function fetchStatutoryRules(): Promise<StatutoryRuleDoc[]> {
+  return fetchWorldLaws();
+}
+
+/**
+ * Publishes an admin edit to `statutory_rules` and `laws` so future scans
+ * and the World Laws Atlas immediately pick up the updated statute metadata & template text.
+ */
+export async function publishStatutoryRuleUpdate(
+  rule: StatutoryRuleDoc,
+  updatedBy: string,
+): Promise<void> {
+  const isoNow = new Date().toISOString();
+  const payload = {
+    ...rule,
+    standardDraftTemplate: rule.legalTemplateText ?? rule.standardDraftTemplate ?? "",
+    legalTemplateText: rule.legalTemplateText ?? rule.standardDraftTemplate ?? "",
+    lastUpdated: serverTimestamp(),
+    lastUpdatedIso: isoNow,
+    lastUpdatedBy: updatedBy,
+  };
+
+  try {
+    await Promise.all([
+      setDoc(doc(db, STATUTORY_RULES_COLLECTION, rule.id), payload, { merge: true }),
+      setDoc(doc(db, LAWS_COLLECTION, rule.id), payload, { merge: true }),
+    ]);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${STATUTORY_RULES_COLLECTION}/${rule.id}`);
   }
 }
 
 /**
  * Retrieves a single sovereign law by ID
  */
-export async function fetchLawById(lawId: string): Promise<WorldLaw | null> {
+export async function fetchLawById(lawId: string): Promise<StatutoryRuleDoc | null> {
   try {
-    const docRef = doc(db, LAWS_COLLECTION, lawId);
-    const snap = await getDoc(docRef);
+    const ruleSnap = await getDoc(doc(db, STATUTORY_RULES_COLLECTION, lawId));
+    if (ruleSnap.exists()) {
+      return ruleSnap.data() as StatutoryRuleDoc;
+    }
+    const snap = await getDoc(doc(db, LAWS_COLLECTION, lawId));
     if (snap.exists()) {
-      return snap.data() as WorldLaw;
+      return snap.data() as StatutoryRuleDoc;
     }
     return WORLD_LAWS_DATA.find((l) => l.id === lawId) || null;
-  } catch (err) {
+  } catch {
     return WORLD_LAWS_DATA.find((l) => l.id === lawId) || null;
   }
 }
+
+// =========================================================================
+// LIVE AUDIT SCANS LEDGER (`audit_scans`)
+// =========================================================================
+
+export async function saveAuditScan(
+  report: AuditReport,
+  frameworkId: string,
+  politechMode: boolean,
+): Promise<AuditScanRecord | null> {
+  const domain = normalizeDomainName(report.target || "");
+  if (!domain || domain.length < 3) return null;
+
+  const refId =
+    report.auditRefId && /^ASJI-2026-[A-Z0-9]{4,12}$/.test(report.auditRefId)
+      ? report.auditRefId
+      : `ASJI-2026-${Date.now().toString(36).slice(-6).toUpperCase()}`;
+
+  const verdict: AuditScanRecord["verdict"] =
+    report.score >= 80
+      ? "COMPLIANT"
+      : report.score >= 50
+        ? "MODERATE RISK"
+        : "CRITICAL NON-COMPLIANT";
+
+  const findings: AuditScanFindingSummary[] = (report.criticalLeaks || [])
+    .slice(0, 25)
+    .map((l) => ({
+      title: String(l.title || "").slice(0, 200),
+      severity: l.severity || "medium",
+      detail: String(l.detail || "").slice(0, 600),
+    }));
+
+  const createdAt = report.scannedAtUtc || new Date().toISOString();
+
+  const record: AuditScanRecord = {
+    audit_ref_id: refId,
+    domain,
+    target: report.target,
+    framework: frameworkId,
+    politech_mode: politechMode,
+    compliance_score: Math.max(0, Math.min(100, Math.round(report.score))),
+    verdict,
+    findings,
+    score_breakdown: report.scoreBreakdown || [],
+    created_at: createdAt,
+  };
+
+  try {
+    await setDoc(doc(db, AUDIT_SCANS_COLLECTION, refId), {
+      ...record,
+      timestamp: serverTimestamp(),
+    });
+    return record;
+  } catch (err) {
+    console.warn("Audit scan telemetry write note:", err);
+    return null;
+  }
+}
+
+export async function lookupAuditScanByRefId(refId: string): Promise<AuditScanRecord | null> {
+  const clean = refId.trim().toUpperCase();
+  if (!/^ASJI-2026-[A-Z0-9]{4,12}$/.test(clean)) return null;
+  try {
+    const snap = await getDoc(doc(db, AUDIT_SCANS_COLLECTION, clean));
+    if (!snap.exists()) return null;
+    return snap.data() as AuditScanRecord;
+  } catch (err) {
+    console.warn("Certificate lookup error:", err);
+    return null;
+  }
+}
+
+export async function fetchAuditScans(maxCount = 50): Promise<AuditScanRecord[]> {
+  try {
+    const q = query(
+      collection(db, AUDIT_SCANS_COLLECTION),
+      orderBy("created_at", "desc"),
+      limit(maxCount),
+    );
+    const snap = await getDocs(q);
+    const list: AuditScanRecord[] = [];
+    snap.forEach((d) => {
+      list.push(d.data() as AuditScanRecord);
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, AUDIT_SCANS_COLLECTION);
+  }
+}
+
+// =========================================================================
+// PERSISTENT PAYMENT UNLOCKS (`payment_unlocks` + `licenses` sync)
+// =========================================================================
+
+export async function submitPaymentUnlockRequest(params: {
+  userId?: string | null;
+  domain: string;
+  referenceId: string;
+  tier: PaymentUnlockRecord["tier"];
+  tierName: string;
+  priceInr: string;
+  orgName: string;
+  email: string;
+  taxId?: string | null;
+}): Promise<PaymentUnlockRecord> {
+  const normalizedDomain = normalizeDomainName(params.domain);
+  const randSuffix = Math.random()
+    .toString(36)
+    .slice(2, 8)
+    .replace(/[^a-z0-9]/g, "0");
+  const reqId = `req_${Date.now()}_${randSuffix || "unlock"}`;
+  const createdAt = new Date().toISOString();
+
+  const record: PaymentUnlockRecord = {
+    id: reqId,
+    userId: params.userId || null,
+    domain: normalizedDomain,
+    referenceId: params.referenceId.trim(),
+    tier: params.tier,
+    tierName: params.tierName,
+    priceInr: params.priceInr,
+    orgName: params.orgName.trim() || normalizedDomain,
+    email: params.email.trim() || `compliance@${normalizedDomain}`,
+    taxId: params.taxId?.trim() || null,
+    status: "pending",
+    created_at: createdAt,
+  };
+
+  await setDoc(doc(db, PAYMENT_UNLOCKS_COLLECTION, reqId), {
+    ...record,
+    createdAt: serverTimestamp(),
+  });
+
+  return record;
+}
+
+export async function checkDomainPaymentUnlock(rawDomain: string): Promise<{
+  unlocked: boolean;
+  tiers: string[];
+  tier?: string;
+  tierName?: string;
+  verifiedAt?: string;
+}> {
+  const normalized = normalizeDomainName(rawDomain);
+  if (!normalized || normalized.length < 3) {
+    return { unlocked: false, tiers: [] };
+  }
+
+  try {
+    const [unlockSnap, licenseSnap] = await Promise.all([
+      getDoc(doc(db, PAYMENT_UNLOCKS_COLLECTION, normalized)).catch(() => null),
+      getDoc(doc(db, "licenses", normalized)).catch(() => null),
+    ]);
+
+    if (unlockSnap?.exists()) {
+      const data = unlockSnap.data() as PaymentUnlockRecord;
+      if (data.status === "verified") {
+        const tier = data.tier || "full-bundle";
+        return {
+          unlocked: true,
+          tiers: Array.from(new Set([tier, ...(tier === "full-bundle" ? ["full-bundle"] : [])])),
+          tier,
+          tierName: data.tierName,
+          verifiedAt: data.verifiedAt,
+        };
+      }
+    }
+
+    if (licenseSnap?.exists()) {
+      const lic = licenseSnap.data() as { active?: boolean; tier?: string; tierName?: string };
+      if (lic.active) {
+        const tier = lic.tier || "full-bundle";
+        return {
+          unlocked: true,
+          tiers: Array.from(new Set([tier, "full-bundle"])),
+          tier,
+          tierName: lic.tierName,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Payment unlock check note:", err);
+  }
+
+  return { unlocked: false, tiers: [] };
+}
+
+export async function fetchPaymentUnlocks(): Promise<PaymentUnlockRecord[]> {
+  try {
+    const snap = await getDocs(collection(db, PAYMENT_UNLOCKS_COLLECTION));
+    const list: PaymentUnlockRecord[] = [];
+    snap.forEach((d) => {
+      list.push({ id: d.id, ...(d.data() as Omit<PaymentUnlockRecord, "id">) });
+    });
+    return list.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, PAYMENT_UNLOCKS_COLLECTION);
+  }
+}
+
+export async function verifyAndUnlockDomain(
+  unlockOrDomain: PaymentUnlockRecord | string,
+  adminEmail: string,
+  overrides?: {
+    tier?: PaymentUnlockRecord["tier"];
+    tierName?: string;
+    priceInr?: string;
+    orgName?: string;
+    referenceId?: string;
+  },
+): Promise<void> {
+  const isString = typeof unlockOrDomain === "string";
+  const normalizedDomain = normalizeDomainName(isString ? unlockOrDomain : unlockOrDomain.domain);
+  if (!normalizedDomain || normalizedDomain.length < 3) {
+    throw new Error("Valid domain name required to verify and unlock.");
+  }
+
+  const verifiedAt = new Date().toISOString();
+  const tier = overrides?.tier || (isString ? "full-bundle" : unlockOrDomain.tier) || "full-bundle";
+  const tierName =
+    overrides?.tierName ||
+    (isString ? "Full-Spectrum Sovereign Enterprise Suite" : unlockOrDomain.tierName) ||
+    "Full-Spectrum Sovereign Enterprise Suite";
+  const priceInr =
+    overrides?.priceInr || (isString ? "₹59,999" : unlockOrDomain.priceInr) || "₹59,999";
+  const referenceId =
+    overrides?.referenceId || (isString ? "ADMIN_MANUAL_GRANT" : unlockOrDomain.referenceId);
+  const orgName =
+    overrides?.orgName ||
+    (isString ? normalizedDomain : unlockOrDomain.orgName) ||
+    normalizedDomain;
+
+  try {
+    // 1. If verifying a submitted request (`req_...`), mark that request verified
+    if (!isString && unlockOrDomain.id && unlockOrDomain.id !== normalizedDomain) {
+      await setDoc(
+        doc(db, PAYMENT_UNLOCKS_COLLECTION, unlockOrDomain.id),
+        {
+          status: "verified",
+          verifiedAt,
+          verifiedBy: adminEmail,
+        },
+        { merge: true },
+      );
+    }
+
+    // 2. Write canonical zero-PII verified domain unlock doc keyed by normalized domain
+    await setDoc(
+      doc(db, PAYMENT_UNLOCKS_COLLECTION, normalizedDomain),
+      {
+        id: normalizedDomain,
+        domain: normalizedDomain,
+        referenceId,
+        tier,
+        tierName,
+        priceInr,
+        status: "verified",
+        created_at: isString ? verifiedAt : unlockOrDomain.created_at || verifiedAt,
+        verifiedAt,
+        verifiedBy: adminEmail,
+      },
+      { merge: true },
+    );
+
+    // 3. Synchronize `licenses` collection for backward compatibility
+    await setDoc(
+      doc(db, "licenses", normalizedDomain),
+      {
+        domain: normalizedDomain,
+        active: true,
+        tier,
+        tierName,
+        priceInr,
+        orgName,
+        approvedAt: serverTimestamp(),
+        issuedBy: adminEmail,
+      },
+      { merge: true },
+    );
+  } catch (err) {
+    handleFirestoreError(
+      err,
+      OperationType.WRITE,
+      `${PAYMENT_UNLOCKS_COLLECTION}/${normalizedDomain}`,
+    );
+  }
+}
+
+export async function rejectPaymentUnlock(unlockId: string, adminEmail: string): Promise<void> {
+  try {
+    await updateDoc(doc(db, PAYMENT_UNLOCKS_COLLECTION, unlockId), {
+      status: "rejected",
+      rejectedAt: new Date().toISOString(),
+      rejectedBy: adminEmail,
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `${PAYMENT_UNLOCKS_COLLECTION}/${unlockId}`);
+  }
+}
+
+export async function revokeDomainUnlock(rawDomain: string): Promise<void> {
+  const normalizedDomain = normalizeDomainName(rawDomain);
+  try {
+    await Promise.all([
+      deleteDoc(doc(db, PAYMENT_UNLOCKS_COLLECTION, normalizedDomain)).catch(() => {}),
+      deleteDoc(doc(db, "licenses", normalizedDomain)).catch(() => {}),
+    ]);
+  } catch (err) {
+    handleFirestoreError(
+      err,
+      OperationType.DELETE,
+      `${PAYMENT_UNLOCKS_COLLECTION}/${normalizedDomain}`,
+    );
+  }
+}
+
+// =========================================================================
+// DPDP GRIEVANCE & DATA PRINCIPAL DESK (`grievance_tickets`)
+// =========================================================================
+
+export async function submitGrievanceTicket(
+  ticket: Omit<GrievanceTicketRecord, "status">,
+): Promise<GrievanceTicketRecord> {
+  const fullRecord: GrievanceTicketRecord = {
+    ...ticket,
+    status: "OPEN",
+  };
+
+  await setDoc(doc(db, GRIEVANCE_TICKETS_COLLECTION, ticket.ticketId), {
+    ...fullRecord,
+    timestamp: serverTimestamp(),
+  });
+
+  return fullRecord;
+}
+
+export async function fetchGrievanceTickets(): Promise<GrievanceTicketRecord[]> {
+  try {
+    const snap = await getDocs(collection(db, GRIEVANCE_TICKETS_COLLECTION));
+    const list: GrievanceTicketRecord[] = [];
+    snap.forEach((d) => {
+      list.push(d.data() as GrievanceTicketRecord);
+    });
+    return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, GRIEVANCE_TICKETS_COLLECTION);
+  }
+}
+
+export async function resolveGrievanceTicket(
+  ticketId: string,
+  adminEmail: string,
+  resolutionNote?: string,
+): Promise<void> {
+  try {
+    await updateDoc(doc(db, GRIEVANCE_TICKETS_COLLECTION, ticketId), {
+      status: "RESOLVED",
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: adminEmail,
+      ...(resolutionNote ? { resolutionNote: resolutionNote.trim() } : {}),
+    });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `${GRIEVANCE_TICKETS_COLLECTION}/${ticketId}`);
+  }
+}
+
+// =========================================================================
+// COOKIE & TELEMETRY CONSENT LEDGER (`consent_records`)
+// =========================================================================
+
+export async function saveConsentRecord(
+  choice: ConsentRecordDoc["choice"],
+  categories: ConsentRecordDoc["categories"] | undefined,
+  policyVersion: string,
+  domainContext?: string,
+): Promise<void> {
+  const rand = Math.random()
+    .toString(36)
+    .slice(2, 8)
+    .replace(/[^a-z0-9]/g, "0");
+  const id = `consent_${Date.now()}_${rand || "rec"}`;
+  const createdAt = new Date().toISOString();
+
+  const payload: ConsentRecordDoc = {
+    id,
+    choice,
+    ...(categories ? { categories } : {}),
+    policyVersion,
+    ...(domainContext
+      ? { domainContext: normalizeDomainName(domainContext) || domainContext }
+      : {}),
+    createdAt,
+  };
+
+  try {
+    await setDoc(doc(db, CONSENT_RECORDS_COLLECTION, id), {
+      ...payload,
+      timestamp: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn("Consent ledger persistence note:", err);
+  }
+}
+
+export async function fetchConsentRecords(maxCount = 50): Promise<ConsentRecordDoc[]> {
+  try {
+    const q = query(
+      collection(db, CONSENT_RECORDS_COLLECTION),
+      orderBy("createdAt", "desc"),
+      limit(maxCount),
+    );
+    const snap = await getDocs(q);
+    const list: ConsentRecordDoc[] = [];
+    snap.forEach((d) => {
+      list.push(d.data() as ConsentRecordDoc);
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, CONSENT_RECORDS_COLLECTION);
+  }
+}
+
+// =========================================================================
+// PRIVATE USER VAULT, CHAT, BULK SCANS & LEGACY WORLD LAWS HELPERS
+// =========================================================================
 
 export interface UserAuditRecord {
   id: string;
@@ -120,9 +723,6 @@ export interface UserNoticeRecord {
   createdAt: string;
 }
 
-/**
- * Saves an audit report to the authenticated user's private Firestore vault.
- */
 export async function saveUserAudit(
   userId: string,
   audit: Omit<UserAuditRecord, "userId" | "createdAt"> & { createdAt?: string },
@@ -145,9 +745,6 @@ export async function saveUserAudit(
   }
 }
 
-/**
- * Fetches all private audits saved under the user's isolated account.
- */
 export async function fetchUserAudits(userId: string): Promise<UserAuditRecord[]> {
   if (!userId) return [];
   try {
@@ -166,9 +763,6 @@ export async function fetchUserAudits(userId: string): Promise<UserAuditRecord[]
   }
 }
 
-/**
- * Deletes a user audit record from private cloud persistence.
- */
 export async function deleteUserAudit(userId: string, auditId: string): Promise<void> {
   if (!userId || !auditId) return;
   try {
@@ -179,9 +773,6 @@ export async function deleteUserAudit(userId: string, auditId: string): Promise<
   }
 }
 
-/**
- * Saves a customized statutory notice or policy charter to user's private vault.
- */
 export async function saveUserNotice(
   userId: string,
   notice: Omit<UserNoticeRecord, "userId" | "createdAt"> & { createdAt?: string },
@@ -204,9 +795,6 @@ export async function saveUserNotice(
   }
 }
 
-/**
- * Fetches user's saved notices from private vault.
- */
 export async function fetchUserNotices(userId: string): Promise<UserNoticeRecord[]> {
   if (!userId) return [];
   try {
@@ -225,9 +813,6 @@ export async function fetchUserNotices(userId: string): Promise<UserNoticeRecord
   }
 }
 
-/**
- * Deletes a notice from user's vault.
- */
 export async function deleteUserNotice(userId: string, noticeId: string): Promise<void> {
   if (!userId || !noticeId) return;
   try {
@@ -238,9 +823,6 @@ export async function deleteUserNotice(userId: string, noticeId: string): Promis
   }
 }
 
-/**
- * Saves a message to a chat session in Firestore for persistent history.
- */
 export async function saveChatMessage(
   sessionId: string,
   message: Omit<ChatMessage, "id">,
@@ -256,9 +838,6 @@ export async function saveChatMessage(
   }
 }
 
-/**
- * Deletes all messages in a chat session for complete privacy erasure.
- */
 export async function deleteChatSession(sessionId: string): Promise<void> {
   try {
     const messagesCol = collection(db, CHAT_COLLECTION, sessionId, "messages");
@@ -299,9 +878,6 @@ export interface BulkScanBatch {
 const BULK_SCANS_COLLECTION = "bulk_scans";
 const STATUTORY_UPDATES_COLLECTION = "daily_statutory_updates";
 
-/**
- * Saves a completed bulk scan batch to Firestore for persistent auditing.
- */
 export async function saveBulkScanBatch(batch: BulkScanBatch): Promise<void> {
   try {
     const docRef = doc(db, BULK_SCANS_COLLECTION, batch.id);
@@ -319,9 +895,6 @@ export async function saveBulkScanBatch(batch: BulkScanBatch): Promise<void> {
   }
 }
 
-/**
- * Retrieves past bulk scan batches from Firestore.
- */
 export async function fetchBulkScanBatches(): Promise<BulkScanBatch[]> {
   try {
     const colRef = collection(db, BULK_SCANS_COLLECTION);
@@ -337,9 +910,6 @@ export async function fetchBulkScanBatches(): Promise<BulkScanBatch[]> {
   }
 }
 
-/**
- * Deletes a bulk scan batch from Firestore.
- */
 export async function deleteBulkScanBatch(batchId: string): Promise<void> {
   try {
     const docRef = doc(db, BULK_SCANS_COLLECTION, batchId);
@@ -350,59 +920,37 @@ export async function deleteBulkScanBatch(batchId: string): Promise<void> {
   }
 }
 
-/**
- * Updates a sovereign law in the Cloud Firestore database.
- * Ensures statutory amendments or changes in penalties are persisted daily.
- */
-export async function updateWorldLaw(law: WorldLaw, updatedBy: string): Promise<void> {
-  try {
-    const docRef = doc(db, LAWS_COLLECTION, law.id);
-    await setDoc(
-      docRef,
-      {
-        ...law,
-        lastUpdated: serverTimestamp(),
-        lastUpdatedIso: new Date().toISOString(),
-        lastUpdatedBy: updatedBy,
-      },
-      { merge: true },
-    );
-  } catch (err) {
-    console.error("Failed to update law in Firestore:", err);
-    throw err;
-  }
+export async function updateWorldLaw(law: StatutoryRuleDoc, updatedBy: string): Promise<void> {
+  return publishStatutoryRuleUpdate(law, updatedBy);
 }
 
-/**
- * Creates or inserts a new sovereign law into Firestore.
- */
-export async function createWorldLaw(law: WorldLaw, createdBy: string): Promise<void> {
+export async function createWorldLaw(law: StatutoryRuleDoc, createdBy: string): Promise<void> {
+  const isoNow = new Date().toISOString();
+  const payload = {
+    ...law,
+    legalTemplateText: law.legalTemplateText ?? law.standardDraftTemplate ?? "",
+    createdAt: serverTimestamp(),
+    lastUpdated: serverTimestamp(),
+    lastUpdatedIso: isoNow,
+    createdBy,
+  };
   try {
-    const docRef = doc(db, LAWS_COLLECTION, law.id);
-    await setDoc(
-      docRef,
-      {
-        ...law,
-        createdAt: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
-        lastUpdatedIso: new Date().toISOString(),
-        createdBy,
-      },
-      { merge: true },
-    );
+    await Promise.all([
+      setDoc(doc(db, LAWS_COLLECTION, law.id), payload, { merge: true }),
+      setDoc(doc(db, STATUTORY_RULES_COLLECTION, law.id), payload, { merge: true }),
+    ]);
   } catch (err) {
     console.error("Failed to create law in Firestore:", err);
     throw err;
   }
 }
 
-/**
- * Deletes a law from Firestore.
- */
 export async function deleteWorldLaw(lawId: string): Promise<void> {
   try {
-    const docRef = doc(db, LAWS_COLLECTION, lawId);
-    await deleteDoc(docRef);
+    await Promise.all([
+      deleteDoc(doc(db, LAWS_COLLECTION, lawId)),
+      deleteDoc(doc(db, STATUTORY_RULES_COLLECTION, lawId)).catch(() => {}),
+    ]);
   } catch (err) {
     console.error("Failed to delete law from Firestore:", err);
     throw err;
@@ -419,9 +967,6 @@ export interface DailyStatutoryUpdate {
   lawsReviewed?: string[];
 }
 
-/**
- * Records a daily statutory verification check in Firestore.
- */
 export async function recordDailyStatutoryCheck(
   verifiedBy: string,
   notes: string,
@@ -453,9 +998,6 @@ export async function recordDailyStatutoryCheck(
   }
 }
 
-/**
- * Fetches the daily statutory updates log.
- */
 export async function fetchDailyStatutoryUpdates(): Promise<DailyStatutoryUpdate[]> {
   try {
     const colRef = collection(db, STATUTORY_UPDATES_COLLECTION);

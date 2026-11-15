@@ -49,7 +49,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-https",
       title: "Transport Layer Security (TLS 1.3 & HTTPS)",
-      statute: "GDPR Art. 32 // DPDP Act s.8(5) // ISO 27001",
+      statute: "GDPR Art. 32 · DPDP Act s.8(5) · ISO 27001",
       passed: hasHttps,
       icon: Lock,
       successText: "HTTPS active with strict SSL/TLS encryption enforced.",
@@ -59,7 +59,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-hsts",
       title: "HTTP Strict Transport Security (HSTS)",
-      statute: "RFC 6797 // OWASP ASVS V14.4",
+      statute: "RFC 6797 · OWASP ASVS V14.4",
       passed: hasHsts,
       icon: ShieldCheck,
       successText: "HSTS header present with subDomain preloading active.",
@@ -69,7 +69,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-csp",
       title: "Content Security Policy (CSP & Anti-Sniffing)",
-      statute: "W3C CSP Level 3 // OWASP ASVS V14.1",
+      statute: "W3C CSP Level 3 · OWASP ASVS V14.1",
       passed: hasCsp,
       icon: ShieldCheck,
       successText: "CSP directives restrict malicious third-party script injection.",
@@ -79,7 +79,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-cookies",
       title: "Pre-Consent Cookie & Tracker Gating",
-      statute: "ePrivacy Directive 2002/58/EC // EDPB 05/2020",
+      statute: "ePrivacy Directive 2002/58/EC · EDPB 05/2020",
       passed: !hasPreConsentLeak,
       icon: Cookie,
       successText: "Zero unconsented third-party trackers or telemetry cookies placed.",
@@ -89,7 +89,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-privacy",
       title: "Statutory Privacy Notice at Collection",
-      statute: "DPDP Act 2023 s.5 // GDPR Art. 13 & 14",
+      statute: "DPDP Act 2023 s.5 · GDPR Art. 13 & 14",
       passed: hasPrivacyNotice,
       icon: FileText,
       successText: "Clear, itemized privacy policy accessible in landing page structure.",
@@ -99,7 +99,7 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
     {
       id: "diag-grievance",
       title: "Grievance Redressal & DPO Publication",
-      statute: "DPDP Act 2023 s.13 // IT Rules 2021 Rule 3(2)",
+      statute: "DPDP Act 2023 s.13 · IT Rules 2021 Rule 3(2)",
       passed: hasGrievanceOfficer,
       icon: Users,
       successText: "Statutory Grievance Officer details & 48h resolution SLA disclosed.",
@@ -112,29 +112,29 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
   const failCount = diagnostics.length - passCount;
 
   return (
-    <div className="surface-panel p-5 sm:p-7 border-primary/30">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+    <div className="rounded-md border border-[#262932] bg-[#15171C] p-5 sm:p-7">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262932] pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-lg sm:text-xl font-bold text-gold-gradient">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3 className="font-display text-lg sm:text-xl font-bold text-[#F4F4F5]">
               Statutory Compliance Diagnostics Checklist
             </h3>
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary uppercase">
+            <span className="font-mono text-[11px] font-semibold text-[#C9A227] uppercase tracking-wider">
               Pass / Fail Analysis
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Deterministic technical and statutory evaluation benchmarked against 6 global privacy
-            statutes.
+          <p className="text-xs text-[#A1A1AA] mt-0.5">
+            Direct statutory mapping and live telemetry evaluation benchmarked against global
+            privacy statutes.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-emerald-400 font-bold">
+        <div className="flex items-center gap-2 font-mono text-xs tabular-nums">
+          <span className="inline-flex items-center gap-1 rounded border border-[#10B981]/40 bg-[#10B981]/10 px-2.5 py-1 text-[#10B981] font-bold">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {passCount} PASSED
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-rose-400 font-bold">
+          <span className="inline-flex items-center gap-1 rounded border border-[#EF4444]/40 bg-[#EF4444]/10 px-2.5 py-1 text-[#EF4444] font-bold">
             <XCircle className="h-3.5 w-3.5" />
             {failCount} FAILED
           </span>
@@ -147,28 +147,24 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
           return (
             <div
               key={diag.id}
-              className={`rounded-xl border p-4 flex flex-col justify-between transition-all ${
-                diag.passed
-                  ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
-                  : "border-rose-500/30 bg-rose-500/5 hover:border-rose-500/50"
-              }`}
+              className="rounded-md border border-[#262932] bg-[#0D0E11] p-4 flex flex-col justify-between transition-colors hover:border-[#C9A227]/60"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
-                        diag.passed ? "text-emerald-400" : "text-rose-400"
+                        diag.passed ? "text-[#10B981]" : "text-[#EF4444]"
                       }`}
                     />
-                    <p className="text-xs font-semibold text-foreground">{diag.title}</p>
+                    <p className="text-xs font-semibold text-[#F4F4F5]">{diag.title}</p>
                   </div>
 
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 ${
                       diag.passed
-                        ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-300"
-                        : "border border-rose-500/40 bg-rose-500/20 text-rose-300"
+                        ? "border border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                        : "border border-[#EF4444]/40 bg-[#EF4444]/10 text-[#EF4444]"
                     }`}
                   >
                     {diag.passed ? (
@@ -183,16 +179,16 @@ export function StatutoryDiagnosticsChecklist({ report }: StatutoryDiagnosticsCh
                   </span>
                 </div>
 
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-xs leading-relaxed text-[#A1A1AA]">
                   {diag.passed ? diag.successText : diag.failText}
                 </p>
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] font-mono text-muted-foreground">
-                <span className="truncate max-w-[220px]">{diag.statute}</span>
+              <div className="mt-3 flex items-center justify-between border-t border-[#262932] pt-2 text-[10px] font-mono text-[#71717A]">
+                <span className="truncate max-w-[230px]">{diag.statute}</span>
                 <span
                   className={
-                    diag.passed ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"
+                    diag.passed ? "text-[#10B981] font-semibold" : "text-[#EF4444] font-semibold"
                   }
                 >
                   {diag.passed ? "Compliant" : `Risk: ${diag.severity}`}

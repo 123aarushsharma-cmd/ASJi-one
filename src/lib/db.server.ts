@@ -32,17 +32,20 @@ export function normalizeTargetKey(target: string): string {
   return key.trim();
 }
 
+const SAFE_AUDIT_ID_RE = /^[a-zA-Z0-9_-]{6,64}$/;
+
 function ensureDbFile(): StoredAuditRecord[] {
   try {
     if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
+      fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
     }
     if (!fs.existsSync(DB_FILE)) {
-      fs.writeFileSync(DB_FILE, JSON.stringify([]), "utf-8");
+      fs.writeFileSync(DB_FILE, JSON.stringify([]), { encoding: "utf-8", mode: 0o600 });
       return [];
     }
     const content = fs.readFileSync(DB_FILE, "utf-8");
     const rawRecords = JSON.parse(content) as StoredAuditRecord[];
+    if (!Array.isArray(rawRecords)) return [];
 
     // Strictly deduplicate existing records by normalized targetKey to prevent repeated results
     const seen = new Set<string>();
@@ -50,6 +53,7 @@ function ensureDbFile(): StoredAuditRecord[] {
     let hadDuplicates = false;
 
     for (const r of rawRecords) {
+      if (!r || typeof r !== "object") continue;
       const key = normalizeTargetKey(r.targetKey || r.target || r.report?.target);
       if (!key) continue;
       if (seen.has(key)) {
@@ -81,9 +85,11 @@ function ensureDbFile(): StoredAuditRecord[] {
 function writeDbFile(records: StoredAuditRecord[]): void {
   try {
     if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
+      fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
     }
-    fs.writeFileSync(DB_FILE, JSON.stringify(records, null, 2), "utf-8");
+    const tmpFile = `${DB_FILE}.${crypto.randomBytes(4).toString("hex")}.tmp`;
+    fs.writeFileSync(tmpFile, JSON.stringify(records, null, 2), { encoding: "utf-8", mode: 0o600 });
+    fs.renameSync(tmpFile, DB_FILE);
   } catch (err) {
     console.error("Failed to write scans_db.json", err);
   }
@@ -141,7 +147,7 @@ export async function saveAuditToDb(
   if (primaryKey) memoryAuditCache.set(primaryKey, report);
   if (secondaryKey) memoryAuditCache.set(secondaryKey, report);
 
-  writeDbFile(updatedRecords.slice(0, 200));
+  writeDbFile(updatedRecords.slice(0, 100));
 
   return { id, savedAt };
 }
@@ -179,6 +185,7 @@ export async function findRecentAuditByTarget(
 }
 
 export async function getAuditFromDb(id: string): Promise<AuditReport | null> {
+  if (!SAFE_AUDIT_ID_RE.test(id)) return null;
   const records = ensureDbFile();
   const found = records.find((r) => r.id === id);
   return found ? found.report : null;
@@ -204,10 +211,11 @@ export async function listAuditsFromDb(
     });
   }
 
-  return list;
+  return list.slice(0, 50);
 }
 
 export async function purgeAuditFromDb(id: string): Promise<boolean> {
+  if (!SAFE_AUDIT_ID_RE.test(id)) return false;
   const records = ensureDbFile();
   const filtered = records.filter((r) => r.id !== id);
   writeDbFile(filtered);
@@ -218,13 +226,13 @@ export async function purgeAllAuditsFromDb(): Promise<{ count: number }> {
   const records = ensureDbFile();
   const count = records.length;
 
-  // Secure overwrite / zero-fill before removing file
+  // Secure overwrite / zero-fill before replacing file
   try {
     if (fs.existsSync(DB_FILE)) {
       const stats = fs.statSync(DB_FILE);
       if (stats.size > 0) {
         const zeroBuffer = Buffer.alloc(stats.size, 0);
-        fs.writeFileSync(DB_FILE, zeroBuffer);
+        fs.writeFileSync(DB_FILE, zeroBuffer, { mode: 0o600 });
       }
     }
   } catch {

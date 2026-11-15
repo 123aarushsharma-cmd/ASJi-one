@@ -112,23 +112,23 @@ export function AutoDeletionSecurity({
     isFinite(totalSecs) && totalSecs > 0 ? Math.max(0, (timeLeft / totalSecs) * 100) : 100;
 
   return (
-    <div className="surface-panel p-5 my-6 rounded-2xl border border-primary/30 backdrop-blur-md shadow-lg animate-rise">
+    <div className="rounded-md border border-[#262932] bg-[#15171C] p-5 my-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Security Status Badge & Title */}
         <div className="flex items-start gap-3.5">
-          <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary mt-0.5">
-            <Lock className="h-5 w-5 animate-pulse" />
+          <div className="p-2.5 rounded-md bg-[#0D0E11] border border-[#262932] text-[#C9A227] mt-0.5">
+            <Lock className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-sm text-gold-gradient">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-display font-bold text-base text-[#F4F4F5]">
                 Auto-Deletion Security
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase font-semibold px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/40">
                 <ShieldCheck className="h-3 w-3" /> Ephemeral Memory
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            <p className="text-xs text-[#A1A1AA] mt-0.5 leading-relaxed">
               Zero server logging. Audit artifacts auto-purge from browser state on timer expiry or
               tab close.
             </p>
@@ -140,10 +140,10 @@ export function AutoDeletionSecurity({
           <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
             {/* Countdown Badge */}
             {retentionMode !== "manual" && retentionMode !== "session" && (
-              <div className="flex items-center gap-2 bg-secondary/80 border border-border/80 px-3 py-1.5 rounded-xl text-xs font-sans font-semibold">
-                <Timer className="h-3.5 w-3.5 text-primary animate-spin-slow" />
-                <span className="text-muted-foreground">Purge in:</span>
-                <span className="font-bold text-gold-gradient">{formatTime(timeLeft)}</span>
+              <div className="flex items-center gap-2 bg-[#0D0E11] border border-[#262932] px-3 py-1.5 rounded-md text-xs font-mono font-semibold tabular-nums">
+                <Timer className="h-3.5 w-3.5 text-[#C9A227]" />
+                <span className="text-[#A1A1AA]">Purge in:</span>
+                <span className="font-bold text-[#C9A227]">{formatTime(timeLeft)}</span>
               </div>
             )}
 
@@ -151,7 +151,7 @@ export function AutoDeletionSecurity({
             <button
               onClick={handleManualWipe}
               disabled={isWiping}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-destructive/15 text-destructive border border-destructive/40 hover:bg-destructive/25 transition-all active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/40 hover:bg-[#EF4444] hover:text-white transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
             >
               {isWiping ? (
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -166,22 +166,22 @@ export function AutoDeletionSecurity({
 
       {/* Progress Bar for Active Timer */}
       {hasReport && retentionMode !== "manual" && retentionMode !== "session" && (
-        <div className="mt-4 pt-3 border-t border-border/50 flex items-center gap-3">
-          <div className="h-1.5 flex-1 bg-secondary rounded-full overflow-hidden">
+        <div className="mt-4 pt-3 border-t border-[#262932] flex items-center gap-3">
+          <div className="h-1.5 flex-1 bg-[#0D0E11] border border-[#262932] rounded-sm overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-destructive transition-all duration-1000 ease-linear"
+              className="h-full bg-[#C9A227] transition-all duration-1000 ease-linear"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <span className="text-[10px] text-muted-foreground font-sans font-medium">
+          <span className="text-[11px] text-[#A1A1AA] font-mono tabular-nums">
             {Math.round(progressPercent)}% retention remaining
           </span>
         </div>
       )}
 
       {/* Retention Mode Selector */}
-      <div className="mt-4 pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <span className="text-muted-foreground text-[11px]">Auto-Purge Security Policy:</span>
+      <div className="mt-4 pt-3 border-t border-[#262932] flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span className="text-[#A1A1AA] font-mono text-[11px]">Auto-Purge Security Policy:</span>
         <div className="flex flex-wrap items-center gap-1.5">
           {(
             [
@@ -194,10 +194,10 @@ export function AutoDeletionSecurity({
             <button
               key={mode.id}
               onClick={() => setRetentionMode(mode.id)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+              className={`px-3 py-1 rounded-md text-[11px] font-mono transition-colors cursor-pointer whitespace-nowrap ${
                 retentionMode === mode.id
-                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                  : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-[#C9A227] text-[#0D0E11] font-bold"
+                  : "border border-[#262932] bg-[#0D0E11] text-[#A1A1AA] hover:text-[#F4F4F5] hover:border-[#C9A227]/60"
               }`}
             >
               {mode.label}
